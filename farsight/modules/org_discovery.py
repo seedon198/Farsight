@@ -90,15 +90,33 @@ class OrgDiscovery:
         await asyncio.gather(*tasks)
         
         # Process and deduplicate results
-        all_domains = set([domain])
-        all_domains.update(self.results["crt_sh"])
-        all_domains.update(self.results["passive_dns"])
+        base_domain_parts = domain.split('.')
+        base_domain_suffix = '.'.join(base_domain_parts[-2:])  # e.g., 'sony.com'
+        
+        # Separate domains from subdomains
+        related_domains = set()
+        subdomains = set([domain])  # Add original domain to subdomains
+        
+        # Process all discovered domains
+        all_discovered = set()
+        all_discovered.update(self.results["crt_sh"])
+        all_discovered.update(self.results["passive_dns"])
         
         for api_result in self.results["api_results"]:
-            all_domains.update(api_result.get("domains", []))
+            all_discovered.update(api_result.get("domains", []))
         
-        # Convert back to sorted list
-        sorted_domains = sorted(list(all_domains))
+        # Categorize as domain or subdomain
+        for discovered in all_discovered:
+            if discovered.endswith('.' + domain):  # It's a subdomain
+                subdomains.add(discovered)
+            elif '.' + base_domain_suffix in discovered:  # It's a subdomain of the main domain
+                subdomains.add(discovered)
+            else:  # It's a separate domain
+                related_domains.add(discovered)
+        
+        # Convert to sorted lists
+        sorted_domains = sorted(list(related_domains))
+        sorted_subdomains = sorted(list(subdomains))
         
         # Final results
         return {
@@ -107,8 +125,10 @@ class OrgDiscovery:
             "certificate_transparency": list(self.results["crt_sh"]),
             "passive_dns": list(self.results["passive_dns"]),
             "api_results": self.results["api_results"],
-            "all_domains": sorted_domains,
-            "total_domains": len(sorted_domains)
+            "related_domains": sorted_domains,  # Truly related domains (different TLDs)
+            "discovered_subdomains": sorted_subdomains,  # Subdomains of target
+            "total_related_domains": len(sorted_domains),
+            "total_subdomains": len(sorted_subdomains)
         }
     
     async def _get_whois_info(self, domain: str) -> None:

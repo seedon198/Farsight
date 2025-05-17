@@ -69,8 +69,8 @@ This report presents the findings from a reconnaissance scan of **{target}**.
 ### WHOIS Information
 {whois_info}
 
-### Discovered Domains ({total_domains})
-{domains_list}
+### Related Domains ({total_related_domains})
+{related_domains_list}
 
 ### Certificate Transparency Data
 {certificate_transparency}
@@ -86,7 +86,11 @@ This report presents the findings from a reconnaissance scan of **{target}**.
 {subdomains}
 
 ### Port Scan Results
-{port_scan}
+#### Summary
+{port_scan_summary}
+
+#### Open Ports by Domain
+{port_scan_details}
 
 ### Email Security Assessment
 {email_security}
@@ -308,15 +312,30 @@ All data in this report is presented for informational purposes only.
         total_open_ports = 0
         email_security_status = "Unknown"
         additional_points = []
+        total_domains = 0
+        total_subdomains = 0
         
-        # Get total domains
-        if "org" in results and "all_domains" in results["org"]:
-            total_domains = len(results["org"]["all_domains"])
-        
-        # Get open ports
-        if "recon" in results and "port_scan" in results["recon"]:
-            if "open_ports" in results["recon"]["port_scan"]:
-                total_open_ports = results["recon"]["port_scan"]["open_ports"]
+        # Count related domains
+        if 'org' in results and 'related_domains' in results['org']:
+            total_domains = len(results['org']['related_domains'])
+            
+        # Count discovered subdomains from org module
+        if 'org' in results and 'discovered_subdomains' in results['org']:
+            total_subdomains += len(results['org']['discovered_subdomains'])
+            
+        # Add subdomains from recon module
+        if 'recon' in results and 'subdomains' in results['recon']:
+            total_subdomains += len(results['recon']['subdomains'])
+            # Remove duplicates between modules
+            if 'org' in results and 'discovered_subdomains' in results['org']:
+                org_subs = set(results['org'].get('discovered_subdomains', []))
+                recon_subs = set(results['recon'].get('subdomains', []))
+                unique_subs = recon_subs - org_subs
+                total_subdomains = len(org_subs) + len(unique_subs)
+                if "total_open_ports" in results["recon"]["port_scan"]:
+                    total_open_ports = results["recon"]["port_scan"]["total_open_ports"]
+                elif "open_ports" in results["recon"]["port_scan"]:
+                    total_open_ports = results["recon"]["port_scan"]["open_ports"]
         
         # Check email security
         if "recon" in results and "email_security" in results["recon"]:
@@ -348,7 +367,7 @@ All data in this report is presented for informational purposes only.
         
         return self.templates["summary"].format(
             target=target,
-            total_domains=total_domains,
+            total_domains=total_domains + total_subdomains, # Sum of related domains and subdomains
             total_open_ports=total_open_ports,
             email_security_status=email_security_status,
             additional_summary_points=additional_summary
@@ -358,7 +377,7 @@ All data in this report is presented for informational purposes only.
         """Render organization discovery section."""
         # Format WHOIS info
         whois_md = "```\n"
-        if "whois" in org_results:
+        if "whois" in org_results and org_results["whois"]:
             for key, value in org_results["whois"].items():
                 if isinstance(value, list):
                     # Convert all elements in the list to strings before joining
@@ -370,15 +389,19 @@ All data in this report is presented for informational purposes only.
             whois_md += "No WHOIS data available."
         whois_md += "```\n"
         
-        # Format domains list
+        # Format related domains list
         domains_md = ""
-        if "all_domains" in org_results and org_results["all_domains"]:
+        if "related_domains" in org_results and org_results["related_domains"]:
             domains_md = "```\n"
-            for domain in org_results["all_domains"]:
+            for domain in org_results["related_domains"][:50]:  # Limit to 50 for readability
                 domains_md += f"{domain}\n"
+                
+            if len(org_results["related_domains"]) > 50:
+                domains_md += f"... and {len(org_results['related_domains']) - 50} more\n"
+                
             domains_md += "```\n"
         else:
-            domains_md = "No additional domains discovered."
+            domains_md = "No related domains discovered."
         
         # Format certificate transparency
         ct_md = ""
@@ -396,11 +419,10 @@ All data in this report is presented for informational purposes only.
         
         return self.templates["org_discovery"].format(
             whois_info=whois_md,
-            total_domains=len(org_results.get("all_domains", [])),
-            domains_list=domains_md,
+            total_related_domains=len(org_results.get("related_domains", [])),
+            related_domains_list=domains_md,
             certificate_transparency=ct_md
-        )
-    
+        )  
     def _render_recon_section(self, recon_results: Dict[str, Any]) -> str:
         """Render reconnaissance section."""
         # Format DNS records
@@ -425,84 +447,121 @@ All data in this report is presented for informational purposes only.
                                 data = record.get('txt', 'N/A')
                             else:
                                 data = record.get('value', 'N/A')
-                            
                             dns_md += f"| {record_type} | {data} |\n"
                     else:
-                        dns_md += "No records found.\n"
-                    dns_md += "\n"
+                        dns_md += "No records found.\n\n"
         else:
-            dns_md = "No DNS records found."
+            dns_md = "No DNS records found.\n"
         
         # Format subdomains
-        sub_md = ""
+        subdomains_md = ""
         if "subdomains" in recon_results and recon_results["subdomains"]:
-            sub_md = f"Total subdomains discovered: **{len(recon_results['subdomains'])}**\n\n```\n"
-            for subdomain in recon_results["subdomains"]:
-                sub_md += f"{subdomain}\n"
-            sub_md += "```\n"
+            total_subdomains = len(recon_results["subdomains"])
+            subdomains_md = f"Total subdomains discovered: **{total_subdomains}**\n\n"
+            if total_subdomains > 0:
+                subdomains_md += "```\n"
+                for subdomain in recon_results["subdomains"][:100]:  # Limit to 100 for readability
+                    subdomains_md += f"{subdomain}\n"
+                
+                if total_subdomains > 100:
+                    subdomains_md += f"... and {total_subdomains - 100} more subdomains\n"
+                
+                subdomains_md += "```\n"
         else:
-            sub_md = "No subdomains discovered."
+            subdomains_md = "No subdomains discovered.\n"
         
         # Format port scan
-        port_md = ""
+        port_scan_summary = ""
+        port_scan_details = ""
+        
         if "port_scan" in recon_results and recon_results["port_scan"]:
-            scan = recon_results["port_scan"]
-            port_md = f"Target IP: **{scan.get('target', 'Unknown')}**\n\n"
+            port_scan = recon_results["port_scan"]
             
-            if "ports" in scan and scan["ports"]:
-                port_md += "| Port | Service | Banner |\n|------|---------|--------|\n"
-                for port in scan["ports"]:
-                    service = self._get_service_name(port["port"])
-                    # Ensure banner is a string and handle None values safely
-                    banner_value = port.get("banner")
-                    banner = str(banner_value).replace("|", "\\|")[:50] if banner_value is not None else ""  # Escape pipe chars and truncate
-                    port_md += f"| {port['port']} | {service} | {banner} |\n"
+            # Generate summary
+            total_scanned = port_scan.get("total_scanned", 0)
+            domains_with_ports = port_scan.get("domains_with_open_ports", 0)
+            total_open_ports = port_scan.get("total_open_ports", 0)
+            
+            port_scan_summary += f"**Domains Scanned:** {total_scanned}\n\n"
+            port_scan_summary += f"**Domains with Open Ports:** {domains_with_ports}\n\n"
+            port_scan_summary += f"**Total Open Ports Found:** {total_open_ports}\n\n"
+            
+            # Generate detailed per-domain port information
+            domain_results = port_scan.get("domain_results", {})
+            
+            if domain_results:
+                # Find domains with open ports
+                domains_with_open = []
+                for domain, result in domain_results.items():
+                    if result.get("open_ports", 0) > 0:
+                        domains_with_open.append((domain, result))
+                
+                if domains_with_open:
+                    # Sort by number of open ports (highest first)
+                    domains_with_open.sort(key=lambda x: x[1].get("open_ports", 0), reverse=True)
+                    
+                    for domain, result in domains_with_open:
+                        open_ports = result.get("open_ports", 0)
+                        port_list = result.get("open_port_list", [])
+                        target_ip = result.get("target", "Unknown")
+                        
+                        port_scan_details += f"**Domain:** {domain}\n\n"
+                        port_scan_details += f"**IP Address:** {target_ip}\n\n"
+                        port_scan_details += f"**Open Ports:** {open_ports}\n\n"
+                        
+                        if port_list:
+                            port_scan_details += "| Port | Service |\n|------|---------|\n"
+                            for port in port_list:
+                                service = self._get_service_name(port)
+                                port_scan_details += f"| {port} | {service} |\n"
+                        
+                        port_scan_details += "\n---\n\n"
+                else:
+                    port_scan_details = "No domains with open ports found.\n"
             else:
-                port_md += "No open ports found."
+                port_scan_details = "No detailed port information available.\n"
         else:
-            port_md = "No port scan results available."
+            port_scan_summary = "No port scan results available.\n"
+            port_scan_details = "No port scan results available.\n"
         
         # Format email security
-        email_md = ""
-        if "email_security" in recon_results and recon_results["email_security"]:
-            sec = recon_results["email_security"]
-            email_md = "#### Email Security Findings\n\n"
-            
-            # SPF status
-            spf_status = "✅ Implemented" if sec.get("spf", {}).get("found", False) else "❌ Not implemented"
-            email_md += f"**SPF Record:** {spf_status}\n\n"
-            
-            if "spf" in sec and "record" in sec["spf"] and sec["spf"]["record"]:
-                email_md += f"```\n{sec['spf']['record']}\n```\n\n"
-            
-            # DMARC status
-            dmarc_status = "✅ Implemented" if sec.get("dmarc", {}).get("found", False) else "❌ Not implemented"
-            email_md += f"**DMARC Record:** {dmarc_status}\n\n"
-            
-            if "dmarc" in sec and "record" in sec["dmarc"] and sec["dmarc"]["record"]:
-                email_md += f"```\n{sec['dmarc']['record']}\n```\n\n"
-            
-            # Recommendations
-            email_md += "**Recommendations:**\n\n"
-            recommendations = []
-            
-            if not sec.get("spf", {}).get("found", False):
-                recommendations.append("- Implement SPF to prevent email spoofing")
-            
-            if not sec.get("dmarc", {}).get("found", False):
-                recommendations.append("- Implement DMARC to improve email security and receive reports on email authentication")
-            
-            if not recommendations:
-                recommendations.append("- Email security is well-configured")
-            
-            email_md += "\n".join(recommendations)
+        email_md = "#### Email Security Findings\n\n"
+        
+        # Check SPF
+        spf_record = ""
+        spf_status = "❌ Not implemented"
+        if "spf_record" in recon_results and recon_results["spf_record"]:
+            spf_record = recon_results["spf_record"]
+            spf_status = "✅ Implemented"
+        
+        email_md += f"**SPF Record:** {spf_status}\n\n"
+        if spf_record:
+            email_md += "```\n" + spf_record + "\n```\n\n"
+        
+        # Check DMARC
+        dmarc_record = ""
+        dmarc_status = "❌ Not implemented"
+        if "dmarc_record" in recon_results and recon_results["dmarc_record"]:
+            dmarc_record = recon_results["dmarc_record"]
+            dmarc_status = "✅ Implemented"
+        
+        email_md += f"**DMARC Record:** {dmarc_status}\n\n"
+        if dmarc_record:
+            email_md += "```\n" + dmarc_record + "\n```\n\n"
+        
+        # Add recommendations
+        email_md += "**Recommendations:**\n"
+        if "email_recommendations" in recon_results and recon_results["email_recommendations"]:
+            for rec in recon_results["email_recommendations"]:
+                email_md += f"- {rec}\n"
         else:
-            email_md = "No email security information available."
+            email_md += "- No specific recommendations at this time.\n"
         
         return self.templates["recon"].format(
             dns_records=dns_md,
-            subdomains=sub_md,
-            port_scan=port_md,
+            subdomains=subdomains_md,
+            port_scan_summary=port_scan_summary,
+            port_scan_details=port_scan_details,
             email_security=email_md
         )
     
