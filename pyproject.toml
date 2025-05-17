@@ -1,17 +1,42 @@
-[project]
+[tool.poetry]
 name = "farsight"
 version = "0.1.0"
 description = "CLI-Based Recon and Threat Intelligence Framework"
-authors = [
-    {name = "FARSIGHT Team"}
-]
-license = {text = "MIT"}
+authors = ["FARSIGHT Team"]
+license = "MIT"
 readme = "README.md"
-requires-python = ">=3.8,<4.0"
-dependencies = [
-]
+packages = [{include = "farsight"}]
 
+[tool.poetry.dependencies]
+python = ">=3.8,<4.0"
+typer = "^0.7.0"
+python-whois = "^0.7.3"
+aiohttp = "^3.8.1"
+dnspython = "^2.3.0"
+beautifulsoup4 = "^4.11.1"
+asyncio = "^3.4.3"
+# Enhanced typosquatting detection
+dnstwist = "^20250130"
+# News article retrieval
+gnews = "^0.4.1"
+# PDF report generation
+markdown = "^3.3.7"
+# We'll use reportlab instead of weasyprint as it's more compatible
+reportlab = "^4.0.4"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.0.0"
+pytest-asyncio = "^0.18.1"
+pytest-cov = "^3.0.0"
+flake8 = "^4.0.1"
+black = "^22.1.0"
+isort = "^5.10.1"
+mypy = "^0.931"
+pre-commit = "^2.17.0"
+
+[tool.poetry.scripts]
+farsight = "farsight.main:run"
 
 [build-system]
-requires = ["poetry-core>=2.0.0,<3.0.0"]
+requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
