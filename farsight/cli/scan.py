@@ -52,32 +52,44 @@ async def run_scan(
         DEFAULT_CONFIG["timeout"] = timeout
         DEFAULT_CONFIG["max_concurrent_requests"] = concurrency
     
-    # Print status if verbose
+    # Print status if verbose with colorful output
     if verbose:
-        print(f"Starting scan of {domain} with depth {depth}")
-        print(f"Enabled modules: {', '.join(enabled_modules)}")
+        typer.secho(f"🔍 Starting scan of ", fg=typer.colors.BRIGHT_BLUE, bold=True, nl=False)
+        typer.secho(f"{domain}", fg=typer.colors.BRIGHT_GREEN, bold=True, nl=False)
+        typer.secho(f" with depth ", fg=typer.colors.BRIGHT_BLUE, bold=True, nl=False)
+        typer.secho(f"{depth}", fg=typer.colors.BRIGHT_CYAN, bold=True)
+        typer.secho(f"🧩 Enabled modules: ", fg=typer.colors.BRIGHT_BLUE, bold=True, nl=False)
+        typer.secho(f"{', '.join(enabled_modules)}", fg=typer.colors.BRIGHT_MAGENTA, bold=True)
     
     # Run Organization Discovery module
     if "org" in enabled_modules:
         if verbose:
-            print("Starting Organization Discovery module...")
+            typer.secho("🏢 Starting ", fg=typer.colors.BRIGHT_YELLOW, bold=True, nl=False)
+            typer.secho("Organization Discovery", fg=typer.colors.BRIGHT_GREEN, bold=True, nl=False)
+            typer.secho(" module...", fg=typer.colors.BRIGHT_YELLOW, bold=True)
         
         async with OrgDiscovery(api_manager) as org_discovery:
             results["org"] = await org_discovery.discover(domain, depth)
             
             if verbose:
-                print(f"Organization Discovery complete: {results['org']['total_domains']} domains found")
+                typer.secho("✅ ", fg=typer.colors.GREEN, bold=True, nl=False)
+                typer.secho("Organization Discovery complete: ", fg=typer.colors.BRIGHT_BLUE, nl=False)
+                typer.secho(f"{results['org']['total_domains']} domains found", fg=typer.colors.BRIGHT_GREEN, bold=True)
     
     # Run Reconnaissance module
     if "recon" in enabled_modules:
         if verbose:
-            print("Starting Reconnaissance module...")
+            typer.secho("🌐 Starting ", fg=typer.colors.BRIGHT_YELLOW, bold=True, nl=False)
+            typer.secho("Reconnaissance", fg=typer.colors.BRIGHT_GREEN, bold=True, nl=False)
+            typer.secho(" module...", fg=typer.colors.BRIGHT_YELLOW, bold=True)
         
         recon = Recon(api_manager)
         results["recon"] = await recon.scan(domain, depth)
         
         if verbose:
-            print(f"Reconnaissance complete: {results['recon']['total_subdomains']} subdomains found")
+            typer.secho("✅ ", fg=typer.colors.GREEN, bold=True, nl=False)
+            typer.secho("Reconnaissance complete: ", fg=typer.colors.BRIGHT_BLUE, nl=False)
+            typer.secho(f"{results['recon']['total_subdomains']} subdomains found", fg=typer.colors.BRIGHT_GREEN, bold=True)
     
     # Extract emails for threat intelligence if available
     emails = []
@@ -87,36 +99,48 @@ async def run_scan(
     # Run Threat Intelligence module
     if "threat" in enabled_modules:
         if verbose:
-            print("Starting Threat Intelligence module...")
+            typer.secho("🛡️ Starting ", fg=typer.colors.BRIGHT_YELLOW, bold=True, nl=False)
+            typer.secho("Threat Intelligence", fg=typer.colors.BRIGHT_GREEN, bold=True, nl=False)
+            typer.secho(" module...", fg=typer.colors.BRIGHT_YELLOW, bold=True)
         
         async with ThreatIntel(api_manager) as threat_intel:
             results["threat"] = await threat_intel.gather_intelligence(domain, emails, depth)
             
             if verbose:
-                print(f"Threat Intelligence complete: {results['threat'].get('total_leaks', 0)} leaks found")
+                typer.secho("✅ ", fg=typer.colors.GREEN, bold=True, nl=False)
+                typer.secho("Threat Intelligence complete: ", fg=typer.colors.BRIGHT_BLUE, nl=False)
+                typer.secho(f"{results['threat'].get('total_leaks', 0)} leaks found", fg=typer.colors.BRIGHT_GREEN, bold=True)
     
     # Run Typosquatting module
     if "typosquat" in enabled_modules:
         if verbose:
-            print("Starting Typosquatting Detection module...")
+            typer.secho("🎯 Starting ", fg=typer.colors.BRIGHT_YELLOW, bold=True, nl=False)
+            typer.secho("Typosquatting Detection", fg=typer.colors.BRIGHT_GREEN, bold=True, nl=False)
+            typer.secho(" module...", fg=typer.colors.BRIGHT_YELLOW, bold=True)
         
         async with TyposquatDetector() as typosquat:
             results["typosquat"] = await typosquat.detect(domain, depth)
             
             if verbose:
-                print(f"Typosquatting Detection complete: {len(results['typosquat'].get('typosquats', []))} typosquats found")
+                typer.secho("✅ ", fg=typer.colors.GREEN, bold=True, nl=False)
+                typer.secho("Typosquatting Detection complete: ", fg=typer.colors.BRIGHT_BLUE, nl=False)
+                typer.secho(f"{len(results['typosquat'].get('typosquats', []))} typosquats found", fg=typer.colors.BRIGHT_YELLOW, bold=True)
     
     # Run News Monitoring module
     if "news" in enabled_modules:
         if verbose:
-            print("Starting News Monitoring module...")
+            typer.secho("📰 Starting ", fg=typer.colors.BRIGHT_YELLOW, bold=True, nl=False)
+            typer.secho("News Monitoring", fg=typer.colors.BRIGHT_GREEN, bold=True, nl=False)
+            typer.secho(" module...", fg=typer.colors.BRIGHT_YELLOW, bold=True)
         
         async with NewsMonitor() as news:
             # Use last 30 days for news by default
             results["news"] = await news.monitor(domain, 30)
             
             if verbose:
-                print(f"News Monitoring complete: {results['news'].get('total_articles', 0)} articles found")
+                typer.secho("✅ ", fg=typer.colors.GREEN, bold=True, nl=False)
+                typer.secho("News Monitoring complete: ", fg=typer.colors.BRIGHT_BLUE, nl=False)
+                typer.secho(f"{results['news'].get('total_articles', 0)} articles found", fg=typer.colors.BRIGHT_GREEN, bold=True)
     
     return results
 
