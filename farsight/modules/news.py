@@ -72,8 +72,32 @@ class NewsMonitor:
             await self._monitor_alternative(target, days, max_results)
         
         # Process and sort articles by date (newest first)
+        def parse_date(date_str):
+            if not isinstance(date_str, str):
+                return datetime.min
+            
+            try:
+                # Try RFC 2822 format (GNews format: "Thu, 19 Sep 2024 07:00:00 GMT")
+                try:
+                    return datetime.strptime(date_str, "%a, %d %b %Y %H:%M:%S %Z")
+                except ValueError:
+                    # Try without timezone
+                    return datetime.strptime(date_str, "%a, %d %b %Y %H:%M:%S")
+            except ValueError:
+                try:
+                    # Try ISO format
+                    return datetime.strptime(date_str, "%Y-%m-%d")
+                except ValueError:
+                    try:
+                        # Try with time
+                        return datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S")
+                    except ValueError:
+                        # Default fallback
+                        logger.warning(f"Could not parse date: {date_str}")
+                        return datetime.min
+        
         self.results["articles"].sort(
-            key=lambda x: datetime.strptime(x.get("published", "2000-01-01"), "%Y-%m-%d") if isinstance(x.get("published"), str) else x.get("published", datetime.min),
+            key=lambda x: parse_date(x.get("published", "2000-01-01")),
             reverse=True
         )
         

@@ -13,6 +13,7 @@ from pathlib import Path
 from farsight.utils.common import logger, retry
 from farsight.utils.api_handler import APIManager
 from farsight.utils.dns import DNSResolver, PortScanner, enum_subdomains, check_spf_dmarc
+from farsight.utils.subdomain_enum import discover_subdomains
 from farsight.config import get_config, is_api_configured, REPORTS_DIR
 
 
@@ -131,27 +132,39 @@ class Recon:
         """
         discovered = set()
         
-        # Basic subdomain enumeration
-        basic_wordlist = self._get_wordlist(depth)
-        basic_results = await enum_subdomains(domain, basic_wordlist)
-        discovered.update(basic_results)
+        if depth == 1:
+            # Basic discovery with common subdomain prefixes for quick scans
+            wordlist = self._get_wordlist(depth)
+            basic_discovered = await enum_subdomains(domain, wordlist)
+            discovered.update(basic_discovered)
+        else:
+            # Use advanced subdomain enumeration for more comprehensive discovery
+            logger.info(f"Starting advanced subdomain enumeration for {domain}")
+            
+            # Select techniques based on depth
+            techniques = ["crt", "brute"]
+            
+            if depth >= 2:
+                techniques.append("scrape")
+                techniques.append("apis")
+                
+            if depth >= 3:
+                techniques.append("permutation")
+                
+            # Run the advanced subdomain discovery
+            advanced_discovered = await discover_subdomains(domain, techniques)
+            logger.info(f"Advanced subdomain enumeration found {len(advanced_discovered)} subdomains")
+            discovered.update(advanced_discovered)
         
-        # For deeper scans, use additional techniques
-        if depth >= 2:
-            # Try DNS zone transfer if nameservers are found
+            # Try to find nameservers and attempt zone transfer
             ns_records = await self.dns_resolver.resolve(domain, 'NS')
-            if ns_records:
-                for ns in ns_records:
-                    if 'nameserver' in ns:
-                        zone_transfer = await self._try_zone_transfer(domain, ns['nameserver'])
-                        discovered.update(zone_transfer)
+            for record in ns_records:
+                if 'nameserver' in record:
+                    ns = record['nameserver']
+                    zone_transfer_results = await self._try_zone_transfer(domain, ns)
+                    if zone_transfer_results:
+                        discovered.update(zone_transfer_results)
         
-        # For most comprehensive scan
-        if depth >= 3:
-            # Use larger wordlist
-            extended_wordlist = self._get_wordlist(3)
-            extended_results = await enum_subdomains(domain, extended_wordlist)
-            discovered.update(extended_results)
         
         # Return sorted list
         return sorted(list(discovered))
