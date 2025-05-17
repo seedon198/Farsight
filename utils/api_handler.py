@@ -171,7 +171,110 @@ class APIManager:
     def __init__(self):
         """Initialize API manager."""
         self.handlers: Dict[str, APIHandler] = {}
+        self.available_providers: Dict[str, bool] = {}
     
     def get_handler(self, provider: str) -> APIHandler:
         """
         Get API handler for a provider.
+        
+        Args:
+            provider: API provider name
+            
+        Returns:
+            APIHandler for the specified provider
+        """
+        # Check if handler exists
+        if provider not in self.handlers:
+            # Create new handler
+            self.handlers[provider] = APIHandler(provider)
+        
+        return self.handlers[provider]
+    
+    async def check_availability(self, provider: str) -> bool:
+        """
+        Check if an API provider is available.
+        
+        Args:
+            provider: API provider name
+            
+        Returns:
+            True if provider is available, False otherwise
+        """
+        # Check if already checked
+        if provider in self.available_providers:
+            return self.available_providers[provider]
+        
+        try:
+            # Get handler for provider
+            handler = self.get_handler(provider)
+            
+            # Try a simple API request to check availability
+            if provider == "shodan":
+                await handler.get("api-info")
+            elif provider == "censys":
+                await handler.get("v2/account")
+            elif provider == "securitytrails":
+                await handler.get("v1/ping")
+            elif provider == "virustotal":
+                await handler.get("users/current")
+            elif provider == "intelx":
+                await handler.get("authenticate/info")
+            elif provider == "leakpeek":
+                await handler.get("user")
+            # Add more providers as needed
+            
+            # If no exception was raised, API is available
+            self.available_providers[provider] = True
+            logger.info(f"{provider.capitalize()} API is available")
+            return True
+        except Exception as e:
+            self.available_providers[provider] = False
+            logger.warning(f"{provider.capitalize()} API is not available: {str(e)}")
+            return False
+    
+    async def get_available_handler(self, preferred_providers: List[str]) -> Optional[APIHandler]:
+        """
+        Get first available handler from a list of preferred providers.
+        
+        Args:
+            preferred_providers: List of preferred API providers in order of preference
+            
+        Returns:
+            First available APIHandler or None if none available
+        """
+        for provider in preferred_providers:
+            if await self.check_availability(provider):
+                return self.get_handler(provider)
+        
+        return None
+    
+    async def execute_with_failover(self, 
+                                   providers: List[str], 
+                                   method_name: str, 
+                                   *args, **kwargs) -> Optional[Dict[str, Any]]:
+        """
+        Execute a method with failover support across multiple providers.
+        
+        Args:
+            providers: List of API providers to try in order
+            method_name: Method to call on each handler
+            *args: Arguments to pass to the method
+            **kwargs: Keyword arguments to pass to the method
+            
+        Returns:
+            Response from first successful API call or None if all fail
+        """
+        for provider in providers:
+            try:
+                if not await self.check_availability(provider):
+                    continue
+                
+                handler = self.get_handler(provider)
+                method = getattr(handler, method_name)
+                return await method(*args, **kwargs)
+            except Exception as e:
+                logger.warning(f"Failed to execute {method_name} with {provider}: {str(e)}")
+                continue
+        
+        logger.error(f"All providers failed to execute {method_name}")
+        return None
