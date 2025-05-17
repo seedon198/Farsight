@@ -64,7 +64,7 @@ async def run_scan(
     # Run Organization Discovery module
     if "org" in enabled_modules:
         if verbose:
-            typer.secho("🏢 Starting ", fg=typer.colors.BRIGHT_YELLOW, bold=True, nl=False)
+            typer.secho("Starting ", fg=typer.colors.BRIGHT_YELLOW, bold=True, nl=False)
             typer.secho("Organization Discovery", fg=typer.colors.BRIGHT_GREEN, bold=True, nl=False)
             typer.secho(" module...", fg=typer.colors.BRIGHT_YELLOW, bold=True)
         
@@ -72,14 +72,29 @@ async def run_scan(
             results["org"] = await org_discovery.discover(domain, depth)
             
             if verbose:
-                typer.secho("✅ ", fg=typer.colors.GREEN, bold=True, nl=False)
-                typer.secho("Organization Discovery complete: ", fg=typer.colors.BRIGHT_BLUE, nl=False)
-                typer.secho(f"{results['org']['total_domains']} domains found", fg=typer.colors.BRIGHT_GREEN, bold=True)
+                typer.secho("Organization Discovery complete", fg=typer.colors.BRIGHT_BLUE, bold=True)
+                
+                # Display summary table of organization findings
+                typer.secho("\nDOMAIN SUMMARY:", fg=typer.colors.BRIGHT_CYAN)
+                typer.secho("┌─────────────────────┬────────────────────┐", fg=typer.colors.WHITE)
+                typer.secho("│ Category            │ Count              │", fg=typer.colors.WHITE)
+                typer.secho("├─────────────────────┼────────────────────┤", fg=typer.colors.WHITE)
+                typer.secho(f"│ Total Domains       │ {results['org']['total_domains']:<18} │", fg=typer.colors.WHITE)
+                if 'certificate_transparency' in results['org']:
+                    typer.secho(f"│ Certificate Records │ {len(results['org']['certificate_transparency']):<18} │", fg=typer.colors.WHITE)
+                typer.secho("└─────────────────────┴────────────────────┘", fg=typer.colors.WHITE)
+                
+                # Display a few sample domains if available
+                if results['org']['all_domains'] and len(results['org']['all_domains']) > 0:
+                    typer.secho("\nSAMPLE DOMAINS:", fg=typer.colors.BRIGHT_CYAN)
+                    max_display = min(5, len(results['org']['all_domains']))
+                    for i in range(max_display):
+                        typer.secho(f"  {results['org']['all_domains'][i]}", fg=typer.colors.GREEN)
     
     # Run Reconnaissance module
     if "recon" in enabled_modules:
         if verbose:
-            typer.secho("🌐 Starting ", fg=typer.colors.BRIGHT_YELLOW, bold=True, nl=False)
+            typer.secho("Starting ", fg=typer.colors.BRIGHT_YELLOW, bold=True, nl=False)
             typer.secho("Reconnaissance", fg=typer.colors.BRIGHT_GREEN, bold=True, nl=False)
             typer.secho(" module...", fg=typer.colors.BRIGHT_YELLOW, bold=True)
         
@@ -87,9 +102,52 @@ async def run_scan(
         results["recon"] = await recon.scan(domain, depth)
         
         if verbose:
-            typer.secho("✅ ", fg=typer.colors.GREEN, bold=True, nl=False)
-            typer.secho("Reconnaissance complete: ", fg=typer.colors.BRIGHT_BLUE, nl=False)
-            typer.secho(f"{results['recon']['total_subdomains']} subdomains found", fg=typer.colors.BRIGHT_GREEN, bold=True)
+            typer.secho("Reconnaissance complete", fg=typer.colors.BRIGHT_BLUE, bold=True)
+            
+            # Display asset discovery summary table
+            typer.secho("\nASSET SUMMARY:", fg=typer.colors.BRIGHT_CYAN)
+            typer.secho("┌─────────────────────┬────────────────────┐", fg=typer.colors.WHITE)
+            typer.secho("│ Category            │ Count              │", fg=typer.colors.WHITE)
+            typer.secho("├─────────────────────┼────────────────────┤", fg=typer.colors.WHITE)
+            typer.secho(f"│ Subdomains Found    │ {results['recon']['total_subdomains']:<18} │", fg=typer.colors.WHITE)
+            
+            # Add port scan info if available
+            if 'port_scan' in results['recon'] and 'open_ports' in results['recon']['port_scan']:
+                typer.secho(f"│ Open Ports          │ {results['recon']['port_scan']['open_ports']:<18} │", fg=typer.colors.WHITE)
+            
+            # Add DNS records info if available
+            if 'dns_records' in results['recon']:
+                total_records = sum(len(records.get(record_type, [])) for domain, records in results['recon']['dns_records'].items() for record_type in records)
+                typer.secho(f"│ DNS Records         │ {total_records:<18} │", fg=typer.colors.WHITE)
+                
+            typer.secho("└─────────────────────┴────────────────────┘", fg=typer.colors.WHITE)
+            
+            # Display open ports if available
+            if 'port_scan' in results['recon'] and 'ports' in results['recon']['port_scan'] and results['recon']['port_scan']['ports']:
+                typer.secho("\nOPEN PORTS:", fg=typer.colors.BRIGHT_CYAN)
+                typer.secho("┌─────────┬───────────────┬───────────────────────┐", fg=typer.colors.WHITE)
+                typer.secho("│ Port    │ Service       │ Banner                 │", fg=typer.colors.WHITE)
+                typer.secho("├─────────┼───────────────┼───────────────────────┤", fg=typer.colors.WHITE)
+                
+                for port_info in results['recon']['port_scan']['ports'][:5]:  # Show first 5 ports
+                    port = port_info.get('port', 'N/A')
+                    banner = port_info.get('banner', '')
+                    if banner and len(banner) > 20:
+                        banner = banner[:17] + '...'
+                    service = get_service_name(port) if 'get_service_name' in globals() else "-"
+                    typer.secho(f"│ {port:<7} │ {service:<13} │ {banner:<23} │", fg=typer.colors.WHITE)
+                
+                if len(results['recon']['port_scan']['ports']) > 5:
+                    typer.secho(f"│ ... and {len(results['recon']['port_scan']['ports'])-5} more ports         │", fg=typer.colors.WHITE)
+                    
+                typer.secho("└─────────┴───────────────┴───────────────────────┘", fg=typer.colors.WHITE)
+            
+            # Display a few sample subdomains if available
+            if results['recon']['subdomains'] and len(results['recon']['subdomains']) > 0:
+                typer.secho("\nSAMPLE SUBDOMAINS:", fg=typer.colors.BRIGHT_CYAN)
+                max_display = min(5, len(results['recon']['subdomains']))
+                for i in range(max_display):
+                    typer.secho(f"  {results['recon']['subdomains'][i]}", fg=typer.colors.GREEN)
     
     # Extract emails for threat intelligence if available
     emails = []
