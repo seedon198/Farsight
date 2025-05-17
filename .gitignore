@@ -44,10 +44,6 @@ htmlcov/
 *.swp
 *.swo
 
-# Generated Reports
-reports/*.md
-reports/*.pdf
-
 # Config with sensitive data
 config.local.py
 .env

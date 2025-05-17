@@ -393,92 +393,133 @@ async def run_scan(
             typer.secho("News Monitoring", fg=typer.colors.BRIGHT_GREEN, bold=True, nl=False)
             typer.secho(" module...", fg=typer.colors.BRIGHT_YELLOW, bold=True)
         
-        async with NewsMonitor() as news:
-            # Display port scan results if available
-            if 'port_scan' in results['recon'] and results['recon']['port_scan']:
-                port_scan = results['recon']['port_scan']
-                total_scanned = port_scan.get('total_scanned', 0)
-                domains_with_ports = port_scan.get('domains_with_open_ports', 0)
-                total_open_ports = port_scan.get('total_open_ports', 0)
-                domain_results = port_scan.get('domain_results', {})
-                
-                typer.secho("\nPORT SCAN SUMMARY:", fg=typer.colors.BRIGHT_CYAN)
-                typer.secho("┌─────────────────────┬────────────────────┐", fg=typer.colors.WHITE)
-                typer.secho("│ Category            │ Value              │", fg=typer.colors.WHITE)
-                typer.secho("├─────────────────────┼────────────────────┤", fg=typer.colors.WHITE)
-                typer.secho(f"│ Domains Scanned     │ {total_scanned:<18} │", fg=typer.colors.WHITE)
-                typer.secho(f"│ Domains with Ports  │ {domains_with_ports:<18} │", fg=typer.colors.WHITE)
-                typer.secho(f"│ Total Open Ports    │ {total_open_ports:<18} │", fg=typer.colors.WHITE)
-                typer.secho("└─────────────────────┴────────────────────┘", fg=typer.colors.WHITE)
-                
-                # Show up to 5 domains with open ports
-                domains_to_show = []
-                for scan_domain, scan_result in domain_results.items():
-                    if scan_result.get('open_ports', 0) > 0:
-                        domains_to_show.append((scan_domain, scan_result))
-                
-                if domains_to_show:
-                    typer.secho("\nOPEN PORTS BY DOMAIN:", fg=typer.colors.BRIGHT_CYAN)
-                    typer.secho("┌────────────────────────────┬────────────────────────┐", fg=typer.colors.WHITE)
-                    typer.secho("│ Domain                      │ Open Ports                 │", fg=typer.colors.WHITE)
-                    typer.secho("├────────────────────────────┼────────────────────────┤", fg=typer.colors.WHITE)
+        # Use last 30 days for news by default
+        if 'news' in enabled_modules:
+            try:
+                async with NewsMonitor() as news:
+                    results["news"] = await news.monitor(domain, 30)
                     
-                    # Display top 5 domains (sort by number of open ports)
-                    domains_to_show.sort(key=lambda x: x[1].get('open_ports', 0), reverse=True)
-                    max_domains = min(5, len(domains_to_show))
-                    
-                    for i in range(max_domains):
-                        domain_name = domains_to_show[i][0]
-                        scan_result = domains_to_show[i][1]
+                    if verbose:
+                        typer.secho("News Monitoring complete", fg=typer.colors.BRIGHT_BLUE, bold=True)
                         
-                        # Format open ports
-                        open_ports = scan_result.get('open_ports', 0)
-                        port_list = scan_result.get('open_port_list', [])
+                        # Display summary table of news findings
+                        typer.secho("\nNEWS MONITORING SUMMARY:", fg=typer.colors.BRIGHT_CYAN)
+                        typer.secho("┌─────────────────────┬────────────────────┐", fg=typer.colors.WHITE)
+                        typer.secho("│ Category            │ Count              │", fg=typer.colors.WHITE)
+                        typer.secho("├─────────────────────┼────────────────────┤", fg=typer.colors.WHITE)
                         
-                        if port_list:
-                            ports_str = ', '.join(str(port) for port in port_list[:5])
-                            if len(port_list) > 5:
-                                ports_str += f" ...({len(port_list) - 5} more)"
-                        else:
-                            ports_str = str(open_ports)
+                        # Articles count
+                        total_articles = results['news'].get('total_articles', 0)
+                        typer.secho(f"│ Total Articles      │ {total_articles:<18} │", fg=typer.colors.WHITE)
                         
-                        # Truncate domain if too long
-                        if len(domain_name) > 26:
-                            domain_name = domain_name[:23] + "..."
+                        # Days monitored
+                        days_monitored = results['news'].get('days_monitored', 30)
+                        typer.secho(f"│ Days Monitored      │ {days_monitored:<18} │", fg=typer.colors.WHITE)
                         
-                        typer.secho(f"│ {domain_name:<26} │ {ports_str:<26} │", fg=typer.colors.WHITE)
-                    
-                    if len(domains_to_show) > max_domains:
-                        typer.secho(f"│ ... and {len(domains_to_show) - max_domains} more domains with open ports      │", fg=typer.colors.WHITE)
+                        typer.secho("└─────────────────────┴────────────────────┘", fg=typer.colors.WHITE)
                         
-                    typer.secho("└────────────────────────────┴────────────────────────┘", fg=typer.colors.WHITE)
-                
-                # Display recent articles if available
-                if 'articles' in results['news'] and results['news']['articles']:
-                    typer.secho("\nRECENT NEWS ARTICLES:", fg=typer.colors.BRIGHT_CYAN)
-                    typer.secho("┌──────────────────────────────────────────────────────────┐", fg=typer.colors.WHITE)
-                    
-                    for i, article in enumerate(results['news']['articles'][:3]):  # Show top 3 articles
-                        title = article.get('title', 'Untitled')
-                        source = article.get('source', 'Unknown')
-                        published = article.get('published', 'Unknown date')
-                        
-                        # Truncate if needed
-                        title_display = title
-                        if len(title) > 60:
-                            title_display = title[:57] + '...'
+                        # Display recent news articles
+                        if 'articles' in results['news'] and results['news']['articles']:
+                            typer.secho("\nRECENT NEWS ARTICLES:", fg=typer.colors.BRIGHT_CYAN)
+                            typer.secho("┌─────────────────────────────────────────────────────┐", fg=typer.colors.WHITE)
                             
-                        typer.secho(f"│ {title_display}", fg=typer.colors.WHITE)
-                        typer.secho(f"│ Source: {source} | Published: {published}", fg=typer.colors.WHITE)
-                        
-                        if i < len(results['news']['articles'][:3]) - 1:  # Add separator if not the last article
-                            typer.secho("├──────────────────────────────────────────────────────────┤", fg=typer.colors.WHITE)
-                    
-                    if len(results['news']['articles']) > 3:
-                        remaining = len(results['news']['articles']) - 3
-                        typer.secho(f"│ ... and {remaining} more articles", fg=typer.colors.WHITE)
-                        
-                    typer.secho("└──────────────────────────────────────────────────────────┘", fg=typer.colors.WHITE)
+                            for i, article in enumerate(results['news']['articles'][:3]):  # Show top 3 articles
+                                title = article.get('title', 'Untitled')
+                                publisher = article.get('publisher', article.get('source', 'Unknown'))
+                                published = article.get('published', 'Unknown date')
+                                url = article.get('url', '')
+                                # Get relevance score if available
+                                relevance = article.get('relevance_score', '')
+                                relevance_info = f" | Relevance: {relevance}" if relevance else ""
+                                
+                                # Truncate if needed
+                                title_display = title
+                                if len(title) > 60:
+                                    title_display = title[:57] + '...'
+                                
+                                typer.secho(f"│ {title_display}", fg=typer.colors.WHITE, bold=True)
+                                typer.secho(f"│ Source: {publisher} | Published: {published}{relevance_info}", fg=typer.colors.WHITE)
+                                if url:
+                                    typer.secho(f"│ URL: {url}", fg=typer.colors.WHITE)
+                                
+                                if i < len(results['news']['articles'][:3]) - 1:  # Add separator if not the last article
+                                    typer.secho("├─────────────────────────────────────────────────────┤", fg=typer.colors.WHITE)
+                            
+                            if len(results['news']['articles']) > 3:
+                                remaining = len(results['news']['articles']) - 3
+                                typer.secho(f"│ ... and {remaining} more articles", fg=typer.colors.WHITE)
+                                
+                            typer.secho("└─────────────────────────────────────────────────────┘", fg=typer.colors.WHITE)
+            except ImportError:
+                typer.secho("GNews library not available. Install with: pip install gnews", fg=typer.colors.BRIGHT_RED)
+                results["news"] = {
+                    "error": "GNews library not available",
+                    "articles": [],
+                    "total_articles": 0
+                }
+
+    # Display port scan results if available
+    if 'recon' in results and 'port_scan' in results['recon'] and results['recon']['port_scan']:
+        port_scan = results['recon']['port_scan']
+        total_scanned = port_scan.get('total_scanned', 0)
+        domains_with_ports = port_scan.get('domains_with_open_ports', 0)
+        total_open_ports = port_scan.get('total_open_ports', 0)
+        domain_results = port_scan.get('domain_results', {})
+
+        typer.secho("\nPORT SCAN SUMMARY:", fg=typer.colors.BRIGHT_CYAN)
+        typer.secho("┌─────────────────────┬────────────────────┐", fg=typer.colors.WHITE)
+        typer.secho("│ Category            │ Value              │", fg=typer.colors.WHITE)
+        typer.secho("├─────────────────────┼────────────────────┤", fg=typer.colors.WHITE)
+        typer.secho(f"│ Domains Scanned     │ {total_scanned:<18} │", fg=typer.colors.WHITE)
+        typer.secho(f"│ Domains with Ports  │ {domains_with_ports:<18} │", fg=typer.colors.WHITE)
+        typer.secho(f"│ Total Open Ports    │ {total_open_ports:<18} │", fg=typer.colors.WHITE)
+        typer.secho("└─────────────────────┴────────────────────┘", fg=typer.colors.WHITE)
+
+        # Show up to 5 domains with open ports
+        domains_to_show = []
+        for scan_domain, scan_result in domain_results.items():
+            if scan_result.get('open_ports', 0) > 0:
+                domains_to_show.append((scan_domain, scan_result))
+
+        if domains_to_show:
+            typer.secho("\nOPEN PORTS BY DOMAIN:", fg=typer.colors.BRIGHT_CYAN)
+            typer.secho("┌────────────────────────────┬────────────────────────┐", fg=typer.colors.WHITE)
+            typer.secho("│ Domain                      │ Open Ports                 │", fg=typer.colors.WHITE)
+            typer.secho("├────────────────────────────┼────────────────────────┤", fg=typer.colors.WHITE)
+
+            # Display top 5 domains (sort by number of open ports)
+            domains_to_show.sort(key=lambda x: x[1].get('open_ports', 0), reverse=True)
+            max_domains = min(5, len(domains_to_show))
+
+            for i in range(max_domains):
+                domain_name = domains_to_show[i][0]
+                scan_result = domains_to_show[i][1]
+
+                # Format open ports
+                open_ports = scan_result.get('open_ports', 0)
+                port_list = scan_result.get('open_port_list', [])
+
+                if port_list:
+                    ports_str = ', '.join(str(port) for port in port_list[:5])
+                    if len(port_list) > 5:
+                        ports_str += f" ...({len(port_list) - 5} more)"
+                else:
+                    ports_str = str(open_ports)
+
+                # Truncate domain if too long
+                if len(domain_name) > 26:
+                    domain_name = domain_name[:23] + "..."
+
+                typer.secho(f"│ {domain_name:<26} │ {ports_str:<26} │", fg=typer.colors.WHITE)
+
+            if len(domains_to_show) > max_domains:
+                typer.secho(f"│ ... and {len(domains_to_show) - max_domains} more domains with open ports      │", fg=typer.colors.WHITE)
+
+            typer.secho("└────────────────────────────┴────────────────────────┘", fg=typer.colors.WHITE)
+
+
+                
+        # The news article display is already handled within the NewsMonitor context above
     
     return results
 
