@@ -150,10 +150,18 @@ class Recon:
                 
             if depth >= 3:
                 techniques.append("permutation")
+            
+            # Set maximum results based on depth
+            max_results = 100  # Default for depth 1
+            if depth >= 2:
+                max_results = 250  # More for depth 2
+            if depth >= 3:
+                max_results = 500  # Maximum for depth 3
                 
-            # Run the advanced subdomain discovery
-            advanced_discovered = await discover_subdomains(domain, techniques)
-            logger.info(f"Advanced subdomain enumeration found {len(advanced_discovered)} subdomains")
+            # Run the advanced subdomain discovery with limits
+            logger.info(f"Starting advanced subdomain enumeration with max_results={max_results}")
+            advanced_discovered = await discover_subdomains(domain, techniques, max_results)
+            logger.info(f"Advanced subdomain enumeration found {len(advanced_discovered)} verified subdomains")
             discovered.update(advanced_discovered)
         
             # Try to find nameservers and attempt zone transfer
