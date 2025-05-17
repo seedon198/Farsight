@@ -57,5 +57,4 @@ config.local.py
 Thumbs.db
 
 # Reports
-reports/*.md
-reports/*.pdf
+report.md
