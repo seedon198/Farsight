@@ -196,9 +196,14 @@ def run(
     if all_modules:
         enabled_modules = {"org", "recon", "threat", "typosquat", "news"}
     
-    typer.echo(f"FARSIGHT scan initiated against: {domain}")
-    typer.echo(f"Output file: {output}")
-    typer.echo(f"Enabled modules: {', '.join(enabled_modules)}")
+    # Enhanced colorful output
+    typer.secho("✨ FARSIGHT RECONNAISSANCE FRAMEWORK ✨", fg=typer.colors.BRIGHT_BLUE, bold=True)
+    typer.secho(f"Scan initiated against: ", nl=False)
+    typer.secho(f"{domain}", fg=typer.colors.BRIGHT_GREEN, bold=True)
+    typer.secho(f"Output file: ", nl=False)
+    typer.secho(f"{output}", fg=typer.colors.BRIGHT_CYAN)
+    typer.secho(f"Enabled modules: ", nl=False) 
+    typer.secho(f"{', '.join(enabled_modules)}", fg=typer.colors.BRIGHT_MAGENTA)
     
     # Check if output file exists and handle --force flag
     if output.exists() and not force:
@@ -211,10 +216,16 @@ def run(
     # Show API configuration status if verbose
     if verbose:
         apis = get_available_apis()
-        typer.echo("API Configuration Status:")
+        typer.secho("API Configuration Status:", fg=typer.colors.BRIGHT_YELLOW, bold=True)
         for api, configured in apis.items():
-            status = "✓" if configured else "✗"
-            typer.echo(f"  {api}: {status}")
+            if configured:
+                status = "✅"
+                color = typer.colors.GREEN
+            else:
+                status = "❌"
+                color = typer.colors.RED
+            typer.secho(f"  {api}: ", nl=False)
+            typer.secho(f"{status}", fg=color)
     
     # Start async event loop for scanning
     try:
@@ -250,35 +261,46 @@ def run(
         
         # Show summary stats
         elapsed_time = time.time() - start_time
-        typer.echo(f"Scan completed in {elapsed_time:.2f} seconds")
+        typer.secho("✅ ", nl=False, fg=typer.colors.GREEN, bold=True)
+        typer.secho(f"Scan completed in ", nl=False)
+        typer.secho(f"{elapsed_time:.2f} seconds", fg=typer.colors.BRIGHT_CYAN, bold=True)
         
         # Display a brief summary of findings
-        typer.echo("\nSummary of findings:")
+        typer.secho("\n📊 Summary of findings:", fg=typer.colors.BRIGHT_BLUE, bold=True)
         
         if "org" in scan_results and "all_domains" in scan_results["org"]:
-            typer.echo(f"  Domains discovered: {len(scan_results['org']['all_domains'])}")
+            typer.secho(f"  🔍 Domains discovered: ", nl=False)
+            typer.secho(f"{len(scan_results['org']['all_domains'])}", fg=typer.colors.BRIGHT_GREEN, bold=True)
         
         if "recon" in scan_results and "subdomains" in scan_results["recon"]:
-            typer.echo(f"  Subdomains found: {len(scan_results['recon']['subdomains'])}")
+            typer.secho(f"  🌐 Subdomains found: ", nl=False)
+            typer.secho(f"{len(scan_results['recon']['subdomains'])}", fg=typer.colors.BRIGHT_GREEN, bold=True)
             
             if "port_scan" in scan_results["recon"] and "open_ports" in scan_results["recon"]["port_scan"]:
-                typer.echo(f"  Open ports: {scan_results['recon']['port_scan']['open_ports']}")
+                typer.secho(f"  🔌 Open ports: ", nl=False)
+                typer.secho(f"{scan_results['recon']['port_scan']['open_ports']}", fg=typer.colors.BRIGHT_YELLOW, bold=True)
         
         if "threat" in scan_results:
             threat_data = scan_results["threat"]
             if "total_leaks" in threat_data and threat_data["total_leaks"] > 0:
-                typer.echo(f"  Potential data leaks: {threat_data['total_leaks']}")
+                typer.secho(f"  ⚠️ Potential data leaks: ", nl=False)
+                typer.secho(f"{threat_data['total_leaks']}", fg=typer.colors.BRIGHT_RED, bold=True)
             if "total_credentials" in threat_data and threat_data["total_credentials"] > 0:
-                typer.echo(f"  Exposed credentials: {threat_data['total_credentials']}")
+                typer.secho(f"  🔑 Exposed credentials: ", nl=False)
+                typer.secho(f"{threat_data['total_credentials']}", fg=typer.colors.BRIGHT_RED, bold=True)
         
         if "typosquat" in scan_results and "typosquats" in scan_results["typosquat"]:
-            typer.echo(f"  Typosquatting domains: {len(scan_results['typosquat']['typosquats'])}")
+            typer.secho(f"  🎯 Typosquatting domains: ", nl=False)
+            typer.secho(f"{len(scan_results['typosquat']['typosquats'])}", fg=typer.colors.BRIGHT_YELLOW, bold=True)
         
-        typer.echo(f"\nDetailed report saved to: {output}")
+        typer.secho(f"\n📝 Detailed report saved to: ", nl=False)
+        typer.secho(f"{output}", fg=typer.colors.BRIGHT_CYAN, bold=True)
         
     except Exception as e:
-        typer.secho(f"Error during scan: {str(e)}", fg=typer.colors.RED)
+        typer.secho(f"❌ Error during scan: ", fg=typer.colors.BRIGHT_RED, bold=True, nl=False)
+        typer.secho(f"{str(e)}", fg=typer.colors.RED)
         if verbose:
             import traceback
+            typer.secho("\nDetailed error traceback:", fg=typer.colors.YELLOW)
             typer.echo(traceback.format_exc())
         sys.exit(1)

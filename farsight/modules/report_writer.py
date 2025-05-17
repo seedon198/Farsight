@@ -148,10 +148,18 @@ All data in this report is presented for informational purposes only.
             Path to the generated report
         """
         if not output_file:
+            # Create a more organized filename with timestamp and domain name
             timestamp = time.strftime("%Y%m%d_%H%M%S")
-            output_file = self.output_dir / f"{target}_{timestamp}_report.md"
+            # Create a subdirectory for the domain if it doesn't exist
+            domain_dir = self.output_dir / target
+            domain_dir.mkdir(exist_ok=True, parents=True)
+            # Set the output file path with timestamp
+            output_file = domain_dir / f"{target}_{timestamp}_report.md"
         elif isinstance(output_file, str):
             output_file = Path(output_file)
+            
+        # Ensure parent directories exist
+        output_file.parent.mkdir(exist_ok=True, parents=True)
         
         # Start with header
         report_content = self._render_header(target, depth, modules)
