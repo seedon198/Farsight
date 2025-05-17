@@ -497,16 +497,17 @@ class SubdomainEnumerator:
         except Exception as e:
             logger.error(f"Error querying VirusTotal API: {str(e)}")
 
-async def discover_subdomains(domain: str, techniques: Optional[List[str]] = None) -> List[str]:
+async def discover_subdomains(domain: str, techniques: Optional[List[str]] = None, max_results: int = 500) -> List[str]:
     """
     Wrapper function to discover subdomains using all available techniques.
     
     Args:
         domain: Base domain to find subdomains for
         techniques: List of techniques to use (default: all)
+        max_results: Maximum number of verified subdomains to return
         
     Returns:
         List of discovered subdomains
     """
     async with SubdomainEnumerator() as enumerator:
-        return await enumerator.enumerate(domain, techniques)
+        return await enumerator.enumerate(domain, techniques, max_results)
