@@ -12,21 +12,21 @@ FARSIGHT is a powerful, Python-based reconnaissance and threat intelligence fram
 ### Key Features
 
 - **Pure Python Implementation**: Entirely built in Python for maximum portability
-- **API-Optional Architecture**: Functions with or without API keys
-- **Fast & Modular**: Async-first design for optimal performance
+- **API-Optional Architecture**: Functions with or without API keys, with enhanced fallback mechanisms
+- **Fast & Modular**: Async-first design for optimal performance with parallel processing
 - **CLI-First Approach**: Intuitive command-line interface using Typer
-- **Comprehensive Reporting**: Generates detailed Markdown and PDF reports
-- **Graceful Degradation**: Recovers smoothly from API failures
-- **No External Binary Dependencies**: Optional integration with tools like masscan
+- **Comprehensive Reporting**: Generates detailed Markdown and PDF reports with visual risk indicators
+- **Graceful Degradation**: Recovers smoothly from API failures with smart alternative methods
+- **No External Binary Dependencies**: Optional integration with external tools
 
 ## Modules
 
-1. **Organizational Domain Discovery**: WHOIS analysis, certificate transparency data, passive DNS
-2. **Recon / Asset Discovery**: DNS enumeration, port scanning, service detection
-3. **Threat Intelligence**: Leak detection, credential exposure, dark web mentions
-4. **Typosquatting Detection**: Domain permutation generation and analysis
-5. **News Monitoring**: Track latest news mentions of target organizations
-6. **Report Generation**: Structured output in Markdown/PDF formats
+1. **Organizational Domain Discovery**: WHOIS analysis, certificate transparency data, passive DNS, related domain discovery
+2. **Recon / Asset Discovery**: Advanced DNS enumeration, comprehensive port scanning on all discovered subdomains
+3. **Threat Intelligence**: Leak detection, credential exposure, dark web mentions, email reputation analysis
+4. **Typosquatting Detection**: Optimized domain permutation and analysis with content similarity assessment
+5. **News Monitoring**: Comprehensive news tracking with multiple source support and relevance scoring
+6. **Report Generation**: Structured output in Markdown/PDF formats with visual risk indicators
 
 ## Installation
 
@@ -112,12 +112,15 @@ This module discovers domains related to an organization through various techniq
 
 ### Reconnaissance
 
-This module performs asset discovery and enumeration:
+This module identifies assets and network infrastructure:
 
-- DNS enumeration (A, MX, CNAME, TXT records)
-- Subdomain discovery using wordlists
-- Port scanning using asyncio and sockets
-- Email security assessment (SPF, DMARC)
+- DNS enumeration (A, AAAA, MX, TXT, NS records)
+- Advanced subdomain discovery using multiple techniques:
+  - Certificate Transparency logs
+  - DNS brute forcing
+  - Passive DNS sources
+- Comprehensive port scanning on all discovered subdomains using asyncio
+- Email security assessment (SPF, DMARC, DKIM)
 - Optional API-based services (Shodan, Censys)
 
 ### Threat Intelligence
@@ -125,26 +128,34 @@ This module performs asset discovery and enumeration:
 This module identifies potential security threats:
 
 - Data leak detection from public sources
-- Credential exposure monitoring
-- Dark web mentions tracking
-- API integration with threat intelligence platforms
+- Credential exposure monitoring with breach correlation
+- Advanced dark web mentions tracking with risk categorization
+- Email reputation analysis with risk scoring
+- Alternative monitoring methods when APIs are unavailable
+- Visual risk indicators in reports (🟢, 🔵, 🔴, ⚠️)
 
 ### Typosquatting Detection
 
 This module identifies potential typosquatting domains:
 
-- Generates domain permutations using various techniques
-- Checks for active domains that could be used for phishing
+- Optimized domain permutation generation
+- Enhanced DNS resolution checks with fallback mechanisms
+- Registration data analysis with age assessment
+- Advanced content similarity checks
+- MX record analysis for phishing detection
+- Improved similarity threshold (60% default) for better detection
 - Analyzes similarity and risk scoring
 - Detects domain squatting techniques
 
 ### News Monitoring
 
-This module tracks news mentions of the target organization:
+This module tracks recent news mentions:
 
-- Recent news articles mentioning the target
-- Summary of news sentiment
-- Source tracking and relevance scoring
+- Recent news articles about the target with multiple source support
+- Source credibility assessment and publisher information
+- Relevance scoring for each article
+- Alternative methods when primary API is unavailable
+- Clean output formatting with prioritized articles
 
 ### Report Generation
 
