@@ -60,13 +60,14 @@ class SubdomainEnumerator:
         if self.session:
             await self.session.close()
     
-    async def enumerate(self, domain: str, techniques: Optional[List[str]] = None) -> List[str]:
+    async def enumerate(self, domain: str, techniques: Optional[List[str]] = None, max_results: int = 500) -> List[str]:
         """
         Enumerate subdomains using multiple techniques.
         
         Args:
             domain: Base domain to find subdomains for
             techniques: List of techniques to use (default: all)
+            max_results: Maximum number of verified subdomains to return
             
         Returns:
             List of discovered subdomains
@@ -80,11 +81,17 @@ class SubdomainEnumerator:
         if not techniques:
             techniques = ["brute", "crt", "scrape", "permutation", "apis"]
         
-        tasks = []
-        
-        # Certificate transparency logs
+        # Start with certificate transparency logs as it's usually the most reliable
         if "crt" in techniques:
-            tasks.append(self._query_crt_sh(domain))
+            await self._query_crt_sh(domain)
+            logger.info(f"Found {len(self.discovered)} domains via certificate transparency logs")
+            
+            # Early return if we found enough subdomains from crt.sh
+            if len(self.discovered) > max_results * 2:
+                logger.info(f"Found more than {max_results*2} subdomains from certificate logs, skipping other methods")
+                techniques = []
+        
+        tasks = []
         
         # DNS brute force with large wordlist
         if "brute" in techniques:
@@ -112,25 +119,46 @@ class SubdomainEnumerator:
             if virustotal_api_key:
                 tasks.append(self._query_virustotal(domain, virustotal_api_key))
         
-        # Run all techniques concurrently
-        await asyncio.gather(*tasks)
+        # Run remaining techniques concurrently if needed
+        if tasks:
+            await asyncio.gather(*tasks)
         
         # Convert discovered set to list and filter valid domains
-        all_discovered = list(self.discovered)
+        logger.info(f"Total discovered subdomains before validation: {len(self.discovered)}")
+        
+        # Filter out domain names that exceed DNS limits
+        all_discovered = []
+        for subdomain in self.discovered:
+            # Domain names have a max length of 253 characters
+            if len(subdomain) <= 253 and subdomain.count('.') <= 127:
+                all_discovered.append(subdomain)
+        
+        logger.info(f"Subdomains within DNS limits: {len(all_discovered)}")
         
         # Verify discovered subdomains in batches (to avoid overwhelming DNS)
         valid_domains = []
         batch_size = 50
         
-        for i in range(0, len(all_discovered), batch_size):
+        for i in range(0, min(len(all_discovered), max_results * 2), batch_size):
+            if len(valid_domains) >= max_results:
+                break
+                
             batch = all_discovered[i:i+batch_size]
-            dns_results = await self.dns_resolver.bulk_resolve(batch, ['A'])
-            
-            for subdomain, records in dns_results.items():
-                if 'A' in records and records['A']:
-                    valid_domains.append(subdomain)
+            try:
+                dns_results = await self.dns_resolver.bulk_resolve(batch, ['A'])
+                
+                for subdomain, records in dns_results.items():
+                    if 'A' in records and records['A']:
+                        valid_domains.append(subdomain)
+                        
+                        # Exit early if we have enough results
+                        if len(valid_domains) >= max_results:
+                            break
+            except Exception as e:
+                logger.error(f"Error resolving batch: {str(e)}")
         
-        return sorted(valid_domains)
+        logger.info(f"Final verified subdomains: {len(valid_domains)}")
+        return sorted(valid_domains[:max_results])
     
     async def _query_crt_sh(self, domain: str) -> None:
         """
