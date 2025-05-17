@@ -18,7 +18,7 @@ import importlib.util
 # Check if dnstwist is available
 dnstwist_spec = importlib.util.find_spec("dnstwist")
 if dnstwist_spec is not None:
-    import dnstwist.core
+    import dnstwist
     DNSTWIST_AVAILABLE = True
 else:
     logger.warning("dnstwist library not installed. Typosquatting detection will be limited.")
@@ -118,26 +118,33 @@ class TyposquatDetector:
             # Get domain parts
             domain_parts = domain.split('.')
             
-            # Initialize DomainFuzz from dnstwist
-            fuzzer = dnstwist.core.DomainFuzz(domain)
+            # Initialize Fuzzer from dnstwist
+            fuzzer = dnstwist.Fuzzer(domain)
             
-            # Generate based on depth
-            fuzzer.generate()  # Basic typos
+            # Generate all permutations based on depth
+            all_fuzzers = []
+            # Basic depth 1 fuzzers
+            all_fuzzers.extend(['addition', 'bitsquatting', 'homoglyph', 'hyphenation', 'insertion', 
+                             'omission', 'repetition', 'replacement', 'subdomain', 'transposition', 'vowel-swap'])
             
             # More comprehensive for deeper scans
             if depth >= 2:
-                fuzzer.generate_homoglyphs()  # Homoglyphs
+                all_fuzzers.extend(['common-misspellings', 'homophones'])
             
             if depth >= 3:
-                fuzzer.generate_tld_swap()  # TLD swap
-                fuzzer.generate_bit_squatting()  # Bit squatting
-                fuzzer.generate_hyphenation()  # Hyphenation
-                fuzzer.generate_insertion()  # Insertion
+                all_fuzzers.extend(['dictionary'])
+            
+            # Generate permutations
+            fuzzer.generate(all_fuzzers)
+            
+            # Get the results from permutations method
+            permutations = fuzzer.permutations()
             
             # Extract domains from results
-            for result in fuzzer.domains:
-                if result['fuzzer'] != 'original':
-                    typo_domains.append(result['domain-name'])
+            for result in permutations:
+                # Skip the original domain
+                if result["domain"] != domain:
+                    typo_domains.append(result["domain"])
         
         else:
             # Fallback implementation if dnstwist is not available
