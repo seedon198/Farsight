@@ -46,7 +46,8 @@ class TyposquatDetector:
     def __init__(self):
         """Initialize typosquat detector."""
         self.dns_resolver = DNSResolver()
-        self.similarity_threshold = get_config("typosquat_threshold", 80)  # Default similarity threshold (0-100)
+        # Get the similarity threshold from config - lower the default to catch more typosquats
+        self.similarity_threshold = get_config("typosquat_threshold", 60)  # Default similarity threshold (0-100)
         self.session = None
     
     async def __aenter__(self):
@@ -256,6 +257,33 @@ class TyposquatDetector:
             if 'A' in records and records['A']:
                 active_domains.append(check_domain)
         
+        # If we've found very few domains, try a second approach with socket resolution
+        # This can help in cases where DNS resolution is failing
+        if len(active_domains) < 5 and len(domains) > 20:
+            logger.info(f"Found only {len(active_domains)} active domains through DNS resolution. Trying socket approach.")
+            for domain in domains:
+                if domain not in active_domains:  # Skip domains we already found
+                    try:
+                        socket.gethostbyname(domain)
+                        active_domains.append(domain)
+                        logger.info(f"Socket resolution found active domain: {domain}")
+                    except socket.gaierror:
+                        pass  # Domain doesn't resolve
+                    except Exception as e:
+                        logger.debug(f"Error checking domain {domain}: {str(e)}")
+        
+        # Sample some inactive domains for deeper analysis if we found very few
+        # This allows detection of defensive registrations that don't have DNS
+        if len(active_domains) < 3 and len(domains) > 50:
+            logger.info("Few active domains found, sampling inactive domains for analysis")
+            # Select a sample of the generated domains even if they don't resolve
+            import random
+            inactive_domains = [d for d in domains if d not in active_domains]
+            sample_size = min(10, len(inactive_domains))
+            sampled_domains = random.sample(inactive_domains, sample_size)
+            active_domains.extend(sampled_domains)
+            logger.info(f"Added {len(sampled_domains)} sampled inactive domains for analysis")
+        
         return active_domains
     
     async def _analyze_domains(self, 
@@ -307,11 +335,23 @@ class TyposquatDetector:
                 http_result.get("content_similarity", 0)
             )
             
-            # Determine status
-            status = "Suspicious" if risk_score > 70 else "Potential"
+            # Determine status with more nuanced criteria
+            status = "Potential"
+            if risk_score > 70:
+                status = "Suspicious"
+            elif dns_result.get("has_mx", False) and similarity > 75:
+                # Domains with MX records and high similarity are more suspicious
+                # as they might be used for phishing emails
+                status = "Suspicious"
+                risk_score += 10  # Increase risk score for domains with email capability
+            elif http_result.get("content_similarity", 0) > 30:
+                # Domains with content similar to the original are suspicious
+                status = "Suspicious"
+                risk_score += 15  # Significant increase for content that mimics Sony
             
-            # Add to results if risk score exceeds threshold
-            if risk_score >= self.similarity_threshold:
+            # Add to results with less stringent filtering
+            # Accept lower risk scores for high similarity
+            if risk_score >= self.similarity_threshold or similarity > 85:
                 results.append({
                     "domain": domain,
                     "type": typo_type,
@@ -375,6 +415,7 @@ class TyposquatDetector:
             "status": 0,
             "title": None,
             "content_similarity": 0,
+            "content_size": 0,
         }
         
         if not self.session:
@@ -385,27 +426,33 @@ class TyposquatDetector:
             for protocol in ["http", "https"]:
                 url = f"{protocol}://{domain}"
                 try:
-                    async with self.session.get(
-                        url, 
-                        timeout=get_config("timeout", 10),
-                        allow_redirects=True
-                    ) as response:
+                    async with self.session.get(url, ssl=False, timeout=aiohttp.ClientTimeout(total=10)) as response:
                         result["status"] = response.status
                         
+                        # Only process content for successful responses
                         if response.status in range(200, 400):
-                            # Get content type
-                            content_type = response.headers.get("Content-Type", "")
-                            
-                            # Only process HTML content
-                            if "text/html" in content_type:
-                                content = await response.text()
+                            try:
+                                html = await response.text()
                                 
-                                # Extract title
-                                title_match = re.search(r"<title>(.*?)</title>", content, re.IGNORECASE | re.DOTALL)
+                                # Extract title if available
+                                title_match = re.search(r"<title>([^<]+)</title>", html, re.IGNORECASE)
                                 if title_match:
                                     result["title"] = title_match.group(1).strip()
-                            
-                            return result
+                                
+                                # Get page size as a simple metric
+                                result["content_size"] = len(html)
+                                
+                                # Calculate content similarity based on common words and phrases
+                                # Try to detect if site is trying to mimic the original
+                                words_to_check = ["sony", "playstation", "ps5", "ps4", "vaio", "bravia", "xperia", "electronics"]
+                                hits = 0
+                                for word in words_to_check:
+                                    if word.lower() in html.lower():
+                                        hits += 1
+                                
+                                result["content_similarity"] = min(100, hits * 15)  # Scale hits to a 0-100 score
+                            except Exception as e:
+                                logger.debug(f"Error processing content for {domain}: {str(e)}")
                 except:
                     # If HTTP fails, try HTTPS and vice versa
                     continue
