@@ -1,6 +1,9 @@
 <p align="center">
-  <img src="docs/assets/logo.svg" alt="FARSIGHT Logo" width="100%"/>
+  <img src="docs/assets/logo.svg" alt="FARSIGHT Logo"/>
 </p>
+
+<h1 align="center">FARSIGHT</h1>
+<p align="center">CLI-Based Recon and Threat Intelligence Framework</p>
 
 ## Overview
 
@@ -27,135 +30,267 @@ FARSIGHT is a powerful, Python-based reconnaissance and threat intelligence fram
 
 ## Installation
 
-```bash
-# Install using pip
-pip install farsight
+FARSIGHT requires Python 3.7+ and several dependencies. You can install it directly from the GitHub repository:
 
-# Or install using Poetry
-poetry add farsight
+```bash
+# Clone the repository
+git clone https://github.com/seedon198/Farsight.git
+cd Farsight
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Optional: Install development dependencies
+pip install -r requirements-dev.txt
+```
+
+### API Keys (Optional)
+
+FARSIGHT can function without API keys, but some features will be limited. For the best experience, consider setting up the following API keys as environment variables:
+
+```bash
+export FARSIGHT_SHODAN_API_KEY="your-api-key"
+export FARSIGHT_CENSYS_API_KEY="your-api-key"
+export FARSIGHT_SECURITYTRAILS_API_KEY="your-api-key"
+export FARSIGHT_VIRUSTOTAL_API_KEY="your-api-key"
+export FARSIGHT_INTELX_API_KEY="your-api-key"
+export FARSIGHT_LEAKPEEK_API_KEY="your-api-key"
 ```
 
 ## Usage
 
+FARSIGHT is designed to be simple to use while providing powerful reconnaissance capabilities. Here are some examples of how to use it:
+
 ```bash
-# Run farsight with help
-farsight --help
+# Display help information
+python -m farsight --help
 
-# Run a basic scan
-farsight scan example.com --output report.md
+# Display version information
+python -m farsight version
 
-# Run a comprehensive scan with all modules
-farsight scan example.com --output report.md --depth 2 --news --typosquat --threat-intel
+# Basic scan with organization discovery and reconnaissance modules
+python -m farsight scan example.com --output report.md
+
+# Comprehensive scan with all modules at depth 2
+python -m farsight scan example.com --output report.md --depth 2 --all
+
+# Custom scan with specific modules
+python -m farsight scan example.com --output report.md --modules org,recon,threat
+
+# Generate a PDF report
+python -m farsight scan example.com --output report.pdf --all
 ```
+
+### Scan Depth Levels
+
+FARSIGHT supports different scan depth levels that control how thorough the scanning process is:
+
+- **Depth 1**: Basic reconnaissance (default) - Fast, non-intrusive scanning
+- **Depth 2**: Enhanced reconnaissance - More thorough scanning with additional checks
+- **Depth 3**: Comprehensive analysis - Most thorough scanning with all available techniques
+
+```bash
+# Run a quick scan (depth 1)
+python -m farsight scan example.com --depth 1
+
+# Run a thorough scan (depth 3)
+python -m farsight scan example.com --depth 3 --all
+```
+
+## Modules
+
+FARSIGHT is designed with a modular architecture, allowing you to use specific modules independently or together. Here's an overview of each module:
+
+### Organization Discovery
+
+This module discovers domains related to an organization through various techniques:
+
+- WHOIS data analysis for organization information
+- Certificate Transparency logs from crt.sh
+- Passive DNS data from public sources
+- Optional API-based lookups (SecurityTrails, Censys)
+
+### Reconnaissance
+
+This module performs asset discovery and enumeration:
+
+- DNS enumeration (A, MX, CNAME, TXT records)
+- Subdomain discovery using wordlists
+- Port scanning using asyncio and sockets
+- Email security assessment (SPF, DMARC)
+- Optional API-based services (Shodan, Censys)
+
+### Threat Intelligence
+
+This module identifies potential security threats:
+
+- Data leak detection from public sources
+- Credential exposure monitoring
+- Dark web mentions tracking
+- API integration with threat intelligence platforms
+
+### Typosquatting Detection
+
+This module identifies potential typosquatting domains:
+
+- Generates domain permutations using various techniques
+- Checks for active domains that could be used for phishing
+- Analyzes similarity and risk scoring
+- Detects domain squatting techniques
+
+### News Monitoring
+
+This module tracks news mentions of the target organization:
+
+- Recent news articles mentioning the target
+- Summary of news sentiment
+- Source tracking and relevance scoring
+
+### Report Generation
+
+This module generates comprehensive reports:
+
+- Markdown reports with detailed findings
+- Optional PDF conversion
+- Structured data presentation
+- Executive summaries and technical details
 
 ## Configuration
 
-FARSIGHT supports various configuration options through environment variables, config files, or command-line arguments.
+FARSIGHT's behavior can be configured through environment variables or direct parameters:
+
+### Environment Variables
+
+Set these environment variables to configure API keys and global settings:
 
 ```bash
-# Set API keys via environment variables
+# API Keys
 export FARSIGHT_SHODAN_API_KEY="your-api-key"
 export FARSIGHT_CENSYS_API_KEY="your-api-key"
+export FARSIGHT_SECURITYTRAILS_API_KEY="your-api-key"
+export FARSIGHT_VIRUSTOTAL_API_KEY="your-api-key"
+export FARSIGHT_INTELX_API_KEY="your-api-key"
+export FARSIGHT_LEAKPEEK_API_KEY="your-api-key"
 
-# Set API keys via config file
-farsight config set shodan_api_key "your-api-key"
-farsight config set censys_api_key "your-api-key"
-
-# Set API keys via command-line arguments
-farsight scan example.com --shodan-api-key "your-api-key" --censys-api-key "your-api-key"
+# Global Settings
+export FARSIGHT_TIMEOUT=60  # Default timeout in seconds
+export FARSIGHT_MAX_CONCURRENT=20  # Max concurrent requests
 ```
 
-## Output
+### Command Line Options
 
-FARSIGHT can generate reports in Markdown and PDF formats.
+Many configuration options can be provided directly on the command line:
 
 ```bash
-# Generate Markdown report
-farsight scan example.com --output report.md
+# Set timeout and concurrency
+python -m farsight scan example.com --timeout 60 --concurrency 20
 
-# Generate PDF report
-farsight scan example.com --output report.pdf
+# Force overwrite existing reports
+python -m farsight scan example.com --output report.md --force
+
+# Enable verbose output for debugging
+python -m farsight scan example.com --verbose
 ```
 
-## Depth
+## Reporting
 
-FARSIGHT can perform a scan at different depths, with each depth representing a different level of detail and complexity.
+FARSIGHT generates comprehensive reports in Markdown format by default, with optional PDF conversion if the required libraries are installed. Reports include:
 
-```bash
-# Run a basic scan
-farsight scan example.com --output report.md --depth 1
+- Executive summary with key findings
+- Detailed technical results from each module
+- Visual representations of data where applicable
+- Recommendations based on findings
 
-# Run a comprehensive scan with all modules
-farsight scan example.com --output report.md --depth 2 --news --typosquat --threat-intel
+Example report sections:
+
+```markdown
+# FARSIGHT Reconnaissance Report
+            
+## Target: example.com
+**Scan Date:** 2025-05-17 17:57:11
+**Scan Depth:** 2
+**Modules Run:** org, recon, threat, typosquat, news
+
+## Executive Summary
+
+This report presents the findings from a reconnaissance scan of **example.com**.
+
+- **12** domains/subdomains discovered
+- **5** open ports found
+- **Well-protected** email security posture
 ```
 
-## News
+## Project Architecture
 
-FARSIGHT can track news mentions of target organizations.
+FARSIGHT is built with the following architecture:
 
-```bash
-# Track news mentions of target organizations
-farsight news example.com
+```
+farsight/
+├── cli/                  # CLI interface using Typer
+│   └── scan.py           # Main scan command
+├── modules/              # Core functionality modules
+│   ├── org_discovery.py  # Organization domain discovery
+│   ├── recon.py          # DNS enumeration and port scanning
+│   ├── threat_intel.py   # Threat intelligence gathering
+│   ├── typosquat.py      # Typosquatting detection
+│   ├── news.py           # News monitoring
+│   └── report_writer.py  # Report generation
+├── utils/                # Utility functions
+│   ├── api_handler.py    # API interaction with failover
+│   ├── common.py         # Common utilities
+│   └── dns.py            # DNS operations
+├── config.py             # Configuration management
+└── main.py               # Entry point
 ```
 
-## Typosquat
+## Dependencies
 
-FARSIGHT can detect typosquatting attempts.
+FARSIGHT requires the following main dependencies:
 
-```bash
-# Detect typosquatting attempts
-farsight typosquat example.com
-```
+- **typer**: CLI interface framework
+- **python-whois**: WHOIS lookups
+- **aiohttp**: Asynchronous HTTP requests
+- **dnspython**: DNS resolution and querying
+- **beautifulsoup4**: Web scraping
+- **dnstwist** (optional): Enhanced typosquatting detection
+- **markdown** and **weasyprint** (optional): PDF report generation
+- **gnews** (optional): News article retrieval
 
-## Threat Intel
-
-FARSIGHT can detect potential threats to target organizations.
-
-```bash
-# Detect potential threats to target organizations
-farsight threat-intel example.com
-```
-
-## Typosquat
-
-FARSIGHT can detect typosquatting attempts.
-
-```bash
-# Detect typosquatting attempts
-farsight typosquat example.com
-```
+Full dependencies are specified in the `requirements.txt` file.
 
 ## Contributing
 
-FARSIGHT is an open-source project, and we welcome contributions from the community. Please see our [CONTRIBUTING.md](CONTRIBUTING.md) file for more information on how to contribute to the project.
+FARSIGHT is an open-source project and welcomes contributions. Here's how you can contribute:
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ## License
 
-FARSIGHT is licensed under the MIT License. See the [LICENSE](LICENSE) file for more information.
+FARSIGHT is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
 ## Acknowledgments
 
-FARSIGHT is built on top of the following open-source projects and other services:
+FARSIGHT leverages the following projects and services:
 
-- [Typer](https://typer.tiangolo.com/)
-- [Requests](https://requests.readthedocs.io/)
-- [PyPDF2](https://pypdf2.readthedocs.io/)
-- [Markdown](https://markdown.readthedocs.io/)
-- [Shodan](https://shodan.io/)
-- [Censys](https://censys.io/)
-- [Masscan](https://github.com/robertdavidgraham/masscan)
-- [WHOIS](https://whois.com/)
-- [Certificate Transparency](https://crt.sh/)
-- [Passive DNS](https://viewdns.info/)
+- [Typer](https://typer.tiangolo.com/) - CLI framework
+- [aiohttp](https://docs.aiohttp.org/) - Asynchronous HTTP client/server
+- [dnspython](https://www.dnspython.org/) - DNS toolkit
+- [python-whois](https://pypi.org/project/python-whois/) - WHOIS lookup
+- [BeautifulSoup](https://www.crummy.com/software/BeautifulSoup/) - Web scraping
+- [dnstwist](https://github.com/elceef/dnstwist) - Domain permutation engine
+- [markdown](https://python-markdown.github.io/) - Markdown parsing
+- Public data sources including [crt.sh](https://crt.sh/), [RapidDNS](https://rapiddns.io/), and [DNSDB.io](https://dnsdb.io/)
 
 ## Disclaimer
 
-FARSIGHT is provided as-is, without warranty of any kind, express or implied. The authors and contributors disclaim all liability for any damages arising from the use of FARSIGHT.
+FARSIGHT is provided as-is, without warranty of any kind, express or implied. The authors and contributors disclaim all liability for any damages arising from its use.
 
-## Support
-
-FARSIGHT is a community-driven project, and we welcome contributions from the community. Please see our [CONTRIBUTING.md](CONTRIBUTING.md) file for more information on how to contribute to the project.
+This tool is designed for security professionals conducting authorized security assessments. Always ensure you have proper authorization before scanning any domain or network.
 
 ## Contact
 
-For support, please open an issue on the [GitHub repository](https://github.com/seedon198/farsight).
+For questions, suggestions, or support, please open an issue on the [GitHub repository](https://github.com/seedon198/Farsight).
