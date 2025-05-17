@@ -55,3 +55,7 @@ config.local.py
 # OS
 .DS_Store
 Thumbs.db
+
+# Reports
+reports/*.md
+reports/*.pdf
