@@ -71,12 +71,42 @@ class Recon:
             self.results["subdomains"] = discovered
             
             # Get IPs from A records
-            ips = await self._get_ips_from_domains([domain] + discovered)
+            all_domains = [domain] + discovered
+            ips = await self._get_ips_from_domains(all_domains)
             
-            # Port scan the main domain for basic services
-            if ips and domain in ips:
-                target_ip = ips[domain][0]  # Use first IP if multiple found
-                self.results["port_scan"] = await self.port_scanner.scan_ports(target_ip)
+            # Initialize port scan results structure
+            self.results["port_scan"] = {
+                "total_scanned": 0,
+                "domains_with_open_ports": 0,
+                "total_open_ports": 0,
+                "domain_results": {}
+            }
+            
+            # Port scan all domains with resolved IPs (limit to 10 for performance)
+            max_domains_to_scan = min(10, len(all_domains))
+            domains_scanned = 0
+            
+            logger.info(f"Port scanning up to {max_domains_to_scan} domains")
+            
+            for scan_domain in all_domains:
+                if domains_scanned >= max_domains_to_scan:
+                    break
+                
+                if scan_domain in ips and ips[scan_domain]:
+                    target_ip = ips[scan_domain][0]  # Use first IP if multiple found
+                    scan_result = await self.port_scanner.scan_ports(target_ip)
+                    
+                    # Store result for this domain
+                    self.results["port_scan"]["domain_results"][scan_domain] = scan_result
+                    
+                    # Update aggregate stats
+                    self.results["port_scan"]["total_scanned"] += 1
+                    
+                    if scan_result.get("open_ports", 0) > 0:
+                        self.results["port_scan"]["domains_with_open_ports"] += 1
+                        self.results["port_scan"]["total_open_ports"] += scan_result.get("open_ports", 0)
+                    
+                    domains_scanned += 1
         
         # For deeper scan, check API sources and expanded port range
         if depth >= 2:
@@ -87,16 +117,49 @@ class Recon:
                 if shodan_result:
                     self.results["api_results"].append(shodan_result)
             
-            # Enhanced port scan on main domain with more ports
-            if "port_scan" in self.results and self.results["port_scan"]:
-                target_ip = self.results["port_scan"]["target"]
-                # Expanded port list
-                expanded_ports = [
-                    21, 22, 23, 25, 53, 80, 110, 111, 123, 135, 139, 143, 161, 443, 
-                    445, 465, 587, 993, 995, 1433, 1521, 1723, 2049, 3306, 3389, 
-                    5432, 5900, 5901, 6379, 8080, 8443, 8888, 9090, 9200, 27017
-                ]
-                self.results["port_scan"] = await self.port_scanner.scan_ports(target_ip, expanded_ports)
+            # Enhanced port scan with more ports on domains that had open ports
+            # or important domains like the main domain
+            expanded_ports = [
+                21, 22, 23, 25, 53, 80, 110, 111, 123, 135, 139, 143, 161, 443, 
+                445, 465, 587, 993, 995, 1433, 1521, 1723, 2049, 3306, 3389, 
+                5432, 5900, 5901, 6379, 8080, 8443, 8888, 9090, 9200, 27017
+            ]
+            
+            # Select domains for enhanced port scanning
+            enhanced_scan_domains = []
+            
+            # Always include main domain
+            if domain in ips and ips[domain]:
+                enhanced_scan_domains.append(domain)
+                
+            # Include domains that had open ports in the basic scan
+            for scan_domain, scan_result in self.results["port_scan"]["domain_results"].items():
+                if scan_result.get("open_ports", 0) > 0 and scan_domain not in enhanced_scan_domains:
+                    enhanced_scan_domains.append(scan_domain)
+            
+            # Limit enhanced scans
+            max_enhanced_scans = min(5, len(enhanced_scan_domains))
+            domains_scanned = 0
+            
+            logger.info(f"Running enhanced port scans on {max_enhanced_scans} domains")
+            
+            for scan_domain in enhanced_scan_domains[:max_enhanced_scans]:
+                if scan_domain in ips and ips[scan_domain]:
+                    target_ip = ips[scan_domain][0]
+                    scan_result = await self.port_scanner.scan_ports(target_ip, expanded_ports)
+                    
+                    # Update or add the enhanced scan result
+                    self.results["port_scan"]["domain_results"][scan_domain] = scan_result
+                    
+                    # Update aggregate stats
+                    if scan_result.get("open_ports", 0) > 0:
+                        # Only count additional ports not already counted
+                        previous_count = 0
+                        if self.results["port_scan"]["domain_results"].get(scan_domain):
+                            previous_count = self.results["port_scan"]["domain_results"][scan_domain].get("open_ports", 0)
+                        
+                        additional_ports = max(0, scan_result.get("open_ports", 0) - previous_count)
+                        self.results["port_scan"]["total_open_ports"] += additional_ports
         
         # For the most comprehensive scan
         if depth >= 3:

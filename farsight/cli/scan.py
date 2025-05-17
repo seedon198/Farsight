@@ -81,28 +81,25 @@ async def run_scan(
             typer.secho("├─────────────────────┼────────────────────┤", fg=typer.colors.WHITE)
             
             # Get domain stats
-            all_domains = results['org'].get('all_domains', [])
-            total_domains = len(all_domains)
+            related_domains = results['org'].get('related_domains', [])
+            discovered_subdomains = results['org'].get('discovered_subdomains', [])
             
             # WHOIS info
-            has_whois = results['org'].get('whois_info', {}) != {}
-            whois_domains = len(results['org'].get('whois_related_domains', []))
+            has_whois = results['org'].get('whois', {}) != {}
             
             # Certificate info
-            cert_domains = len(results['org'].get('certificate_domains', []))
             cert_records = len(results['org'].get('certificate_transparency', []))
             
             # Show stats in table
-            typer.secho(f"│ Total Domains       │ {total_domains:<18} │", fg=typer.colors.WHITE)
-            typer.secho(f"│ From WHOIS          │ {whois_domains:<18} │", fg=typer.colors.WHITE)
-            typer.secho(f"│ From Certificates   │ {cert_domains:<18} │", fg=typer.colors.WHITE)
+            typer.secho(f"│ Related Domains     │ {len(related_domains):<18} │", fg=typer.colors.WHITE)
+            typer.secho(f"│ Discovered Subdomains│ {len(discovered_subdomains):<18} │", fg=typer.colors.WHITE)
             typer.secho(f"│ Certificate Records │ {cert_records:<18} │", fg=typer.colors.WHITE)
             typer.secho("└─────────────────────┴────────────────────┘", fg=typer.colors.WHITE)
             
-            # Display domain list if available (limit to 5)
-            if all_domains:
+            # Display related domains (limit to 5)
+            if related_domains:
                 typer.secho("\nRELATED DOMAINS:", fg=typer.colors.BRIGHT_CYAN)
-                max_display = min(5, len(all_domains))
+                max_display = min(5, len(related_domains))
                 
                 # Table header
                 typer.secho("┌────────────────────────────────────────────────┐", fg=typer.colors.WHITE)
@@ -110,10 +107,10 @@ async def run_scan(
                 typer.secho("├────────────────────────────────────────────────┤", fg=typer.colors.WHITE)
                 
                 for i in range(max_display):
-                    typer.secho(f"│ {all_domains[i]:<45} │", fg=typer.colors.WHITE)
+                    typer.secho(f"│ {related_domains[i]:<45} │", fg=typer.colors.WHITE)
                 
-                if len(all_domains) > max_display:
-                    typer.secho(f"│ ... and {len(all_domains) - max_display} more domains                │", fg=typer.colors.WHITE)
+                if len(related_domains) > max_display:
+                    typer.secho(f"│ ... and {len(related_domains) - max_display} more domains                │", fg=typer.colors.WHITE)
                     
                 typer.secho("└────────────────────────────────────────────────┘", fg=typer.colors.WHITE)
                 
@@ -283,6 +280,65 @@ async def run_scan(
             if verbose:
                 typer.secho("Typosquatting Detection complete", fg=typer.colors.BRIGHT_BLUE, bold=True)
                 
+                # Display port scan results if available
+                if 'port_scan' in results['recon'] and results['recon']['port_scan']:
+                    port_scan = results['recon']['port_scan']
+                    total_scanned = port_scan.get('total_scanned', 0)
+                    domains_with_ports = port_scan.get('domains_with_open_ports', 0)
+                    total_open_ports = port_scan.get('total_open_ports', 0)
+                    domain_results = port_scan.get('domain_results', {})
+                    
+                    typer.secho("\nPORT SCAN SUMMARY:", fg=typer.colors.BRIGHT_CYAN)
+                    typer.secho("┌─────────────────────┬────────────────────┐", fg=typer.colors.WHITE)
+                    typer.secho("│ Category            │ Value              │", fg=typer.colors.WHITE)
+                    typer.secho("├─────────────────────┼────────────────────┤", fg=typer.colors.WHITE)
+                    typer.secho(f"│ Domains Scanned     │ {total_scanned:<18} │", fg=typer.colors.WHITE)
+                    typer.secho(f"│ Domains with Ports  │ {domains_with_ports:<18} │", fg=typer.colors.WHITE)
+                    typer.secho(f"│ Total Open Ports    │ {total_open_ports:<18} │", fg=typer.colors.WHITE)
+                    typer.secho("└─────────────────────┴────────────────────┘", fg=typer.colors.WHITE)
+                    
+                    # Show up to 5 domains with open ports
+                    domains_to_show = []
+                    for scan_domain, scan_result in domain_results.items():
+                        if scan_result.get('open_ports', 0) > 0:
+                            domains_to_show.append((scan_domain, scan_result))
+                    
+                    if domains_to_show:
+                        typer.secho("\nOPEN PORTS BY DOMAIN:", fg=typer.colors.BRIGHT_CYAN)
+                        typer.secho("┌────────────────────────────┬────────────────────────┐", fg=typer.colors.WHITE)
+                        typer.secho("│ Domain                      │ Open Ports                 │", fg=typer.colors.WHITE)
+                        typer.secho("├────────────────────────────┼────────────────────────┤", fg=typer.colors.WHITE)
+                        
+                        # Display top 5 domains (sort by number of open ports)
+                        domains_to_show.sort(key=lambda x: x[1].get('open_ports', 0), reverse=True)
+                        max_domains = min(5, len(domains_to_show))
+                        
+                        for i in range(max_domains):
+                            domain_name = domains_to_show[i][0]
+                            scan_result = domains_to_show[i][1]
+                            
+                            # Format open ports
+                            open_ports = scan_result.get('open_ports', 0)
+                            port_list = scan_result.get('open_port_list', [])
+                            
+                            if port_list:
+                                ports_str = ', '.join(str(port) for port in port_list[:5])
+                                if len(port_list) > 5:
+                                    ports_str += f" ...({len(port_list) - 5} more)"
+                            else:
+                                ports_str = str(open_ports)
+                            
+                            # Truncate domain if too long
+                            if len(domain_name) > 26:
+                                domain_name = domain_name[:23] + "..."
+                            
+                            typer.secho(f"│ {domain_name:<26} │ {ports_str:<26} │", fg=typer.colors.WHITE)
+                        
+                        if len(domains_to_show) > max_domains:
+                            typer.secho(f"│ ... and {len(domains_to_show) - max_domains} more domains with open ports      │", fg=typer.colors.WHITE)
+                            
+                        typer.secho("└────────────────────────────┴────────────────────────┘", fg=typer.colors.WHITE)
+                
                 # Display summary table of typosquatting findings
                 typer.secho("\nTYPOSQUATTING SUMMARY:", fg=typer.colors.BRIGHT_CYAN)
                 typer.secho("┌─────────────────────┬────────────────────┐", fg=typer.colors.WHITE)
@@ -338,27 +394,64 @@ async def run_scan(
             typer.secho(" module...", fg=typer.colors.BRIGHT_YELLOW, bold=True)
         
         async with NewsMonitor() as news:
-            # Use last 30 days for news by default
-            results["news"] = await news.monitor(domain, 30)
-            
-            if verbose:
-                typer.secho("News Monitoring complete", fg=typer.colors.BRIGHT_BLUE, bold=True)
+            # Display port scan results if available
+            if 'port_scan' in results['recon'] and results['recon']['port_scan']:
+                port_scan = results['recon']['port_scan']
+                total_scanned = port_scan.get('total_scanned', 0)
+                domains_with_ports = port_scan.get('domains_with_open_ports', 0)
+                total_open_ports = port_scan.get('total_open_ports', 0)
+                domain_results = port_scan.get('domain_results', {})
                 
-                # Display summary table of news findings
-                typer.secho("\nNEWS MONITORING SUMMARY:", fg=typer.colors.BRIGHT_CYAN)
+                typer.secho("\nPORT SCAN SUMMARY:", fg=typer.colors.BRIGHT_CYAN)
                 typer.secho("┌─────────────────────┬────────────────────┐", fg=typer.colors.WHITE)
-                typer.secho("│ Category            │ Count              │", fg=typer.colors.WHITE)
+                typer.secho("│ Category            │ Value              │", fg=typer.colors.WHITE)
                 typer.secho("├─────────────────────┼────────────────────┤", fg=typer.colors.WHITE)
-                
-                # Articles count
-                total_articles = results['news'].get('total_articles', 0)
-                typer.secho(f"│ Total Articles      │ {total_articles:<18} │", fg=typer.colors.WHITE)
-                
-                # Days monitored
-                days_monitored = results['news'].get('days_monitored', 30)
-                typer.secho(f"│ Days Monitored      │ {days_monitored:<18} │", fg=typer.colors.WHITE)
-                
+                typer.secho(f"│ Domains Scanned     │ {total_scanned:<18} │", fg=typer.colors.WHITE)
+                typer.secho(f"│ Domains with Ports  │ {domains_with_ports:<18} │", fg=typer.colors.WHITE)
+                typer.secho(f"│ Total Open Ports    │ {total_open_ports:<18} │", fg=typer.colors.WHITE)
                 typer.secho("└─────────────────────┴────────────────────┘", fg=typer.colors.WHITE)
+                
+                # Show up to 5 domains with open ports
+                domains_to_show = []
+                for scan_domain, scan_result in domain_results.items():
+                    if scan_result.get('open_ports', 0) > 0:
+                        domains_to_show.append((scan_domain, scan_result))
+                
+                if domains_to_show:
+                    typer.secho("\nOPEN PORTS BY DOMAIN:", fg=typer.colors.BRIGHT_CYAN)
+                    typer.secho("┌────────────────────────────┬────────────────────────┐", fg=typer.colors.WHITE)
+                    typer.secho("│ Domain                      │ Open Ports                 │", fg=typer.colors.WHITE)
+                    typer.secho("├────────────────────────────┼────────────────────────┤", fg=typer.colors.WHITE)
+                    
+                    # Display top 5 domains (sort by number of open ports)
+                    domains_to_show.sort(key=lambda x: x[1].get('open_ports', 0), reverse=True)
+                    max_domains = min(5, len(domains_to_show))
+                    
+                    for i in range(max_domains):
+                        domain_name = domains_to_show[i][0]
+                        scan_result = domains_to_show[i][1]
+                        
+                        # Format open ports
+                        open_ports = scan_result.get('open_ports', 0)
+                        port_list = scan_result.get('open_port_list', [])
+                        
+                        if port_list:
+                            ports_str = ', '.join(str(port) for port in port_list[:5])
+                            if len(port_list) > 5:
+                                ports_str += f" ...({len(port_list) - 5} more)"
+                        else:
+                            ports_str = str(open_ports)
+                        
+                        # Truncate domain if too long
+                        if len(domain_name) > 26:
+                            domain_name = domain_name[:23] + "..."
+                        
+                        typer.secho(f"│ {domain_name:<26} │ {ports_str:<26} │", fg=typer.colors.WHITE)
+                    
+                    if len(domains_to_show) > max_domains:
+                        typer.secho(f"│ ... and {len(domains_to_show) - max_domains} more domains with open ports      │", fg=typer.colors.WHITE)
+                        
+                    typer.secho("└────────────────────────────┴────────────────────────┘", fg=typer.colors.WHITE)
                 
                 # Display recent articles if available
                 if 'articles' in results['news'] and results['news']['articles']:
