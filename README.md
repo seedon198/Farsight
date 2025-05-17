@@ -1,9 +1,9 @@
 <p align="center">
-  <img src="docs/assets/logo.svg" alt="FARSIGHT Logo"/>
+  <img src="docs/assets/logo.svg" alt="FARSIGHT Logo" width="100%"/>
 </p>
 
-<h1 align="center">FARSIGHT</h1>
-<p align="center">CLI-Based Recon and Threat Intelligence Framework</p>
+# FARSIGHT
+CLI-Based Recon and Threat Intelligence Framework
 
 ## Overview
 
