@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/logo.svg" alt="FARSIGHT Logo"/>
+  <img src="docs/assets/logo.svg" alt="FARSIGHT Logo" width="100%"/>
 </p>
 
 ## Overview
