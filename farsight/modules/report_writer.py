@@ -361,7 +361,8 @@ All data in this report is presented for informational purposes only.
         if "whois" in org_results:
             for key, value in org_results["whois"].items():
                 if isinstance(value, list):
-                    value_str = ", ".join(value)
+                    # Convert all elements in the list to strings before joining
+                    value_str = ", ".join([str(item) for item in value])
                 else:
                     value_str = str(value)
                 whois_md += f"{key.capitalize()}: {value_str}\n"
