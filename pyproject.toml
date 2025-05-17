@@ -8,7 +8,7 @@ readme = "README.md"
 packages = [{include = "farsight"}]
 
 [tool.poetry.dependencies]
-python = ">=3.8,<4.0"
+python = ">=3.9,<4.0"
 typer = "^0.7.0"
 python-whois = "^0.7.3"
 aiohttp = "^3.8.1"
@@ -23,6 +23,7 @@ gnews = "^0.4.1"
 markdown = "^3.3.7"
 # We'll use reportlab instead of weasyprint as it's more compatible
 reportlab = "^4.0.4"
+rapidfuzz = "^3.13.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.0.0"
