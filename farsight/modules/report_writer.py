@@ -107,6 +107,7 @@ This report presents the findings from a reconnaissance scan of **{target}**.
 
 ### Exposed Credentials
 {credentials}
+{email_reputation}
 
 ---
 """,
@@ -567,49 +568,101 @@ All data in this report is presented for informational purposes only.
     
     def _render_threat_section(self, threat_results: Dict[str, Any]) -> str:
         """Render threat intelligence section."""
-        # Format leaks information
+        # Format data leaks
         leaks_md = ""
         if "leaks" in threat_results and threat_results["leaks"]:
-            leaks_md = "| Source | Type | Date | Details |\n|--------|------|------|--------|\n"
+            leaks_md = f"**Total leaks discovered:** {len(threat_results['leaks'])}\n\n"
+            leaks_md += "| Source | Type | Date | Details |\n|--------|------|------|---------|\n"
             for leak in threat_results["leaks"]:
                 source = leak.get("source", "Unknown")
                 leak_type = leak.get("type", "Unknown")
                 date = leak.get("date", "Unknown")
-                details = leak.get("details", "No details").replace("|", "\\|")[:50]
+                details = leak.get("details", "").replace("|", "\\|")[:50]
                 leaks_md += f"| {source} | {leak_type} | {date} | {details} |\n"
         else:
-            leaks_md = "No data leaks or breaches found."
+            leaks_md = "No data leaks found."
         
         # Format dark web mentions
         dark_web_md = ""
         if "dark_web" in threat_results and threat_results["dark_web"]:
-            dark_web_md = "| Source | Mention | Date |\n|--------|---------|------|\n"
+            dark_web_md = f"**Total dark web mentions:** {len(threat_results['dark_web'])}\n\n"
+            dark_web_md += "| Source | Type | Risk Level | Target | Details |\n|--------|------|-----------|--------|---------|\n"
             for mention in threat_results["dark_web"]:
                 source = mention.get("source", "Unknown")
-                text = mention.get("text", "").replace("|", "\\|")[:50]
-                date = mention.get("date", "Unknown")
-                dark_web_md += f"| {source} | {text} | {date} |\n"
+                leak_type = mention.get("type", "unknown")
+                risk_level = mention.get("risk_level", "medium")
+                target = mention.get("target", "").replace("@", "[at]")  # Obfuscate emails
+                details = mention.get("details", "").replace("|", "\\|")[:50]
+                
+                # Add visual indicators for risk level
+                risk_indicator = "🔵"
+                if risk_level == "high":
+                    risk_indicator = "🔴"
+                elif risk_level == "critical":
+                    risk_indicator = "⚠️"
+                elif risk_level == "low":
+                    risk_indicator = "🟢"
+                
+                dark_web_md += f"| {source} | {leak_type} | {risk_indicator} {risk_level} | {target} | {details} |\n"
+            
+            # Add a note about confidence
+            if any("confidence" in mention for mention in threat_results["dark_web"]):
+                dark_web_md += "\n**Note:** Some dark web findings are based on pattern matching and historical breach correlation. "  
+                dark_web_md += "For confirmed findings, configure the IntelX API.\n"
         else:
-            dark_web_md = "No dark web mentions found."
+            dark_web_md = "No dark web mentions found.\n\n"  
+            dark_web_md += "**Note:** For enhanced dark web monitoring, configure the IntelX API in your environment.\n"
         
         # Format credentials
         creds_md = ""
         if "credentials" in threat_results and threat_results["credentials"]:
             creds_md = f"**Total exposed credentials:** {len(threat_results['credentials'])}\n\n"
-            creds_md += "| Email | Source | Date | Password Exposed |\n|-------|--------|------|----------------|\n"
+            creds_md += "| Email | Source | Date | Password Exposed | Details |\n|-------|--------|------|----------------|---------|\n"
             for cred in threat_results["credentials"]:
                 email = cred.get("email", "").replace("@", "[at]")  # Obfuscate email
                 source = cred.get("source", "Unknown")
                 date = cred.get("date", "Unknown")
                 has_password = "Yes" if cred.get("has_password", False) else "No"
-                creds_md += f"| {email} | {source} | {date} | {has_password} |\n"
+                details = cred.get("details", "").replace("|", "\\|")[:50]
+                creds_md += f"| {email} | {source} | {date} | {has_password} | {details} |\n"
         else:
-            creds_md = "No exposed credentials found."
+            creds_md = "No exposed credentials found.\n\n"
+            if "unique_emails_found" in threat_results and threat_results["unique_emails_found"]:
+                creds_md += f"**Note:** {len(threat_results['unique_emails_found'])} email addresses were found but no breach information was discovered."  
+                creds_md += " To enhance credential breach detection, configure the LeakPeek API.\n"
+        
+        # Add email reputation section
+        email_rep_md = ""
+        if "email_reputation" in threat_results and threat_results["email_reputation"]:
+            email_rep_md = "\n### Email Reputation Analysis\n\n"
+            email_rep_md += "| Email | Reputation | Risk Score | Domain Info | Risk Factors |\n|-------|------------|------------|------------|-------------|\n"
+            for email_rep in threat_results["email_reputation"]:
+                email = email_rep.get("email", "").replace("@", "[at]")  # Obfuscate email
+                reputation = email_rep.get("reputation", "unknown")
+                risk_score = email_rep.get("risk_score", 0)
+                
+                # Format domain info
+                domain_info = email_rep.get("domain_info", {})
+                domain_age = domain_info.get("age_days", "unknown")
+                domain_risk = domain_info.get("risk", "unknown")
+                disposable = "Yes" if domain_info.get("disposable", False) else "No"
+                domain_text = f"Age: {domain_age} days, Risk: {domain_risk}, Disposable: {disposable}"
+                
+                # Format risk factors
+                risk_factors = email_rep.get("risk_factors", {})
+                factors_text = ", ".join([k for k, v in risk_factors.items() if v])
+                if not factors_text:
+                    factors_text = "None detected"
+                
+                email_rep_md += f"| {email} | {reputation} | {risk_score}/100 | {domain_text} | {factors_text} |\n"
+            
+            # No need to modify the template structure as we'll pass email_rep_md as a parameter
         
         return self.templates["threat_intel"].format(
             leaks=leaks_md,
             dark_web=dark_web_md,
-            credentials=creds_md
+            credentials=creds_md,
+            email_reputation=email_rep_md if "email_reputation" in threat_results else ""
         )
     
     def _render_typosquat_section(self, typosquat_results: Dict[str, Any]) -> str:
