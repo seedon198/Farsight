@@ -12,3 +12,5 @@ fuzzywuzzy>=0.18.0
 markdown>=3.4.1
 weasyprint>=57.1  
 reportlab>=3.6.12  
+aiodns>=3.5.0
+requests
