@@ -5,15 +5,10 @@ aiohttp>=3.8.1
 dnspython>=2.3.0
 beautifulsoup4>=4.11.1
 asyncio>=3.4.3
-
-# Optional dependencies for enhanced functionality
-# Uncomment as needed
-# dnstwist>=20220613  # For enhanced typosquatting detection
-# gnews>=0.2.7  # For news monitoring
-# rapidfuzz>=2.13.7  # For better typosquatting similarity scoring
-# fuzzywuzzy>=0.18.0  # Alternative for typosquatting similarity scoring
-
-# PDF report generation (optional)
-# markdown>=3.4.1
-# weasyprint>=57.1  # Requires additional system dependencies
-# reportlab>=3.6.12  # Alternative PDF generation
+dnstwist>=20220613  
+gnews>=0.2.7 
+rapidfuzz>=2.13.7  
+fuzzywuzzy>=0.18.0  
+markdown>=3.4.1
+weasyprint>=57.1  
+reportlab>=3.6.12  
