@@ -1,27 +1,22 @@
+<div align="center">
+
+## [🎯 FEATURED AT BLACKHAT ARSENAL 2025 🎯](https://www.blackhat.com/sector/2025/arsenal/schedule/index.html#farsight-cli-based-recon-and-threat-intelligence-framework-47707)
+
+**Join us at BlackHat Arsenal 2025** | **Session: CLI-Based Recon and Threat Intelligence Framework**
+
+</div>
+
 <p align="center">
   <img src="docs/assets/logo.svg" alt="FARSIGHT Logo" width="100%"/>
 </p>
 
 # FARSIGHT
-CLI-Based Recon and Threat Intelligence Framework
-
-<div align="center">
-
-## [🎯 FEATURED AT BLACKHAT ARSENAL 2025 🎯](https://www.blackhat.com/sector/2025/arsenal/schedule/index.html#farsight-cli-based-recon-and-threat-intelligence-framework-47707)
-
-[![BlackHat Arsenal 2025](https://img.shields.io/badge/BlackHat%20Arsenal-2025-red?style=for-the-badge&logo=blackhat&logoColor=white&labelColor=black)](https://www.blackhat.com/sector/2025/arsenal/schedule/index.html#farsight-cli-based-recon-and-threat-intelligence-framework-47707)
-
-**Join us at BlackHat Arsenal 2025** | **Session: CLI-Based Recon and Threat Intelligence Framework**
-
----
 
 [![Python](https://img.shields.io/badge/Python-3.7+-blue?style=for-the-badge&logo=python)](https://python.org)
 [![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/seedon198/Farsight?style=for-the-badge)](https://github.com/seedon198/Farsight/stargazers)
 
 *A comprehensive reconnaissance and threat intelligence framework trusted by security professionals worldwide*
-
-</div>
 
 ## Overview
 
