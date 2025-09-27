@@ -16,7 +16,7 @@ from farsight.modules.typosquat import TyposquatDetector
 from farsight.modules.news import NewsMonitor
 from farsight.modules.report_writer import ReportWriter
 
-app = typer.Typer(help="Run reconnaissance and intelligence gathering scans")
+# Removed the Typer app wrapper - we'll add the command directly to the main app
 
 
 async def run_scan(
@@ -524,8 +524,7 @@ async def run_scan(
     return results
 
 
-@app.command()
-def run(
+def scan(
     domain: str = typer.Argument(..., help="Target domain to scan"),
     output: Path = typer.Option(
         Path("./report.md"), "--output", "-o", help="Output file path"

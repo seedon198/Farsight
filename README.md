@@ -12,7 +12,7 @@
 
 # FARSIGHT
 
-[![Python](https://img.shields.io/badge/Python-3.7+-blue?style=for-the-badge&logo=python)](https://python.org)
+[![Python](https://img.shields.io/badge/Python-3.9+-blue?style=for-the-badge&logo=python)](https://python.org)
 [![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/seedon198/Farsight?style=for-the-badge)](https://github.com/seedon198/Farsight/stargazers)
 
@@ -43,18 +43,82 @@ FARSIGHT is a powerful, Python-based reconnaissance and threat intelligence fram
 
 ## Installation
 
-FARSIGHT requires Python 3.7+ and several dependencies. You can install it directly from the GitHub repository:
+FARSIGHT requires Python 3.9+ and several dependencies. Follow these steps for a complete setup:
+
+### Prerequisites
+
+- Python 3.9 or higher
+- pip (Python package installer)
+
+### Quick Setup
 
 ```bash
-# Clone the repository
+# 1. Clone the repository
 git clone https://github.com/seedon198/Farsight.git
 cd Farsight
 
-# Install dependencies
+# 2. Create a virtual environment (recommended)
+python3 -m venv venv
+
+# 3. Activate the virtual environment
+# On macOS/Linux:
+source venv/bin/activate
+# On Windows:
+# venv\Scripts\activate
+
+# 4. Install core dependencies
 pip install -r requirements.txt
 
-# Optional: Install development dependencies
+# 5. Install optional dependencies for full functionality
+pip install dnstwist rapidfuzz gnews markdown reportlab
+
+# 6. Verify installation
+python -m farsight --help
+```
+
+### Quick Start
+
+Once installed, you can immediately start using FARSIGHT:
+
+```bash
+# Activate your virtual environment
+source venv/bin/activate
+
+# Run a basic scan
+python -m farsight scan example.com
+
+# Run a comprehensive scan with all modules
+python -m farsight scan example.com --all --verbose
+```
+
+### Alternative: Using Poetry (Recommended for Development)
+
+If you prefer using Poetry for dependency management:
+
+```bash
+# Install Poetry if you haven't already
+curl -sSL https://install.python-poetry.org | python3 -
+
+# Install dependencies
+poetry install
+
+# Activate the virtual environment
+poetry shell
+
+# Run FARSIGHT
+poetry run python -m farsight --help
+```
+
+### Development Setup
+
+For development and contributing:
+
+```bash
+# Install development dependencies
 pip install -r requirements-dev.txt
+
+# Install pre-commit hooks (optional)
+pre-commit install
 ```
 
 ### API Keys (Optional)
@@ -72,7 +136,16 @@ export FARSIGHT_LEAKPEEK_API_KEY="your-api-key"
 
 ## Usage
 
-FARSIGHT is designed to be simple to use while providing powerful reconnaissance capabilities. Here are some examples of how to use it:
+FARSIGHT is designed to be simple to use while providing powerful reconnaissance capabilities. Make sure to activate your virtual environment first:
+
+```bash
+# Activate virtual environment (if using one)
+source venv/bin/activate  # On macOS/Linux
+# or
+# venv\Scripts\activate  # On Windows
+```
+
+### Basic Commands
 
 ```bash
 # Display help information
@@ -81,17 +154,30 @@ python -m farsight --help
 # Display version information
 python -m farsight version
 
-# Basic scan with organization discovery and reconnaissance modules
-python -m farsight scan example.com --output report.md
+# Show scan command options
+python -m farsight scan --help
+```
 
-# Comprehensive scan with all modules at depth 2
-python -m farsight scan example.com --output report.md --depth 2 --all
+### Running Scans
+
+```bash
+# Basic scan (organization discovery + reconnaissance)
+python -m farsight scan example.com
+
+# Basic scan with custom output file
+python -m farsight scan example.com --output my_report.md
+
+# Comprehensive scan with all modules
+python -m farsight scan example.com --all --verbose
 
 # Custom scan with specific modules
-python -m farsight scan example.com --output report.md --modules org,recon,threat
+python -m farsight scan example.com --modules org,recon,threat --verbose
 
 # Generate a PDF report
 python -m farsight scan example.com --output report.pdf --all
+
+# Force overwrite existing report
+python -m farsight scan example.com --force
 ```
 
 ### Scan Depth Levels
@@ -250,8 +336,12 @@ FARSIGHT is built with the following architecture:
 
 ```
 farsight/
+├── __init__.py           # Package initialization
+├── __main__.py           # CLI entry point
+├── main.py               # Main CLI application
+├── config.py             # Configuration management
 ├── cli/                  # CLI interface using Typer
-│   └── scan.py           # Main scan command
+│   └── scan.py           # Scan command implementation
 ├── modules/              # Core functionality modules
 │   ├── org_discovery.py  # Organization domain discovery
 │   ├── recon.py          # DNS enumeration and port scanning
@@ -259,28 +349,79 @@ farsight/
 │   ├── typosquat.py      # Typosquatting detection
 │   ├── news.py           # News monitoring
 │   └── report_writer.py  # Report generation
-├── utils/                # Utility functions
-│   ├── api_handler.py    # API interaction with failover
-│   ├── common.py         # Common utilities
-│   └── dns.py            # DNS operations
-├── config.py             # Configuration management
-└── main.py               # Entry point
+└── utils/                # Utility functions
+    ├── api_handler.py    # API interaction with failover
+    ├── common.py         # Common utilities
+    ├── dns.py            # DNS operations
+    └── subdomain_enum.py # Subdomain enumeration utilities
 ```
 
 ## Dependencies
 
-FARSIGHT requires the following main dependencies:
-
+### Core Dependencies (Required)
 - **typer**: CLI interface framework
 - **python-whois**: WHOIS lookups
 - **aiohttp**: Asynchronous HTTP requests
 - **dnspython**: DNS resolution and querying
 - **beautifulsoup4**: Web scraping
-- **dnstwist** (optional): Enhanced typosquatting detection
-- **markdown** and **weasyprint** (optional): PDF report generation
-- **gnews** (optional): News article retrieval
+- **requests**: HTTP library for API requests
 
-Full dependencies are specified in the `requirements.txt` file.
+### Optional Dependencies (Recommended)
+- **dnstwist**: Enhanced typosquatting detection
+- **rapidfuzz**: Better similarity scoring for typosquatting
+- **gnews**: News article retrieval
+- **markdown**: Markdown report processing
+- **reportlab**: PDF report generation
+
+### Installation Notes
+
+- All core dependencies are installed with `pip install -r requirements.txt`
+- Optional dependencies can be installed with: `pip install dnstwist rapidfuzz gnews markdown reportlab`
+- The tool will work without optional dependencies but with limited functionality
+
+## Troubleshooting
+
+### Common Issues
+
+**Issue: `No module named farsight.__main__`**
+```bash
+# Solution: Make sure you're in the project directory and using the correct Python
+cd /path/to/Farsight
+python -m farsight --help
+```
+
+**Issue: `ModuleNotFoundError` for optional dependencies**
+```bash
+# Solution: Install optional dependencies
+pip install dnstwist rapidfuzz gnews markdown reportlab
+```
+
+**Issue: Permission denied when creating virtual environment**
+```bash
+# Solution: Use --user flag or check permissions
+python3 -m venv --user venv
+# or
+sudo python3 -m venv venv
+```
+
+**Issue: Command not found: python**
+```bash
+# Solution: Use python3 instead
+python3 -m farsight --help
+```
+
+**Issue: Report file already exists**
+```bash
+# Solution: Use --force flag to overwrite
+python -m farsight scan example.com --force
+```
+
+### Getting Help
+
+1. Check the help: `python -m farsight --help`
+2. Check scan options: `python -m farsight scan --help`
+3. Run with verbose output: `python -m farsight scan example.com --verbose`
+4. Check the [GitHub Issues](https://github.com/seedon198/Farsight/issues) for known problems
 
 ## Contributing
 
@@ -306,7 +447,10 @@ FARSIGHT leverages the following projects and services:
 - [python-whois](https://pypi.org/project/python-whois/) - WHOIS lookup
 - [BeautifulSoup](https://www.crummy.com/software/BeautifulSoup/) - Web scraping
 - [dnstwist](https://github.com/elceef/dnstwist) - Domain permutation engine
+- [rapidfuzz](https://github.com/maxbachmann/rapidfuzz) - Fast string matching
+- [gnews](https://github.com/ranahaani/gnews) - News article retrieval
 - [markdown](https://python-markdown.github.io/) - Markdown parsing
+- [reportlab](https://www.reportlab.com/) - PDF generation
 - Public data sources including [crt.sh](https://crt.sh/), [RapidDNS](https://rapiddns.io/), and [DNSDB.io](https://dnsdb.io/)
 
 ## Disclaimer
