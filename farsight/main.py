@@ -28,10 +28,10 @@ def run():
     """Run the FARSIGHT CLI."""
     try:
         # Import commands here to avoid circular imports
-        from farsight.cli.scan import app as scan_app
+        from farsight.cli.scan import scan
         
-        # Add subcommands
-        app.add_typer(scan_app, name="scan")
+        # Add scan command directly
+        app.command()(scan)
         
         # Run the app
         app()
