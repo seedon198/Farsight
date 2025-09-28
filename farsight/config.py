@@ -1,14 +1,18 @@
-"""Configuration module for FARSIGHT."""
+"""Configuration module for FARSIGHT.
+
+This module handles all configuration settings, API key management,
+and environment variable processing for the FARSIGHT framework.
+"""
 
 import os
 from pathlib import Path
 from typing import Dict, Optional, Any
 
-# Base directories
+# Base directories - dynamically determined at runtime
 PROJECT_ROOT = Path(__file__).parent.parent
 REPORTS_DIR = PROJECT_ROOT / "reports"
 
-# Ensure reports directory exists
+# Ensure reports directory exists for output files
 REPORTS_DIR.mkdir(exist_ok=True)
 
 # Default configuration

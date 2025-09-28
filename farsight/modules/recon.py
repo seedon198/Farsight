@@ -1,4 +1,8 @@
-"""Reconnaissance and asset discovery module for FARSIGHT."""
+"""Reconnaissance and asset discovery module for FARSIGHT.
+
+This module performs comprehensive reconnaissance including DNS enumeration,
+subdomain discovery, port scanning, and email security assessment.
+"""
 
 import asyncio
 import ipaddress

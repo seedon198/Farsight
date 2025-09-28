@@ -1,4 +1,8 @@
-"""Common utility functions for FARSIGHT."""
+"""Common utility functions for FARSIGHT.
+
+This module provides shared utilities including logging, rate limiting,
+retry mechanisms, and other common functionality used across the framework.
+"""
 
 import logging
 import time
