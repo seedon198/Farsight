@@ -124,7 +124,7 @@ async def run_scan(
                 whois_info = results['org']['whois_info']
                 
                 typer.secho("┌────────────────┬─────────────────────────────────┐", fg=typer.colors.WHITE)
-                typer.secho("│ Field           │ Value                            │", fg=typer.colors.WHITE)
+                typer.secho("│ Field          │ Value                            │", fg=typer.colors.WHITE)
                 typer.secho("├────────────────┼─────────────────────────────────┤", fg=typer.colors.WHITE)
                 
                 for field, display_name in [
@@ -186,7 +186,7 @@ async def run_scan(
             if 'port_scan' in results['recon'] and 'ports' in results['recon']['port_scan'] and results['recon']['port_scan']['ports']:
                 typer.secho("\nOPEN PORTS:", fg=typer.colors.BRIGHT_CYAN)
                 typer.secho("┌─────────┬───────────────┬───────────────────────┐", fg=typer.colors.WHITE)
-                typer.secho("│ Port    │ Service       │ Banner                 │", fg=typer.colors.WHITE)
+                typer.secho("│ Port    │ Service       │ Banner                │", fg=typer.colors.WHITE)
                 typer.secho("├─────────┼───────────────┼───────────────────────┤", fg=typer.colors.WHITE)
                 
                 for port_info in results['recon']['port_scan']['ports'][:5]:  # Show first 5 ports
