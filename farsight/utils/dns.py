@@ -1,4 +1,8 @@
-"""DNS utility functions for FARSIGHT."""
+"""DNS utility functions for FARSIGHT.
+
+This module provides DNS resolution, subdomain enumeration, and port scanning
+capabilities with robust error handling and performance optimizations.
+"""
 
 import asyncio
 import dns.resolver

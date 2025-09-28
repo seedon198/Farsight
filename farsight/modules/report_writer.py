@@ -1,4 +1,8 @@
-"""Report generation module for FARSIGHT."""
+"""Report generation module for FARSIGHT.
+
+This module handles the generation of comprehensive reconnaissance reports
+in both Markdown and PDF formats with structured data presentation.
+"""
 
 import time
 import json
