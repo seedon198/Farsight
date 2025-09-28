@@ -1,4 +1,8 @@
-"""API handler for making API requests with rate limiting and error handling."""
+"""API handler for making API requests with rate limiting and error handling.
+
+This module provides a robust API management system with automatic retry,
+rate limiting, and graceful error handling for external service integrations.
+"""
 
 import aiohttp
 import asyncio

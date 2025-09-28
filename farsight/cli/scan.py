@@ -1,4 +1,8 @@
-"""Main scan command for FARSIGHT."""
+"""Main scan command for FARSIGHT.
+
+This module contains the core scanning functionality, orchestrating all
+reconnaissance modules and generating comprehensive reports.
+"""
 
 import typer
 from typing import Optional, List, Dict, Any

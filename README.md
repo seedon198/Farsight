@@ -18,6 +18,8 @@
 
 *A comprehensive reconnaissance and threat intelligence framework trusted by security professionals worldwide*
 
+> **Latest Update**: Enhanced documentation and improved CLI structure for better user experience
+
 ## Overview
 
 FARSIGHT is a powerful, Python-based reconnaissance and threat intelligence framework designed for security professionals. It provides comprehensive domain intelligence, asset discovery, and threat monitoring capabilities in a fast, modular CLI-first tool.

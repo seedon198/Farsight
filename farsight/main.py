@@ -1,4 +1,8 @@
-"""Entry point for the FARSIGHT CLI tool."""
+"""Entry point for the FARSIGHT CLI tool.
+
+This module provides the main CLI interface for FARSIGHT, handling command
+registration and execution flow.
+"""
 
 import typer
 from typing import Optional
@@ -25,15 +29,19 @@ def version():
 
 
 def run():
-    """Run the FARSIGHT CLI."""
+    """Run the FARSIGHT CLI.
+    
+    This function initializes the CLI application, registers commands,
+    and handles the main execution flow with proper error handling.
+    """
     try:
         # Import commands here to avoid circular imports
         from farsight.cli.scan import scan
         
-        # Add scan command directly
+        # Add scan command directly to the main app
         app.command()(scan)
         
-        # Run the app
+        # Run the main CLI application
         app()
     except Exception as e:
         typer.secho(f"Error: {str(e)}", fg=typer.colors.RED)
