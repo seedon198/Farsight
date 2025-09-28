@@ -1,4 +1,9 @@
-"""Threat Intelligence module for FARSIGHT."""
+"""Threat Intelligence module for FARSIGHT.
+
+This module provides comprehensive threat intelligence gathering including
+data leak detection, credential exposure monitoring, dark web mentions,
+and email reputation analysis.
+"""
 
 import asyncio
 import re

@@ -2,10 +2,13 @@
 name = "farsight"
 version = "0.1.0"
 description = "CLI-Based Recon and Threat Intelligence Framework"
-authors = ["FARSIGHT Team"]
+authors = ["FARSIGHT Team <contact@farsight-security.com>"]
 license = "MIT"
 readme = "README.md"
 packages = [{include = "farsight"}]
+homepage = "https://github.com/seedon198/Farsight"
+repository = "https://github.com/seedon198/Farsight"
+documentation = "https://github.com/seedon198/Farsight#readme"
 
 [tool.poetry.dependencies]
 python = ">=3.9,<4.0"

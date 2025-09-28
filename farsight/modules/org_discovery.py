@@ -1,4 +1,9 @@
-"""Organization domain discovery module for FARSIGHT."""
+"""Organization domain discovery module for FARSIGHT.
+
+This module discovers domains related to an organization through various
+techniques including WHOIS analysis, certificate transparency logs, and
+passive DNS data collection.
+"""
 
 import asyncio
 import whois
