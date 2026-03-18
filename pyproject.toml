@@ -15,9 +15,8 @@ python = ">=3.9,<4.0"
 typer = "^0.7.0"
 python-whois = "^0.7.3"
 aiohttp = "^3.8.1"
-dnspython = "2.3.0"
+dnspython = ">=2.6.1"
 beautifulsoup4 = "^4.11.1"
-asyncio = "^3.4.3"
 # Enhanced typosquatting detection
 dnstwist = "^20250130"
 # News article retrieval
