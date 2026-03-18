@@ -30,17 +30,17 @@ def version():
 
 def run():
     """Run the FARSIGHT CLI.
-    
+
     This function initializes the CLI application, registers commands,
     and handles the main execution flow with proper error handling.
     """
     try:
         # Import commands here to avoid circular imports
         from farsight.cli.scan import scan
-        
+
         # Add scan command directly to the main app
         app.command()(scan)
-        
+
         # Run the main CLI application
         app()
     except Exception as e:

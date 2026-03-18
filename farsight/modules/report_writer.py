@@ -20,6 +20,7 @@ PDF_SUPPORT = False
 try:
     import markdown
     import weasyprint
+
     PDF_SUPPORT = True
 except ImportError:
     try:
@@ -27,25 +28,28 @@ except ImportError:
         from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
         from reportlab.lib.styles import getSampleStyleSheet
         import markdown
+
         PDF_SUPPORT = True
     except ImportError:
-        logger.warning("PDF conversion libraries not installed. Only Markdown reports will be generated.")
+        logger.warning(
+            "PDF conversion libraries not installed. Only Markdown reports will be generated."
+        )
 
 
 class ReportWriter:
     """Report generation class for creating Markdown and PDF reports."""
-    
+
     def __init__(self, output_dir: Optional[Path] = None):
         """
         Initialize report writer.
-        
+
         Args:
             output_dir: Directory to save reports
         """
         self.output_dir = output_dir or REPORTS_DIR
         # Ensure directory exists
         self.output_dir.mkdir(exist_ok=True, parents=True)
-        
+
         # Templates as multi-line strings
         self.templates = {
             "header": """# FARSIGHT Reconnaissance Report
@@ -134,25 +138,27 @@ This report presents the findings from a reconnaissance scan of **{target}**.
 This report was generated automatically by FARSIGHT v{version} on {date}.
 
 All data in this report is presented for informational purposes only.
-"""
+""",
         }
-    
-    def generate_report(self, 
-                       results: Dict[str, Dict[str, Any]], 
-                       target: str, 
-                       depth: int, 
-                       modules: List[str], 
-                       output_file: Optional[Union[str, Path]] = None) -> Path:
+
+    def generate_report(
+        self,
+        results: Dict[str, Dict[str, Any]],
+        target: str,
+        depth: int,
+        modules: List[str],
+        output_file: Optional[Union[str, Path]] = None,
+    ) -> Path:
         """
         Generate a comprehensive report from all module results.
-        
+
         Args:
             results: Dictionary of module results
             target: Target domain
             depth: Scan depth
             modules: List of modules that were run
             output_file: Output file path (optional)
-            
+
         Returns:
             Path to the generated report
         """
@@ -166,77 +172,78 @@ All data in this report is presented for informational purposes only.
             output_file = domain_dir / f"{target}_{timestamp}_report.md"
         elif isinstance(output_file, str):
             output_file = Path(output_file)
-            
+
         # Ensure parent directories exist
         output_file.parent.mkdir(exist_ok=True, parents=True)
-        
+
         # Start with header
         report_content = self._render_header(target, depth, modules)
-        
+
         # Add summary
         report_content += self._render_summary(results, target)
-        
+
         # Add module results
         if "org" in modules and "org" in results:
             report_content += self._render_org_section(results["org"])
-        
+
         if "recon" in modules and "recon" in results:
             report_content += self._render_recon_section(results["recon"])
-        
+
         if "threat" in modules and "threat" in results:
             report_content += self._render_threat_section(results["threat"])
-        
+
         if "typosquat" in modules and "typosquat" in results:
             report_content += self._render_typosquat_section(results["typosquat"])
-        
+
         if "news" in modules and "news" in results:
             report_content += self._render_news_section(results["news"])
-        
+
         # Add footer
         from farsight import __version__
+
         report_content += self.templates["footer"].format(
-            version=__version__,
-            date=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            version=__version__, date=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         )
-        
+
         # Write to file
-        with open(output_file, 'w') as f:
+        with open(output_file, "w") as f:
             f.write(report_content)
-        
+
         logger.info(f"Report generated and saved to {output_file}")
-        
+
         return output_file
-    
+
     def convert_to_pdf(self, markdown_file: Path) -> Optional[Path]:
         """
         Convert Markdown report to PDF.
-        
+
         Args:
             markdown_file: Path to Markdown file
-            
+
         Returns:
             Path to PDF file if successful, None otherwise
         """
         if not PDF_SUPPORT:
-            logger.warning("PDF conversion libraries not installed. Cannot convert to PDF.")
+            logger.warning(
+                "PDF conversion libraries not installed. Cannot convert to PDF."
+            )
             return None
-        
+
         try:
             # Create PDF file path
-            pdf_file = markdown_file.with_suffix('.pdf')
-            
+            pdf_file = markdown_file.with_suffix(".pdf")
+
             # Read Markdown content
-            with open(markdown_file, 'r') as f:
+            with open(markdown_file, "r") as f:
                 markdown_content = f.read()
-            
+
             # First method: weasyprint
-            if 'weasyprint' in globals():
+            if "weasyprint" in globals():
                 # Convert to HTML
                 html = markdown.markdown(
-                    markdown_content,
-                    extensions=['tables', 'fenced_code']
+                    markdown_content, extensions=["tables", "fenced_code"]
                 )
-                
+
                 # Add CSS for better formatting
                 html = f"""
                 <!DOCTYPE html>
@@ -260,56 +267,56 @@ All data in this report is presented for informational purposes only.
                 </body>
                 </html>
                 """
-                
+
                 # Convert to PDF
                 weasyprint.HTML(string=html).write_pdf(pdf_file)
-            
+
             # Second method: reportlab
-            elif 'reportlab' in globals():
+            elif "reportlab" in globals():
                 # Create simple PDF with reportlab
                 doc = SimpleDocTemplate(str(pdf_file), pagesize=letter)
                 styles = getSampleStyleSheet()
                 flowables = []
-                
+
                 # Split content by headers
-                sections = re.split(r'(#+ .*)', markdown_content)
-                
+                sections = re.split(r"(#+ .*)", markdown_content)
+
                 for section in sections:
                     if section.strip():
                         # Process headers
-                        if re.match(r'#+ .*', section):
-                            level = len(re.match(r'(#+) ', section).group(1))
-                            text = section.lstrip('#').strip()
-                            style = styles['Heading%d' % min(level, 3)]
+                        if re.match(r"#+ .*", section):
+                            level = len(re.match(r"(#+) ", section).group(1))
+                            text = section.lstrip("#").strip()
+                            style = styles["Heading%d" % min(level, 3)]
                             flowables.append(Paragraph(text, style))
                             flowables.append(Spacer(1, 12))
                         else:
                             # Process paragraphs
-                            paragraphs = section.split('\n\n')
+                            paragraphs = section.split("\n\n")
                             for p in paragraphs:
                                 if p.strip():
                                     # Process lists and code blocks here if needed
-                                    flowables.append(Paragraph(p, styles['Normal']))
+                                    flowables.append(Paragraph(p, styles["Normal"]))
                                     flowables.append(Spacer(1, 6))
-                
+
                 doc.build(flowables)
-            
+
             logger.info(f"PDF report generated and saved to {pdf_file}")
             return pdf_file
-        
+
         except Exception as e:
             logger.error(f"Error converting to PDF: {str(e)}")
             return None
-    
+
     def _render_header(self, target: str, depth: int, modules: List[str]) -> str:
         """Render report header section."""
         return self.templates["header"].format(
             target=target,
             date=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             depth=depth,
-            modules=", ".join(modules)
+            modules=", ".join(modules),
         )
-    
+
     def _render_summary(self, results: Dict[str, Dict[str, Any]], target: str) -> str:
         """Render executive summary section."""
         # Extract key metrics for summary
@@ -319,65 +326,70 @@ All data in this report is presented for informational purposes only.
         additional_points = []
         total_domains = 0
         total_subdomains = 0
-        
+
         # Count related domains
-        if 'org' in results and 'related_domains' in results['org']:
-            total_domains = len(results['org']['related_domains'])
-            
+        if "org" in results and "related_domains" in results["org"]:
+            total_domains = len(results["org"]["related_domains"])
+
         # Count discovered subdomains from org module
-        if 'org' in results and 'discovered_subdomains' in results['org']:
-            total_subdomains += len(results['org']['discovered_subdomains'])
-            
+        if "org" in results and "discovered_subdomains" in results["org"]:
+            total_subdomains += len(results["org"]["discovered_subdomains"])
+
         # Add subdomains from recon module
-        if 'recon' in results and 'subdomains' in results['recon']:
-            total_subdomains += len(results['recon']['subdomains'])
+        if "recon" in results and "subdomains" in results["recon"]:
+            total_subdomains += len(results["recon"]["subdomains"])
             # Remove duplicates between modules
-            if 'org' in results and 'discovered_subdomains' in results['org']:
-                org_subs = set(results['org'].get('discovered_subdomains', []))
-                recon_subs = set(results['recon'].get('subdomains', []))
+            if "org" in results and "discovered_subdomains" in results["org"]:
+                org_subs = set(results["org"].get("discovered_subdomains", []))
+                recon_subs = set(results["recon"].get("subdomains", []))
                 unique_subs = recon_subs - org_subs
                 total_subdomains = len(org_subs) + len(unique_subs)
                 if "total_open_ports" in results["recon"]["port_scan"]:
                     total_open_ports = results["recon"]["port_scan"]["total_open_ports"]
                 elif "open_ports" in results["recon"]["port_scan"]:
                     total_open_ports = results["recon"]["port_scan"]["open_ports"]
-        
+
         # Check email security
         if "recon" in results and "email_security" in results["recon"]:
             email_sec = results["recon"]["email_security"]
             if "spf" in email_sec and "dmarc" in email_sec:
                 has_spf = email_sec["spf"].get("found", False)
                 has_dmarc = email_sec["dmarc"].get("found", False)
-                
+
                 if has_spf and has_dmarc:
                     email_security_status = "Well-protected"
                 elif has_spf or has_dmarc:
                     email_security_status = "Partially protected"
                 else:
                     email_security_status = "Unprotected"
-        
+
         # Check for threat intelligence findings
         if "threat" in results:
             if "leaks" in results["threat"] and results["threat"]["leaks"]:
                 total_leaks = len(results["threat"]["leaks"])
-                additional_points.append(f"**{total_leaks}** potential data leaks identified")
-        
+                additional_points.append(
+                    f"**{total_leaks}** potential data leaks identified"
+                )
+
         # Check for typosquatting
         if "typosquat" in results and "typosquats" in results["typosquat"]:
             total_typosquats = len(results["typosquat"]["typosquats"])
-            additional_points.append(f"**{total_typosquats}** typosquatting domains detected")
-        
+            additional_points.append(
+                f"**{total_typosquats}** typosquatting domains detected"
+            )
+
         # Format the additional points
         additional_summary = "\n".join([f"- {point}" for point in additional_points])
-        
+
         return self.templates["summary"].format(
             target=target,
-            total_domains=total_domains + total_subdomains, # Sum of related domains and subdomains
+            total_domains=total_domains
+            + total_subdomains,  # Sum of related domains and subdomains
             total_open_ports=total_open_ports,
             email_security_status=email_security_status,
-            additional_summary_points=additional_summary
+            additional_summary_points=additional_summary,
         )
-    
+
     def _render_org_section(self, org_results: Dict[str, Any]) -> str:
         """Render organization discovery section."""
         # Format WHOIS info
@@ -393,41 +405,51 @@ All data in this report is presented for informational purposes only.
         else:
             whois_md += "No WHOIS data available."
         whois_md += "```\n"
-        
+
         # Format related domains list
         domains_md = ""
         if "related_domains" in org_results and org_results["related_domains"]:
             domains_md = "```\n"
-            for domain in org_results["related_domains"][:50]:  # Limit to 50 for readability
+            for domain in org_results["related_domains"][
+                :50
+            ]:  # Limit to 50 for readability
                 domains_md += f"{domain}\n"
-                
+
             if len(org_results["related_domains"]) > 50:
-                domains_md += f"... and {len(org_results['related_domains']) - 50} more\n"
-                
+                domains_md += (
+                    f"... and {len(org_results['related_domains']) - 50} more\n"
+                )
+
             domains_md += "```\n"
         else:
             domains_md = "No related domains discovered."
-        
+
         # Format certificate transparency
         ct_md = ""
-        if "certificate_transparency" in org_results and org_results["certificate_transparency"]:
+        if (
+            "certificate_transparency" in org_results
+            and org_results["certificate_transparency"]
+        ):
             ct_md = "Domains found in certificate transparency logs:\n\n```\n"
-            for domain in org_results["certificate_transparency"][:20]:  # Limit to 20 for readability
+            for domain in org_results["certificate_transparency"][
+                :20
+            ]:  # Limit to 20 for readability
                 ct_md += f"{domain}\n"
-            
+
             if len(org_results["certificate_transparency"]) > 20:
                 ct_md += f"... and {len(org_results['certificate_transparency']) - 20} more\n"
-            
+
             ct_md += "```\n"
         else:
             ct_md = "No certificate transparency data available."
-        
+
         return self.templates["org_discovery"].format(
             whois_info=whois_md,
             total_related_domains=len(org_results.get("related_domains", [])),
             related_domains_list=domains_md,
-            certificate_transparency=ct_md
-        )  
+            certificate_transparency=ct_md,
+        )
+
     def _render_recon_section(self, recon_results: Dict[str, Any]) -> str:
         """Render reconnaissance section."""
         # Format DNS records
@@ -442,22 +464,22 @@ All data in this report is presented for informational purposes only.
                         dns_md += "| Type | Data |\n|------|------|\n"
                         for record in record_list:
                             # Extract the most relevant info based on record type
-                            if record_type == 'A' or record_type == 'AAAA':
-                                data = record.get('ip', 'N/A')
-                            elif record_type == 'MX':
+                            if record_type == "A" or record_type == "AAAA":
+                                data = record.get("ip", "N/A")
+                            elif record_type == "MX":
                                 data = f"{record.get('priority', 'N/A')} {record.get('exchange', 'N/A')}"
-                            elif record_type == 'CNAME':
-                                data = record.get('target', 'N/A')
-                            elif record_type == 'TXT':
-                                data = record.get('txt', 'N/A')
+                            elif record_type == "CNAME":
+                                data = record.get("target", "N/A")
+                            elif record_type == "TXT":
+                                data = record.get("txt", "N/A")
                             else:
-                                data = record.get('value', 'N/A')
+                                data = record.get("value", "N/A")
                             dns_md += f"| {record_type} | {data} |\n"
                     else:
                         dns_md += "No records found.\n\n"
         else:
             dns_md = "No DNS records found.\n"
-        
+
         # Format subdomains
         subdomains_md = ""
         if "subdomains" in recon_results and recon_results["subdomains"]:
@@ -465,61 +487,71 @@ All data in this report is presented for informational purposes only.
             subdomains_md = f"Total subdomains discovered: **{total_subdomains}**\n\n"
             if total_subdomains > 0:
                 subdomains_md += "```\n"
-                for subdomain in recon_results["subdomains"][:100]:  # Limit to 100 for readability
+                for subdomain in recon_results["subdomains"][
+                    :100
+                ]:  # Limit to 100 for readability
                     subdomains_md += f"{subdomain}\n"
-                
+
                 if total_subdomains > 100:
-                    subdomains_md += f"... and {total_subdomains - 100} more subdomains\n"
-                
+                    subdomains_md += (
+                        f"... and {total_subdomains - 100} more subdomains\n"
+                    )
+
                 subdomains_md += "```\n"
         else:
             subdomains_md = "No subdomains discovered.\n"
-        
+
         # Format port scan
         port_scan_summary = ""
         port_scan_details = ""
-        
+
         if "port_scan" in recon_results and recon_results["port_scan"]:
             port_scan = recon_results["port_scan"]
-            
+
             # Generate summary
             total_scanned = port_scan.get("total_scanned", 0)
             domains_with_ports = port_scan.get("domains_with_open_ports", 0)
             total_open_ports = port_scan.get("total_open_ports", 0)
-            
+
             port_scan_summary += f"**Domains Scanned:** {total_scanned}\n\n"
-            port_scan_summary += f"**Domains with Open Ports:** {domains_with_ports}\n\n"
+            port_scan_summary += (
+                f"**Domains with Open Ports:** {domains_with_ports}\n\n"
+            )
             port_scan_summary += f"**Total Open Ports Found:** {total_open_ports}\n\n"
-            
+
             # Generate detailed per-domain port information
             domain_results = port_scan.get("domain_results", {})
-            
+
             if domain_results:
                 # Find domains with open ports
                 domains_with_open = []
                 for domain, result in domain_results.items():
                     if result.get("open_ports", 0) > 0:
                         domains_with_open.append((domain, result))
-                
+
                 if domains_with_open:
                     # Sort by number of open ports (highest first)
-                    domains_with_open.sort(key=lambda x: x[1].get("open_ports", 0), reverse=True)
-                    
+                    domains_with_open.sort(
+                        key=lambda x: x[1].get("open_ports", 0), reverse=True
+                    )
+
                     for domain, result in domains_with_open:
                         open_ports = result.get("open_ports", 0)
                         port_list = result.get("open_port_list", [])
                         target_ip = result.get("target", "Unknown")
-                        
+
                         port_scan_details += f"**Domain:** {domain}\n\n"
                         port_scan_details += f"**IP Address:** {target_ip}\n\n"
                         port_scan_details += f"**Open Ports:** {open_ports}\n\n"
-                        
+
                         if port_list:
-                            port_scan_details += "| Port | Service |\n|------|---------|\n"
+                            port_scan_details += (
+                                "| Port | Service |\n|------|---------|\n"
+                            )
                             for port in port_list:
                                 service = self._get_service_name(port)
                                 port_scan_details += f"| {port} | {service} |\n"
-                        
+
                         port_scan_details += "\n---\n\n"
                 else:
                     port_scan_details = "No domains with open ports found.\n"
@@ -528,48 +560,51 @@ All data in this report is presented for informational purposes only.
         else:
             port_scan_summary = "No port scan results available.\n"
             port_scan_details = "No port scan results available.\n"
-        
+
         # Format email security
         email_md = "#### Email Security Findings\n\n"
-        
+
         # Check SPF
         spf_record = ""
         spf_status = "❌ Not implemented"
         if "spf_record" in recon_results and recon_results["spf_record"]:
             spf_record = recon_results["spf_record"]
             spf_status = "✅ Implemented"
-        
+
         email_md += f"**SPF Record:** {spf_status}\n\n"
         if spf_record:
             email_md += "```\n" + spf_record + "\n```\n\n"
-        
+
         # Check DMARC
         dmarc_record = ""
         dmarc_status = "❌ Not implemented"
         if "dmarc_record" in recon_results and recon_results["dmarc_record"]:
             dmarc_record = recon_results["dmarc_record"]
             dmarc_status = "✅ Implemented"
-        
+
         email_md += f"**DMARC Record:** {dmarc_status}\n\n"
         if dmarc_record:
             email_md += "```\n" + dmarc_record + "\n```\n\n"
-        
+
         # Add recommendations
         email_md += "**Recommendations:**\n"
-        if "email_recommendations" in recon_results and recon_results["email_recommendations"]:
+        if (
+            "email_recommendations" in recon_results
+            and recon_results["email_recommendations"]
+        ):
             for rec in recon_results["email_recommendations"]:
                 email_md += f"- {rec}\n"
         else:
             email_md += "- No specific recommendations at this time.\n"
-        
+
         return self.templates["recon"].format(
             dns_records=dns_md,
             subdomains=subdomains_md,
             port_scan_summary=port_scan_summary,
             port_scan_details=port_scan_details,
-            email_security=email_md
+            email_security=email_md,
         )
-    
+
     def _render_threat_section(self, threat_results: Dict[str, Any]) -> str:
         """Render threat intelligence section."""
         # Format data leaks
@@ -585,19 +620,23 @@ All data in this report is presented for informational purposes only.
                 leaks_md += f"| {source} | {leak_type} | {date} | {details} |\n"
         else:
             leaks_md = "No data leaks found."
-        
+
         # Format dark web mentions
         dark_web_md = ""
         if "dark_web" in threat_results and threat_results["dark_web"]:
-            dark_web_md = f"**Total dark web mentions:** {len(threat_results['dark_web'])}\n\n"
+            dark_web_md = (
+                f"**Total dark web mentions:** {len(threat_results['dark_web'])}\n\n"
+            )
             dark_web_md += "| Source | Type | Risk Level | Target | Details |\n|--------|------|-----------|--------|---------|\n"
             for mention in threat_results["dark_web"]:
                 source = mention.get("source", "Unknown")
                 leak_type = mention.get("type", "unknown")
                 risk_level = mention.get("risk_level", "medium")
-                target = mention.get("target", "").replace("@", "[at]")  # Obfuscate emails
+                target = mention.get("target", "").replace(
+                    "@", "[at]"
+                )  # Obfuscate emails
                 details = mention.get("details", "").replace("|", "\\|")[:50]
-                
+
                 # Add visual indicators for risk level
                 risk_indicator = "🔵"
                 if risk_level == "high":
@@ -606,17 +645,17 @@ All data in this report is presented for informational purposes only.
                     risk_indicator = "⚠️"
                 elif risk_level == "low":
                     risk_indicator = "🟢"
-                
+
                 dark_web_md += f"| {source} | {leak_type} | {risk_indicator} {risk_level} | {target} | {details} |\n"
-            
+
             # Add a note about confidence
             if any("confidence" in mention for mention in threat_results["dark_web"]):
-                dark_web_md += "\n**Note:** Some dark web findings are based on pattern matching and historical breach correlation. "  
+                dark_web_md += "\n**Note:** Some dark web findings are based on pattern matching and historical breach correlation. "
                 dark_web_md += "For confirmed findings, configure the IntelX API.\n"
         else:
-            dark_web_md = "No dark web mentions found.\n\n"  
+            dark_web_md = "No dark web mentions found.\n\n"
             dark_web_md += "**Note:** For enhanced dark web monitoring, configure the IntelX API in your environment.\n"
-        
+
         # Format credentials
         creds_md = ""
         if "credentials" in threat_results and threat_results["credentials"]:
@@ -628,47 +667,56 @@ All data in this report is presented for informational purposes only.
                 date = cred.get("date", "Unknown")
                 has_password = "Yes" if cred.get("has_password", False) else "No"
                 details = cred.get("details", "").replace("|", "\\|")[:50]
-                creds_md += f"| {email} | {source} | {date} | {has_password} | {details} |\n"
+                creds_md += (
+                    f"| {email} | {source} | {date} | {has_password} | {details} |\n"
+                )
         else:
             creds_md = "No exposed credentials found.\n\n"
-            if "unique_emails_found" in threat_results and threat_results["unique_emails_found"]:
-                creds_md += f"**Note:** {len(threat_results['unique_emails_found'])} email addresses were found but no breach information was discovered."  
+            if (
+                "unique_emails_found" in threat_results
+                and threat_results["unique_emails_found"]
+            ):
+                creds_md += f"**Note:** {len(threat_results['unique_emails_found'])} email addresses were found but no breach information was discovered."
                 creds_md += " To enhance credential breach detection, configure the LeakPeek API.\n"
-        
+
         # Add email reputation section
         email_rep_md = ""
         if "email_reputation" in threat_results and threat_results["email_reputation"]:
             email_rep_md = "\n### Email Reputation Analysis\n\n"
             email_rep_md += "| Email | Reputation | Risk Score | Domain Info | Risk Factors |\n|-------|------------|------------|------------|-------------|\n"
             for email_rep in threat_results["email_reputation"]:
-                email = email_rep.get("email", "").replace("@", "[at]")  # Obfuscate email
+                email = email_rep.get("email", "").replace(
+                    "@", "[at]"
+                )  # Obfuscate email
                 reputation = email_rep.get("reputation", "unknown")
                 risk_score = email_rep.get("risk_score", 0)
-                
+
                 # Format domain info
                 domain_info = email_rep.get("domain_info", {})
                 domain_age = domain_info.get("age_days", "unknown")
                 domain_risk = domain_info.get("risk", "unknown")
                 disposable = "Yes" if domain_info.get("disposable", False) else "No"
                 domain_text = f"Age: {domain_age} days, Risk: {domain_risk}, Disposable: {disposable}"
-                
+
                 # Format risk factors
                 risk_factors = email_rep.get("risk_factors", {})
                 factors_text = ", ".join([k for k, v in risk_factors.items() if v])
                 if not factors_text:
                     factors_text = "None detected"
-                
+
                 email_rep_md += f"| {email} | {reputation} | {risk_score}/100 | {domain_text} | {factors_text} |\n"
-            
+
             # No need to modify the template structure as we'll pass email_rep_md as a parameter
-        
+
         return self.templates["threat_intel"].format(
             leaks=leaks_md,
             dark_web=dark_web_md,
             credentials=creds_md,
-            email_reputation=email_rep_md if "email_reputation" in threat_results else ""
+            email_reputation=(
+                email_rep_md if "email_reputation" in threat_results else ""
+            ),
         )
-    
+
     def _render_typosquat_section(self, typosquat_results: Dict[str, Any]) -> str:
         """Render typosquatting section."""
         typo_md = ""
@@ -681,15 +729,17 @@ All data in this report is presented for informational purposes only.
                 risk = typo.get("risk_score", 0)
                 dns = typo.get("has_dns", False)
                 dns_text = "✅" if dns else "❌"
-                typo_md += f"| {domain} | {typo_type} | {status} | {risk}/100 | {dns_text} |\n"
+                typo_md += (
+                    f"| {domain} | {typo_type} | {status} | {risk}/100 | {dns_text} |\n"
+                )
         else:
             typo_md = "No typosquatting domains detected."
-        
+
         return self.templates["typosquat"].format(
             total_typosquats=len(typosquat_results.get("typosquats", [])),
-            typosquats=typo_md
+            typosquats=typo_md,
         )
-    
+
     def _render_news_section(self, news_results: Dict[str, Any]) -> str:
         """Render news monitoring section."""
         news_md = ""
@@ -699,18 +749,16 @@ All data in this report is presented for informational purposes only.
                 date = article.get("published", "Unknown date")
                 url = article.get("url", "#")
                 snippet = article.get("snippet", "No snippet available")
-                
+
                 news_md += f"### [{title}]({url})\n\n"
                 news_md += f"**Published:** {date}\n\n"
                 news_md += f"{snippet}\n\n"
                 news_md += "---\n\n"
         else:
             news_md = "No recent news articles found."
-        
-        return self.templates["news"].format(
-            news_articles=news_md
-        )
-    
+
+        return self.templates["news"].format(news_articles=news_md)
+
     def _get_service_name(self, port: int) -> str:
         """Get service name for common ports."""
         common_ports = {
@@ -733,6 +781,6 @@ All data in this report is presented for informational purposes only.
             3306: "MySQL",
             3389: "RDP",
             5900: "VNC",
-            8080: "HTTP Proxy"
+            8080: "HTTP Proxy",
         }
         return common_ports.get(port, "Unknown")
