@@ -22,7 +22,7 @@ wheels/
 MANIFEST
 
 # Poetry
-poetry.lock
+# poetry.lock intentionally tracked for reproducible installs and Dependabot
 
 # Virtual Environments
 .env
