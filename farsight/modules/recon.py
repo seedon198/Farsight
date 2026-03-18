@@ -16,18 +16,23 @@ from pathlib import Path
 
 from farsight.utils.common import logger, retry
 from farsight.utils.api_handler import APIManager
-from farsight.utils.dns import DNSResolver, PortScanner, enum_subdomains, check_spf_dmarc
+from farsight.utils.dns import (
+    DNSResolver,
+    PortScanner,
+    enum_subdomains,
+    check_spf_dmarc,
+)
 from farsight.utils.subdomain_enum import discover_subdomains
 from farsight.config import get_config, is_api_configured, REPORTS_DIR
 
 
 class Recon:
     """Reconnaissance and asset discovery class."""
-    
+
     def __init__(self, api_manager: Optional[APIManager] = None):
         """
         Initialize recon module.
-        
+
         Args:
             api_manager: API manager for making API requests (optional)
         """
@@ -41,15 +46,15 @@ class Recon:
             "port_scan": {},
             "api_results": [],
         }
-    
+
     async def scan(self, domain: str, depth: int = 1) -> Dict[str, Any]:
         """
         Perform reconnaissance and asset discovery.
-        
+
         Args:
             domain: Target domain
             depth: Scan depth level (1-3)
-            
+
         Returns:
             Dictionary with scan results
         """
@@ -61,57 +66,61 @@ class Recon:
             "port_scan": {},
             "api_results": [],
         }
-        
+
         # Basic DNS enumeration
-        dns_types = ['A', 'MX', 'NS', 'TXT', 'CNAME']
+        dns_types = ["A", "MX", "NS", "TXT", "CNAME"]
         self.results["dns"] = await self.dns_resolver.bulk_resolve([domain], dns_types)
-        
+
         # Get email security status (SPF, DMARC)
         self.results["email_security"] = await check_spf_dmarc(domain)
-        
+
         # Discover subdomains based on depth
         if depth >= 1:
             discovered = await self._discover_subdomains(domain, depth)
             self.results["subdomains"] = discovered
-            
+
             # Get IPs from A records
             all_domains = [domain] + discovered
             ips = await self._get_ips_from_domains(all_domains)
-            
+
             # Initialize port scan results structure
             self.results["port_scan"] = {
                 "total_scanned": 0,
                 "domains_with_open_ports": 0,
                 "total_open_ports": 0,
-                "domain_results": {}
+                "domain_results": {},
             }
-            
+
             # Port scan all domains with resolved IPs (limit to 10 for performance)
             max_domains_to_scan = min(10, len(all_domains))
             domains_scanned = 0
-            
+
             logger.info(f"Port scanning up to {max_domains_to_scan} domains")
-            
+
             for scan_domain in all_domains:
                 if domains_scanned >= max_domains_to_scan:
                     break
-                
+
                 if scan_domain in ips and ips[scan_domain]:
                     target_ip = ips[scan_domain][0]  # Use first IP if multiple found
                     scan_result = await self.port_scanner.scan_ports(target_ip)
-                    
+
                     # Store result for this domain
-                    self.results["port_scan"]["domain_results"][scan_domain] = scan_result
-                    
+                    self.results["port_scan"]["domain_results"][
+                        scan_domain
+                    ] = scan_result
+
                     # Update aggregate stats
                     self.results["port_scan"]["total_scanned"] += 1
-                    
+
                     if scan_result.get("open_ports", 0) > 0:
                         self.results["port_scan"]["domains_with_open_ports"] += 1
-                        self.results["port_scan"]["total_open_ports"] += scan_result.get("open_ports", 0)
-                    
+                        self.results["port_scan"][
+                            "total_open_ports"
+                        ] += scan_result.get("open_ports", 0)
+
                     domains_scanned += 1
-        
+
         # For deeper scan, check API sources and expanded port range
         if depth >= 2:
             # Try API sources for additional information
@@ -120,51 +129,98 @@ class Recon:
                 shodan_result = await shodan_task
                 if shodan_result:
                     self.results["api_results"].append(shodan_result)
-            
+
             # Enhanced port scan with more ports on domains that had open ports
             # or important domains like the main domain
             expanded_ports = [
-                21, 22, 23, 25, 53, 80, 110, 111, 123, 135, 139, 143, 161, 443, 
-                445, 465, 587, 993, 995, 1433, 1521, 1723, 2049, 3306, 3389, 
-                5432, 5900, 5901, 6379, 8080, 8443, 8888, 9090, 9200, 27017
+                21,
+                22,
+                23,
+                25,
+                53,
+                80,
+                110,
+                111,
+                123,
+                135,
+                139,
+                143,
+                161,
+                443,
+                445,
+                465,
+                587,
+                993,
+                995,
+                1433,
+                1521,
+                1723,
+                2049,
+                3306,
+                3389,
+                5432,
+                5900,
+                5901,
+                6379,
+                8080,
+                8443,
+                8888,
+                9090,
+                9200,
+                27017,
             ]
-            
+
             # Select domains for enhanced port scanning
             enhanced_scan_domains = []
-            
+
             # Always include main domain
             if domain in ips and ips[domain]:
                 enhanced_scan_domains.append(domain)
-                
+
             # Include domains that had open ports in the basic scan
-            for scan_domain, scan_result in self.results["port_scan"]["domain_results"].items():
-                if scan_result.get("open_ports", 0) > 0 and scan_domain not in enhanced_scan_domains:
+            for scan_domain, scan_result in self.results["port_scan"][
+                "domain_results"
+            ].items():
+                if (
+                    scan_result.get("open_ports", 0) > 0
+                    and scan_domain not in enhanced_scan_domains
+                ):
                     enhanced_scan_domains.append(scan_domain)
-            
+
             # Limit enhanced scans
             max_enhanced_scans = min(5, len(enhanced_scan_domains))
             domains_scanned = 0
-            
+
             logger.info(f"Running enhanced port scans on {max_enhanced_scans} domains")
-            
+
             for scan_domain in enhanced_scan_domains[:max_enhanced_scans]:
                 if scan_domain in ips and ips[scan_domain]:
                     target_ip = ips[scan_domain][0]
-                    scan_result = await self.port_scanner.scan_ports(target_ip, expanded_ports)
-                    
+                    scan_result = await self.port_scanner.scan_ports(
+                        target_ip, expanded_ports
+                    )
+
                     # Update or add the enhanced scan result
-                    self.results["port_scan"]["domain_results"][scan_domain] = scan_result
-                    
+                    self.results["port_scan"]["domain_results"][
+                        scan_domain
+                    ] = scan_result
+
                     # Update aggregate stats
                     if scan_result.get("open_ports", 0) > 0:
                         # Only count additional ports not already counted
                         previous_count = 0
                         if self.results["port_scan"]["domain_results"].get(scan_domain):
-                            previous_count = self.results["port_scan"]["domain_results"][scan_domain].get("open_ports", 0)
-                        
-                        additional_ports = max(0, scan_result.get("open_ports", 0) - previous_count)
-                        self.results["port_scan"]["total_open_ports"] += additional_ports
-        
+                            previous_count = self.results["port_scan"][
+                                "domain_results"
+                            ][scan_domain].get("open_ports", 0)
+
+                        additional_ports = max(
+                            0, scan_result.get("open_ports", 0) - previous_count
+                        )
+                        self.results["port_scan"][
+                            "total_open_ports"
+                        ] += additional_ports
+
         # For the most comprehensive scan
         if depth >= 3:
             # Try Censys API if available
@@ -173,7 +229,7 @@ class Recon:
                 censys_result = await censys_task
                 if censys_result:
                     self.results["api_results"].append(censys_result)
-        
+
         # Process and return results
         return {
             "target_domain": domain,
@@ -185,20 +241,20 @@ class Recon:
             "total_subdomains": len(self.results["subdomains"]),
             "timestamp": time.time(),
         }
-    
+
     async def _discover_subdomains(self, domain: str, depth: int) -> List[str]:
         """
         Discover subdomains using various techniques based on scan depth.
-        
+
         Args:
             domain: Target domain
             depth: Scan depth level (1-3)
-            
+
         Returns:
             List of discovered subdomains
         """
         discovered = set()
-        
+
         if depth == 1:
             # Basic discovery with common subdomain prefixes for quick scans
             wordlist = self._get_wordlist(depth)
@@ -207,69 +263,74 @@ class Recon:
         else:
             # Use advanced subdomain enumeration for more comprehensive discovery
             logger.info(f"Starting advanced subdomain enumeration for {domain}")
-            
+
             # Select techniques based on depth
             techniques = ["crt", "brute"]
-            
+
             if depth >= 2:
                 techniques.append("scrape")
                 techniques.append("apis")
-                
+
             if depth >= 3:
                 techniques.append("permutation")
-            
+
             # Set maximum results based on depth
             max_results = 100  # Default for depth 1
             if depth >= 2:
                 max_results = 250  # More for depth 2
             if depth >= 3:
                 max_results = 500  # Maximum for depth 3
-                
+
             # Run the advanced subdomain discovery with limits
-            logger.info(f"Starting advanced subdomain enumeration with max_results={max_results}")
-            advanced_discovered = await discover_subdomains(domain, techniques, max_results)
-            logger.info(f"Advanced subdomain enumeration found {len(advanced_discovered)} verified subdomains")
+            logger.info(
+                f"Starting advanced subdomain enumeration with max_results={max_results}"
+            )
+            advanced_discovered = await discover_subdomains(
+                domain, techniques, max_results
+            )
+            logger.info(
+                f"Advanced subdomain enumeration found {len(advanced_discovered)} verified subdomains"
+            )
             discovered.update(advanced_discovered)
-        
+
             # Try to find nameservers and attempt zone transfer
-            ns_records = await self.dns_resolver.resolve(domain, 'NS')
+            ns_records = await self.dns_resolver.resolve(domain, "NS")
             for record in ns_records:
-                if 'nameserver' in record:
-                    ns = record['nameserver']
+                if "nameserver" in record:
+                    ns = record["nameserver"]
                     zone_transfer_results = await self._try_zone_transfer(domain, ns)
                     if zone_transfer_results:
                         discovered.update(zone_transfer_results)
-        
-        
+
         # Return sorted list
         return sorted(list(discovered))
-    
+
     async def _get_ips_from_domains(self, domains: List[str]) -> Dict[str, List[str]]:
         """
         Get IP addresses for a list of domains.
-        
+
         Args:
             domains: List of domains
-            
+
         Returns:
             Dictionary mapping domains to their IP addresses
         """
         ip_mapping = {}
-        dns_results = await self.dns_resolver.bulk_resolve(domains, ['A'])
-        
+        dns_results = await self.dns_resolver.bulk_resolve(domains, ["A"])
+
         for domain, records in dns_results.items():
-            if 'A' in records and records['A']:
-                ip_mapping[domain] = [record['ip'] for record in records['A']]
-        
+            if "A" in records and records["A"]:
+                ip_mapping[domain] = [record["ip"] for record in records["A"]]
+
         return ip_mapping
-    
+
     def _get_wordlist(self, depth: int) -> List[str]:
         """
         Get subdomain wordlist based on scan depth.
-        
+
         Args:
             depth: Scan depth level (1-3)
-            
+
         Returns:
             Wordlist of subdomain prefixes
         """
@@ -278,51 +339,221 @@ class Recon:
         if depth == 1:
             # Small list (basic scan)
             return [
-                "www", "mail", "remote", "blog", "webmail", "server", "ns1", "ns2",
-                "smtp", "secure", "vpn", "admin", "dev", "staging", "test"
+                "www",
+                "mail",
+                "remote",
+                "blog",
+                "webmail",
+                "server",
+                "ns1",
+                "ns2",
+                "smtp",
+                "secure",
+                "vpn",
+                "admin",
+                "dev",
+                "staging",
+                "test",
             ]
         elif depth == 2:
             # Medium list
             return [
-                "www", "mail", "remote", "blog", "webmail", "server", "ns1", "ns2",
-                "smtp", "secure", "vpn", "admin", "dev", "staging", "test", "portal",
-                "api", "apps", "auth", "beta", "cdn", "cloud", "cms", "connect",
-                "demo", "direct", "docs", "exchange", "files", "help", "host",
-                "intranet", "login", "mobile", "new", "news", "old", "owa", "shop",
-                "sites", "sso", "staff", "store", "support", "web"
+                "www",
+                "mail",
+                "remote",
+                "blog",
+                "webmail",
+                "server",
+                "ns1",
+                "ns2",
+                "smtp",
+                "secure",
+                "vpn",
+                "admin",
+                "dev",
+                "staging",
+                "test",
+                "portal",
+                "api",
+                "apps",
+                "auth",
+                "beta",
+                "cdn",
+                "cloud",
+                "cms",
+                "connect",
+                "demo",
+                "direct",
+                "docs",
+                "exchange",
+                "files",
+                "help",
+                "host",
+                "intranet",
+                "login",
+                "mobile",
+                "new",
+                "news",
+                "old",
+                "owa",
+                "shop",
+                "sites",
+                "sso",
+                "staff",
+                "store",
+                "support",
+                "web",
             ]
         else:
             # Large list (comprehensive scan)
             # In a real implementation, this would be a much larger list from a file
             return [
-                "www", "mail", "remote", "blog", "webmail", "server", "ns1", "ns2",
-                "smtp", "secure", "vpn", "admin", "dev", "staging", "test", "portal",
-                "api", "apps", "auth", "beta", "cdn", "cloud", "cms", "connect",
-                "demo", "direct", "docs", "exchange", "files", "help", "host",
-                "intranet", "login", "mobile", "new", "news", "old", "owa", "shop", 
-                "sites", "sso", "staff", "store", "support", "web", "ftp", "sftp",
-                "backup", "db", "database", "data", "sql", "mysql", "oracle", "ssh",
-                "git", "svn", "jenkins", "ci", "jira", "confluence", "wiki", "proxy",
-                "internal", "external", "extranet", "tms", "crm", "hr", "it", "uat", 
-                "qa", "prod", "production", "development", "stage", "corp", "corporate",
-                "partners", "partner", "clients", "client", "customers", "customer",
-                "sales", "marketing", "finance", "accounting", "billing", "payment",
-                "payments", "pay", "order", "orders", "shipping", "status", "track",
-                "tracking", "media", "image", "images", "img", "static", "assets",
-                "js", "css", "style", "styles", "fonts", "font", "cdn1", "cdn2",
-                "download", "downloads", "upload", "uploads", "file", "ws", "m",
-                "services", "service", "api1", "api2", "feeds", "feed", "rss", "app",
-                "apps", "mobile", "smtp1", "smtp2", "ns3", "ns4", "dns", "dns1", "dns2"
+                "www",
+                "mail",
+                "remote",
+                "blog",
+                "webmail",
+                "server",
+                "ns1",
+                "ns2",
+                "smtp",
+                "secure",
+                "vpn",
+                "admin",
+                "dev",
+                "staging",
+                "test",
+                "portal",
+                "api",
+                "apps",
+                "auth",
+                "beta",
+                "cdn",
+                "cloud",
+                "cms",
+                "connect",
+                "demo",
+                "direct",
+                "docs",
+                "exchange",
+                "files",
+                "help",
+                "host",
+                "intranet",
+                "login",
+                "mobile",
+                "new",
+                "news",
+                "old",
+                "owa",
+                "shop",
+                "sites",
+                "sso",
+                "staff",
+                "store",
+                "support",
+                "web",
+                "ftp",
+                "sftp",
+                "backup",
+                "db",
+                "database",
+                "data",
+                "sql",
+                "mysql",
+                "oracle",
+                "ssh",
+                "git",
+                "svn",
+                "jenkins",
+                "ci",
+                "jira",
+                "confluence",
+                "wiki",
+                "proxy",
+                "internal",
+                "external",
+                "extranet",
+                "tms",
+                "crm",
+                "hr",
+                "it",
+                "uat",
+                "qa",
+                "prod",
+                "production",
+                "development",
+                "stage",
+                "corp",
+                "corporate",
+                "partners",
+                "partner",
+                "clients",
+                "client",
+                "customers",
+                "customer",
+                "sales",
+                "marketing",
+                "finance",
+                "accounting",
+                "billing",
+                "payment",
+                "payments",
+                "pay",
+                "order",
+                "orders",
+                "shipping",
+                "status",
+                "track",
+                "tracking",
+                "media",
+                "image",
+                "images",
+                "img",
+                "static",
+                "assets",
+                "js",
+                "css",
+                "style",
+                "styles",
+                "fonts",
+                "font",
+                "cdn1",
+                "cdn2",
+                "download",
+                "downloads",
+                "upload",
+                "uploads",
+                "file",
+                "ws",
+                "m",
+                "services",
+                "service",
+                "api1",
+                "api2",
+                "feeds",
+                "feed",
+                "rss",
+                "app",
+                "apps",
+                "mobile",
+                "smtp1",
+                "smtp2",
+                "ns3",
+                "ns4",
+                "dns",
+                "dns1",
+                "dns2",
             ]
-    
+
     async def _try_zone_transfer(self, domain: str, nameserver: str) -> List[str]:
         """
         Attempt DNS zone transfer from a nameserver.
-        
+
         Args:
             domain: Target domain
             nameserver: Nameserver to try zone transfer from
-            
+
         Returns:
             List of discovered domains from zone transfer
         """
@@ -330,55 +561,57 @@ class Recon:
         # For now, return empty list as this is usually not allowed
         logger.info(f"Attempting zone transfer for {domain} from {nameserver}")
         return []
-    
+
     def _check_and_run_shodan(self, domain: str) -> Optional[asyncio.Task]:
         """
         Check if Shodan API is available and run query if it is.
-        
+
         Args:
             domain: Domain to query
-            
+
         Returns:
             Task for Shodan API query or None if API not available
         """
         if is_api_configured("shodan"):
             return self._query_shodan(domain)
         return None
-    
+
     def _check_and_run_censys(self, domain: str) -> Optional[asyncio.Task]:
         """
         Check if Censys API is available and run query if it is.
-        
+
         Args:
             domain: Domain to query
-            
+
         Returns:
             Task for Censys API query or None if API not available
         """
         if is_api_configured("censys"):
             return self._query_censys(domain)
         return None
-    
+
     async def _query_shodan(self, domain: str) -> Optional[Dict[str, Any]]:
         """
         Query Shodan API for information about domain.
-        
+
         Args:
             domain: Domain to query
-            
+
         Returns:
             Dictionary with Shodan API results
         """
         try:
             # Get Shodan API handler
             handler = self.api_manager.get_handler("shodan")
-            
+
             # Query for hosts information
-            response = await handler.get("shodan/host/search", params={"query": f"hostname:{domain}"})
-            
+            response = await handler.get(
+                "shodan/host/search", params={"query": f"hostname:{domain}"}
+            )
+
             if response and "matches" in response:
                 hosts = []
-                
+
                 for host in response["matches"]:
                     host_info = {
                         "ip": host.get("ip_str"),
@@ -387,13 +620,13 @@ class Recon:
                         "os": host.get("os"),
                         "timestamp": host.get("timestamp"),
                     }
-                    
+
                     # Add banner information if available
                     if "data" in host:
                         host_info["banner"] = host["data"][:200]  # Limit size
-                    
+
                     hosts.append(host_info)
-                
+
                 return {
                     "source": "shodan",
                     "query": domain,
@@ -402,32 +635,32 @@ class Recon:
                 }
         except Exception as e:
             logger.error(f"Error querying Shodan API: {str(e)}")
-        
+
         return None
-    
+
     async def _query_censys(self, domain: str) -> Optional[Dict[str, Any]]:
         """
         Query Censys API for information about domain.
-        
+
         Args:
             domain: Domain to query
-            
+
         Returns:
             Dictionary with Censys API results
         """
         try:
             # Get Censys API handler
             handler = self.api_manager.get_handler("censys")
-            
+
             # Query hosts search
             response = await handler.get(
                 "v2/hosts/search",
-                params={"q": f"services.tls.certificates.leaf_data.names: {domain}"}
+                params={"q": f"services.tls.certificates.leaf_data.names: {domain}"},
             )
-            
+
             if response and "result" in response and "hits" in response["result"]:
                 hosts = []
-                
+
                 for hit in response["result"]["hits"]:
                     services = []
                     if "services" in hit:
@@ -438,16 +671,16 @@ class Recon:
                                 "transport_protocol": svc.get("transport_protocol"),
                             }
                             services.append(service)
-                    
+
                     host_info = {
                         "ip": hit.get("ip"),
                         "services": services,
                         "location": hit.get("location"),
                         "autonomous_system": hit.get("autonomous_system"),
                     }
-                    
+
                     hosts.append(host_info)
-                
+
                 return {
                     "source": "censys",
                     "query": domain,
@@ -456,17 +689,19 @@ class Recon:
                 }
         except Exception as e:
             logger.error(f"Error querying Censys API: {str(e)}")
-        
+
         return None
-    
-    def export_results(self, results: Dict[str, Any], output_dir: Optional[Path] = None) -> Dict[str, Path]:
+
+    def export_results(
+        self, results: Dict[str, Any], output_dir: Optional[Path] = None
+    ) -> Dict[str, Path]:
         """
         Export scan results to various formats.
-        
+
         Args:
             results: Scan results from the scan method
             output_dir: Directory to save output files
-            
+
         Returns:
             Dictionary mapping export types to output file paths
         """
@@ -476,35 +711,41 @@ class Recon:
             timestamp = time.strftime("%Y%m%d_%H%M%S")
             output_dir = REPORTS_DIR / f"{domain}_{timestamp}"
             output_dir.mkdir(exist_ok=True)
-        
+
         output_files = {}
-        
+
         # Export as JSON
         json_path = output_dir / "recon_results.json"
-        with open(json_path, 'w') as f:
+        with open(json_path, "w") as f:
             json.dump(results, f, indent=2)
         output_files["json"] = json_path
-        
+
         # Export subdomains as text
         if "subdomains" in results and results["subdomains"]:
             subdomains_path = output_dir / "subdomains.txt"
-            with open(subdomains_path, 'w') as f:
+            with open(subdomains_path, "w") as f:
                 for subdomain in results["subdomains"]:
                     f.write(f"{subdomain}\n")
             output_files["subdomains"] = subdomains_path
-        
+
         # Export port scan results as CSV
-        if "port_scan" in results and results["port_scan"] and "ports" in results["port_scan"]:
+        if (
+            "port_scan" in results
+            and results["port_scan"]
+            and "ports" in results["port_scan"]
+        ):
             ports_path = output_dir / "open_ports.csv"
-            with open(ports_path, 'w', newline='') as f:
+            with open(ports_path, "w", newline="") as f:
                 writer = csv.writer(f)
                 writer.writerow(["IP", "Port", "Banner"])
                 for port in results["port_scan"]["ports"]:
-                    writer.writerow([
-                        results["port_scan"]["target"],
-                        port["port"],
-                        port.get("banner", "")
-                    ])
+                    writer.writerow(
+                        [
+                            results["port_scan"]["target"],
+                            port["port"],
+                            port.get("banner", ""),
+                        ]
+                    )
             output_files["ports"] = ports_path
-        
+
         return output_files

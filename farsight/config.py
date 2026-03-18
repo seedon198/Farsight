@@ -22,15 +22,34 @@ DEFAULT_CONFIG = {
     "timeout": 30,  # Default timeout for HTTP requests in seconds
     "user_agent": "FARSIGHT/0.1.0 (+https://github.com/seedon198/farsight)",
     "max_concurrent_requests": 10,
-    
     # Module-specific settings
     "dns_wordlist": "default",
     "dns_resolver": "1.1.1.1",
     "port_scan_timeout": 2,
-    "default_ports": [21, 22, 23, 25, 53, 80, 110, 111, 135, 139, 143, 443, 445, 993, 995, 1723, 3306, 3389, 5900, 8080],
+    "default_ports": [
+        21,
+        22,
+        23,
+        25,
+        53,
+        80,
+        110,
+        111,
+        135,
+        139,
+        143,
+        443,
+        445,
+        993,
+        995,
+        1723,
+        3306,
+        3389,
+        5900,
+        8080,
+    ],
     "typosquat_threshold": 80,  # Similarity threshold for typosquat detection
     "news_results_limit": 10,
-    
     # Rate limiting
     "rate_limit": {
         "default": 60,  # requests per minute
