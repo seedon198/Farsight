@@ -14,7 +14,7 @@ documentation = "https://github.com/seedon198/Farsight#readme"
 python = ">=3.9,<4.0"
 typer = "^0.7.0"
 python-whois = "^0.7.3"
-aiohttp = "^3.8.1"
+aiohttp = "^3.13.4"
 dnspython = ">=2.6.1"
 beautifulsoup4 = "^4.11.1"
 # Enhanced typosquatting detection
