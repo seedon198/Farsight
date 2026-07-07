@@ -5,7 +5,7 @@
 <td align="center" width="50%">
 
 <a href="https://sessionize.com/adlin-seedon-dsouza/">
-<img src="https://img.shields.io/badge/DEF%20CON%2034-AppSec%20Village-e40000?style=for-the-badge&labelColor=0d0d0d" alt="DEF CON 34 - AppSec Village"/>
+<img src="docs/assets/defcon34-logo.png" alt="DEF CON 34" height="64"/>&nbsp;&nbsp;<img src="docs/assets/appsecvillage-logo.png" alt="AppSec Village" height="64"/>
 </a>
 
 <sub>🗓️ Aug 6–9, 2026 &nbsp;•&nbsp; Las Vegas &nbsp;•&nbsp; Upcoming</sub>
@@ -16,7 +16,7 @@
 <td align="center" width="50%">
 
 <a href="https://www.blackhat.com/sector/2025/arsenal/schedule/index.html#farsight-cli-based-recon-and-threat-intelligence-framework-47707">
-<img src="https://upload.wikimedia.org/wikipedia/commons/thumb/d/dc/Logo_of_Black_Hat_%28conference%29.svg/330px-Logo_of_Black_Hat_%28conference%29.svg.png" alt="Black Hat" height="28"/>
+<img src="docs/assets/blackhat-logo.png" alt="Black Hat" height="64"/>&nbsp;&nbsp;<img src="docs/assets/blackhat-sector-logo.png" alt="Black Hat Sector" height="64"/>
 </a>
 
 <sub>🎯 Sector 2025 &nbsp;•&nbsp; Toronto &nbsp;•&nbsp; Presented</sub>
@@ -46,6 +46,12 @@
 ## Overview
 
 FARSIGHT is a powerful, Python-based reconnaissance and threat intelligence framework designed for security professionals. It provides comprehensive domain intelligence, asset discovery, and threat monitoring capabilities in a fast, modular CLI-first tool.
+
+<p align="center">
+  <img src="docs/assets/demo.gif" alt="FARSIGHT demo: scanning a domain from the CLI" width="100%"/>
+</p>
+
+<p align="center"><sub>A real <code>farsight scan</code> run — organization discovery, subdomain enumeration, and port scanning, no editing.</sub></p>
 
 ### Key Features
 
