@@ -1,14 +1,13 @@
 # Core dependencies
 typer>=0.7.0
 python-whois>=0.7.3
-aiohttp>=3.8.1
+aiohttp>=3.14.1
 dnspython>=2.6.1
 beautifulsoup4>=4.11.1
-dnstwist>=20220613
-gnews>=0.2.7
-rapidfuzz>=2.13.7
-markdown>=3.4.1
-weasyprint>=57.1  
-reportlab>=3.6.12  
+dnstwist>=20250130
+gnews>=0.4.1
+rapidfuzz>=3.13.0
+markdown>=3.3.7
+reportlab>=4.0.4
 aiodns>=3.5.0
-requests
+requests>=2.33.0
