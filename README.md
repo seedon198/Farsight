@@ -42,8 +42,12 @@
 [![Python](https://img.shields.io/badge/Python-3.10+-blue?style=for-the-badge&logo=python)](https://python.org)
 [![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/seedon198/Farsight?style=for-the-badge&cacheSeconds=3600)](https://github.com/seedon198/Farsight/stargazers)
+[![CI](https://img.shields.io/github/actions/workflow/status/seedon198/Farsight/ci.yml?branch=main&style=for-the-badge&label=CI)](https://github.com/seedon198/Farsight/actions)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg?style=for-the-badge)](https://github.com/psf/black)
+[![Last Commit](https://img.shields.io/github/last-commit/seedon198/Farsight?style=for-the-badge)](https://github.com/seedon198/Farsight/commits/main)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=for-the-badge)](CONTRIBUTORS.md)
 
-**A fast, modular CLI recon and threat-intelligence framework — works with or without API keys.**
+**A fast, modular CLI recon and threat-intelligence framework. Works with or without API keys.**
 
 <p align="center">
   <img src="docs/assets/demo.gif" alt="FARSIGHT demo: scanning a domain from the CLI" width="100%"/>
@@ -51,13 +55,13 @@
 
 ## Features
 
-- **Organization Discovery** — WHOIS, certificate transparency, passive DNS, related domains
-- **Recon & Asset Discovery** — DNS enumeration, subdomain discovery, async port scanning
-- **Threat Intelligence** — leak detection, credential exposure, dark web mentions, email reputation
-- **Typosquatting Detection** — domain permutation, content similarity, risk scoring
-- **News Monitoring** — relevance-scored news tracking across multiple sources
-- **Reporting** — Markdown and PDF output with executive summaries
-- **API-optional** — works out of the box; add keys (Shodan, Censys, VirusTotal, ...) for deeper results
+- **Organization Discovery:** WHOIS, certificate transparency, passive DNS, related domains
+- **Recon & Asset Discovery:** DNS enumeration, subdomain discovery, async port scanning
+- **Threat Intelligence:** leak detection, credential exposure, dark web mentions, email reputation
+- **Typosquatting Detection:** domain permutation, content similarity, risk scoring
+- **News Monitoring:** relevance-scored news tracking across multiple sources
+- **Reporting:** Markdown and PDF output with executive summaries
+- **API-optional:** works out of the box; add keys (Shodan, Censys, VirusTotal, ...) for deeper results
 
 ## Install
 
@@ -105,11 +109,11 @@ pip install -r requirements-dev.txt
 pytest tests/
 ```
 
-Contributions welcome — fork, branch, open a PR.
+Contributions welcome: fork, branch, open a PR.
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT. See [LICENSE](LICENSE).
 
 ## Disclaimer
 
