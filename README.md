@@ -37,7 +37,7 @@
 
 [![Python](https://img.shields.io/badge/Python-3.10+-blue?style=for-the-badge&logo=python)](https://python.org)
 [![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
-[![Stars](https://img.shields.io/github/stars/seedon198/Farsight?style=for-the-badge)](https://github.com/seedon198/Farsight/stargazers)
+[![Stars](https://img.shields.io/github/stars/seedon198/Farsight?style=for-the-badge&cacheSeconds=3600)](https://github.com/seedon198/Farsight/stargazers)
 
 *A comprehensive reconnaissance and threat intelligence framework trusted by security professionals worldwide*
 

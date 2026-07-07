@@ -31,7 +31,30 @@ INNER
 chmod +x "$TYPE_SCRIPT"
 
 asciinema rec "$CAST_FILE" --command "$TYPE_SCRIPT" --overwrite --quiet
-agg --speed 1.0 --theme monokai --font-size 16 "$CAST_FILE" "$OUT_GIF"
+
+# Force a true-black background: agg's named themes (monokai, dracula, etc.)
+# are all dark *gray*, not black. None of agg's built-in --theme values
+# render pure #000000, so embed a custom theme directly in the cast
+# header instead - agg picks up an embedded theme automatically when no
+# --theme flag is passed.
+python3 - "$CAST_FILE" <<'PYEOF'
+import json, sys
+path = sys.argv[1]
+with open(path) as f:
+    lines = f.readlines()
+header = json.loads(lines[0])
+header["theme"] = {
+    "fg": "#e6e6e6",
+    "bg": "#000000",
+    "palette": "#000000:#dd3c69:#4ebf22:#d5971d:#268bd2:#9c36b6:#00a8c6:#e6e6e6:"
+    "#666666:#f2777a:#a6e22e:#f4bf75:#5299d1:#c790e4:#66d9ef:#ffffff",
+}
+with open(path, "w") as f:
+    f.write(json.dumps(header) + "\n")
+    f.writelines(lines[1:])
+PYEOF
+
+agg --speed 1.0 --font-size 16 "$CAST_FILE" "$OUT_GIF"
 
 rm -f "$TYPE_SCRIPT" "$CAST_FILE"
 echo "Wrote $OUT_GIF"
