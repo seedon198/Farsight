@@ -21,6 +21,7 @@ from farsight.modules.typosquat import TyposquatDetector
 from farsight.modules.news import NewsMonitor
 from farsight.modules.report_writer import ReportWriter
 from farsight.utils.common import get_service_name
+from farsight.utils import display
 
 # Removed the Typer app wrapper - we'll add the command directly to the main app
 
@@ -96,18 +97,7 @@ async def run_scan(
                 bold=True,
             )
 
-            # Display organization discovery summary table
-            typer.secho("\nORGANIZATION SUMMARY:", fg=typer.colors.BRIGHT_CYAN)
-            typer.secho(
-                "┌─────────────────────┬────────────────────┐", fg=typer.colors.WHITE
-            )
-            typer.secho(
-                "│ Category            │ Count              │", fg=typer.colors.WHITE
-            )
-            typer.secho(
-                "├─────────────────────┼────────────────────┤", fg=typer.colors.WHITE
-            )
-
+            # Display organization discovery summary
             # Get domain stats
             related_domains = results["org"].get("related_domains", [])
             discovered_subdomains = results["org"].get("discovered_subdomains", [])
@@ -118,74 +108,29 @@ async def run_scan(
             # Certificate info
             cert_records = len(results["org"].get("certificate_transparency", []))
 
-            # Show stats in table
-            typer.secho(
-                f"│ Related Domains     │ {len(related_domains):<18} │",
-                fg=typer.colors.WHITE,
-            )
-            typer.secho(
-                f"│ Discovered Subdomains│ {len(discovered_subdomains):<18} │",
-                fg=typer.colors.WHITE,
-            )
-            typer.secho(
-                f"│ Certificate Records │ {cert_records:<18} │", fg=typer.colors.WHITE
-            )
-            typer.secho(
-                "└─────────────────────┴────────────────────┘", fg=typer.colors.WHITE
+            display.section("ORGANIZATION SUMMARY")
+            display.kv_rows(
+                [
+                    ("Related Domains", len(related_domains), None),
+                    ("Discovered Subdomains", len(discovered_subdomains), None),
+                    ("Certificate Records", cert_records, None),
+                ]
             )
 
             # Display related domains (limit to 5)
             if related_domains:
-                typer.secho("\nRELATED DOMAINS:", fg=typer.colors.BRIGHT_CYAN)
+                display.section("RELATED DOMAINS")
                 max_display = min(5, len(related_domains))
-
-                # Table header
-                typer.secho(
-                    "┌────────────────────────────────────────────────┐",
-                    fg=typer.colors.WHITE,
-                )
-                typer.secho(
-                    "│ Domain                                         │",
-                    fg=typer.colors.WHITE,
-                )
-                typer.secho(
-                    "├────────────────────────────────────────────────┤",
-                    fg=typer.colors.WHITE,
-                )
-
-                for i in range(max_display):
-                    typer.secho(f"│ {related_domains[i]:<45} │", fg=typer.colors.WHITE)
-
+                display.item_list(related_domains[:max_display])
                 if len(related_domains) > max_display:
-                    typer.secho(
-                        f"│ ... and {len(related_domains) - max_display} more domains                │",
-                        fg=typer.colors.WHITE,
-                    )
-
-                typer.secho(
-                    "└────────────────────────────────────────────────┘",
-                    fg=typer.colors.WHITE,
-                )
+                    display.more(len(related_domains) - max_display, "domains")
 
             # If WHOIS info is available, display it
             if has_whois and results["org"].get("whois_info", {}).get("org"):
-                typer.secho("\nWHOIS INFORMATION:", fg=typer.colors.BRIGHT_CYAN)
                 whois_info = results["org"]["whois_info"]
 
-                typer.secho(
-                    "┌────────────────┬─────────────────────────────────┐",
-                    fg=typer.colors.WHITE,
-                )
-                typer.secho(
-                    "│ Field          │ Value                            │",
-                    fg=typer.colors.WHITE,
-                )
-                typer.secho(
-                    "├────────────────┼─────────────────────────────────┤",
-                    fg=typer.colors.WHITE,
-                )
-
-                for field, display_name in [
+                whois_rows = []
+                for field, field_display_name in [
                     ("org", "Organization"),
                     ("registrar", "Registrar"),
                     ("creation_date", "Created"),
@@ -209,15 +154,10 @@ async def run_scan(
                         if isinstance(value, str) and len(value) > 32:
                             value = value[:29] + "..."
 
-                        typer.secho(
-                            f"│ {display_name:<14} │ {value:<32} │",
-                            fg=typer.colors.WHITE,
-                        )
+                        whois_rows.append((field_display_name, value, None))
 
-                typer.secho(
-                    "└────────────────┴─────────────────────────────────┘",
-                    fg=typer.colors.WHITE,
-                )
+                display.section("WHOIS INFORMATION")
+                display.kv_rows(whois_rows)
 
     # Run Reconnaissance module
     if "recon" in enabled_modules:
@@ -236,30 +176,22 @@ async def run_scan(
                 "Reconnaissance complete", fg=typer.colors.BRIGHT_BLUE, bold=True
             )
 
-            # Display asset discovery summary table
-            typer.secho("\nASSET SUMMARY:", fg=typer.colors.BRIGHT_CYAN)
-            typer.secho(
-                "┌─────────────────────┬────────────────────┐", fg=typer.colors.WHITE
-            )
-            typer.secho(
-                "│ Category            │ Count              │", fg=typer.colors.WHITE
-            )
-            typer.secho(
-                "├─────────────────────┼────────────────────┤", fg=typer.colors.WHITE
-            )
-            typer.secho(
-                f"│ Subdomains Found    │ {results['recon']['total_subdomains']:<18} │",
-                fg=typer.colors.WHITE,
-            )
+            # Display asset discovery summary
+            asset_rows = [
+                (
+                    "Subdomains Found",
+                    results["recon"]["total_subdomains"],
+                    None,
+                )
+            ]
 
             # Add port scan info if available
             if (
                 "port_scan" in results["recon"]
                 and "open_ports" in results["recon"]["port_scan"]
             ):
-                typer.secho(
-                    f"│ Open Ports          │ {results['recon']['port_scan']['open_ports']:<18} │",
-                    fg=typer.colors.WHITE,
+                asset_rows.append(
+                    ("Open Ports", results["recon"]["port_scan"]["open_ports"], None)
                 )
 
             # Add DNS records info if available
@@ -269,14 +201,10 @@ async def run_scan(
                     for domain, records in results["recon"]["dns_records"].items()
                     for record_type in records
                 )
-                typer.secho(
-                    f"│ DNS Records         │ {total_records:<18} │",
-                    fg=typer.colors.WHITE,
-                )
+                asset_rows.append(("DNS Records", total_records, None))
 
-            typer.secho(
-                "└─────────────────────┴────────────────────┘", fg=typer.colors.WHITE
-            )
+            display.section("ASSET SUMMARY")
+            display.kv_rows(asset_rows)
 
             # Display open ports if available
             if (
@@ -284,20 +212,7 @@ async def run_scan(
                 and "ports" in results["recon"]["port_scan"]
                 and results["recon"]["port_scan"]["ports"]
             ):
-                typer.secho("\nOPEN PORTS:", fg=typer.colors.BRIGHT_CYAN)
-                typer.secho(
-                    "┌─────────┬───────────────┬───────────────────────┐",
-                    fg=typer.colors.WHITE,
-                )
-                typer.secho(
-                    "│ Port    │ Service       │ Banner                │",
-                    fg=typer.colors.WHITE,
-                )
-                typer.secho(
-                    "├─────────┼───────────────┼───────────────────────┤",
-                    fg=typer.colors.WHITE,
-                )
-
+                port_rows = []
                 for port_info in results["recon"]["port_scan"]["ports"][
                     :5
                 ]:  # Show first 5 ports
@@ -308,21 +223,15 @@ async def run_scan(
                     elif len(banner) > 20:
                         banner = banner[:17] + "..."
                     service = get_service_name(port) if port != "N/A" else "-"
-                    typer.secho(
-                        f"│ {port:<7} │ {service:<13} │ {banner:<23} │",
-                        fg=typer.colors.WHITE,
-                    )
+                    port_rows.append((port, service, banner))
+
+                display.section("OPEN PORTS")
+                display.columns(["Port", "Service", "Banner"], port_rows)
 
                 if len(results["recon"]["port_scan"]["ports"]) > 5:
-                    typer.secho(
-                        f"│ ... and {len(results['recon']['port_scan']['ports'])-5} more ports         │",
-                        fg=typer.colors.WHITE,
+                    display.more(
+                        len(results["recon"]["port_scan"]["ports"]) - 5, "ports"
                     )
-
-                typer.secho(
-                    "└─────────┴───────────────┴───────────────────────┘",
-                    fg=typer.colors.WHITE,
-                )
 
             # Display a few sample subdomains if available
             if (
@@ -366,87 +275,42 @@ async def run_scan(
                     bold=True,
                 )
 
-                # Display summary table of threat findings
-                typer.secho("\nTHREAT SUMMARY:", fg=typer.colors.BRIGHT_CYAN)
-                typer.secho(
-                    "┌─────────────────────┬────────────────────┐",
-                    fg=typer.colors.WHITE,
-                )
-                typer.secho(
-                    "│ Category            │ Count              │",
-                    fg=typer.colors.WHITE,
-                )
-                typer.secho(
-                    "├─────────────────────┼────────────────────┤",
-                    fg=typer.colors.WHITE,
-                )
-
+                # Display summary of threat findings
                 # Data leaks
                 total_leaks = results["threat"].get("total_leaks", 0)
-                leak_color = typer.colors.RED if total_leaks > 0 else typer.colors.WHITE
-                typer.secho(
-                    f"│ Data Leaks          │ {total_leaks:<18} │", fg=leak_color
-                )
+                leak_color = typer.colors.RED if total_leaks > 0 else None
 
                 # Exposed credentials
                 total_creds = len(results["threat"].get("credentials", []))
-                cred_color = typer.colors.RED if total_creds > 0 else typer.colors.WHITE
-                typer.secho(
-                    f"│ Exposed Credentials │ {total_creds:<18} │", fg=cred_color
-                )
+                cred_color = typer.colors.RED if total_creds > 0 else None
 
                 # Dark web mentions
                 total_darkweb = len(results["threat"].get("dark_web", []))
-                dark_color = (
-                    typer.colors.YELLOW if total_darkweb > 0 else typer.colors.WHITE
-                )
-                typer.secho(
-                    f"│ Dark Web Mentions   │ {total_darkweb:<18} │", fg=dark_color
-                )
+                dark_color = typer.colors.YELLOW if total_darkweb > 0 else None
 
-                typer.secho(
-                    "└─────────────────────┴────────────────────┘",
-                    fg=typer.colors.WHITE,
+                display.section("THREAT SUMMARY")
+                display.kv_rows(
+                    [
+                        ("Data Leaks", total_leaks, leak_color),
+                        ("Exposed Credentials", total_creds, cred_color),
+                        ("Dark Web Mentions", total_darkweb, dark_color),
+                    ]
                 )
 
                 # Display detailed findings if available
                 if "leaks" in results["threat"] and results["threat"]["leaks"]:
-                    typer.secho("\nLEAK DETAILS:", fg=typer.colors.BRIGHT_CYAN)
-                    typer.secho(
-                        "┌────────────────────┬─────────────────┬─────────────────┐",
-                        fg=typer.colors.WHITE,
-                    )
-                    typer.secho(
-                        "│ Source              │ Date              │ Records           │",
-                        fg=typer.colors.WHITE,
-                    )
-                    typer.secho(
-                        "├────────────────────┼─────────────────┼─────────────────┤",
-                        fg=typer.colors.WHITE,
-                    )
-
-                    for i, leak in enumerate(
-                        results["threat"]["leaks"][:5]
-                    ):  # Show first 5 leaks
+                    leak_rows = []
+                    for leak in results["threat"]["leaks"][:5]:  # Show first 5 leaks
                         source = leak.get("source", "Unknown")[:18]
                         date = leak.get("date", "Unknown")[:16]
                         records = str(leak.get("records", "N/A"))[:16]
-                        typer.secho(
-                            f"│ {source:<18} │ {date:<17} │ {records:<17} │",
-                            fg=typer.colors.WHITE,
-                        )
+                        leak_rows.append((source, date, records))
+
+                    display.section("LEAK DETAILS")
+                    display.columns(["Source", "Date", "Records"], leak_rows)
 
                     if len(results["threat"]["leaks"]) > 5:
-                        remaining = len(results["threat"]["leaks"]) - 5
-                        typer.secho(
-                            f"│ ... and {remaining} more leaks                           │",
-                            fg=typer.colors.WHITE,
-                        )
-
-                    typer.secho(
-                        "└────────────────────┴─────────────────┴─────────────────┘",
-                        fg=typer.colors.WHITE,
-                    )
+                        display.more(len(results["threat"]["leaks"]) - 5, "leaks")
 
     # Run Typosquatting module
     if "typosquat" in enabled_modules:
@@ -478,34 +342,13 @@ async def run_scan(
                     total_open_ports = port_scan.get("total_open_ports", 0)
                     domain_results = port_scan.get("domain_results", {})
 
-                    typer.secho("\nPORT SCAN SUMMARY:", fg=typer.colors.BRIGHT_CYAN)
-                    typer.secho(
-                        "┌─────────────────────┬────────────────────┐",
-                        fg=typer.colors.WHITE,
-                    )
-                    typer.secho(
-                        "│ Category            │ Value              │",
-                        fg=typer.colors.WHITE,
-                    )
-                    typer.secho(
-                        "├─────────────────────┼────────────────────┤",
-                        fg=typer.colors.WHITE,
-                    )
-                    typer.secho(
-                        f"│ Domains Scanned     │ {total_scanned:<18} │",
-                        fg=typer.colors.WHITE,
-                    )
-                    typer.secho(
-                        f"│ Domains with Ports  │ {domains_with_ports:<18} │",
-                        fg=typer.colors.WHITE,
-                    )
-                    typer.secho(
-                        f"│ Total Open Ports    │ {total_open_ports:<18} │",
-                        fg=typer.colors.WHITE,
-                    )
-                    typer.secho(
-                        "└─────────────────────┴────────────────────┘",
-                        fg=typer.colors.WHITE,
+                    display.section("PORT SCAN SUMMARY")
+                    display.kv_rows(
+                        [
+                            ("Domains Scanned", total_scanned, None),
+                            ("Domains with Ports", domains_with_ports, None),
+                            ("Total Open Ports", total_open_ports, None),
+                        ]
                     )
 
                     # Show up to 5 domains with open ports
@@ -515,28 +358,13 @@ async def run_scan(
                             domains_to_show.append((scan_domain, scan_result))
 
                     if domains_to_show:
-                        typer.secho(
-                            "\nOPEN PORTS BY DOMAIN:", fg=typer.colors.BRIGHT_CYAN
-                        )
-                        typer.secho(
-                            "┌────────────────────────────┬────────────────────────┐",
-                            fg=typer.colors.WHITE,
-                        )
-                        typer.secho(
-                            "│ Domain                      │ Open Ports                 │",
-                            fg=typer.colors.WHITE,
-                        )
-                        typer.secho(
-                            "├────────────────────────────┼────────────────────────┤",
-                            fg=typer.colors.WHITE,
-                        )
-
                         # Display top 5 domains (sort by number of open ports)
                         domains_to_show.sort(
                             key=lambda x: x[1].get("open_ports", 0), reverse=True
                         )
                         max_domains = min(5, len(domains_to_show))
 
+                        domain_port_rows = []
                         for i in range(max_domains):
                             domain_name = domains_to_show[i][0]
                             scan_result = domains_to_show[i][1]
@@ -558,81 +386,40 @@ async def run_scan(
                             if len(domain_name) > 26:
                                 domain_name = domain_name[:23] + "..."
 
-                            typer.secho(
-                                f"│ {domain_name:<26} │ {ports_str:<26} │",
-                                fg=typer.colors.WHITE,
-                            )
+                            domain_port_rows.append((domain_name, ports_str))
+
+                        display.section("OPEN PORTS BY DOMAIN")
+                        display.columns(["Domain", "Open Ports"], domain_port_rows)
 
                         if len(domains_to_show) > max_domains:
-                            typer.secho(
-                                f"│ ... and {len(domains_to_show) - max_domains} more domains with open ports      │",
-                                fg=typer.colors.WHITE,
+                            display.more(
+                                len(domains_to_show) - max_domains,
+                                "domains with open ports",
                             )
-
-                        typer.secho(
-                            "└────────────────────────────┴────────────────────────┘",
-                            fg=typer.colors.WHITE,
-                        )
-
-                # Display summary table of typosquatting findings
-                typer.secho("\nTYPOSQUATTING SUMMARY:", fg=typer.colors.BRIGHT_CYAN)
-                typer.secho(
-                    "┌─────────────────────┬────────────────────┐",
-                    fg=typer.colors.WHITE,
-                )
-                typer.secho(
-                    "│ Category            │ Count              │",
-                    fg=typer.colors.WHITE,
-                )
-                typer.secho(
-                    "├─────────────────────┼────────────────────┤",
-                    fg=typer.colors.WHITE,
-                )
 
                 # Get typosquatting stats
                 total_typos = len(results["typosquat"].get("typosquats", []))
                 total_generated = results["typosquat"].get("total_generated", 0)
                 total_active = results["typosquat"].get("total_active", 0)
 
-                # Show stats in table
-                typo_color = (
-                    typer.colors.YELLOW if total_typos > 0 else typer.colors.WHITE
-                )
-                typer.secho(
-                    f"│ Typosquats Found    │ {total_typos:<18} │", fg=typo_color
-                )
-                typer.secho(
-                    f"│ Total Generated     │ {total_generated:<18} │",
-                    fg=typer.colors.WHITE,
-                )
-                typer.secho(
-                    f"│ Active Domains      │ {total_active:<18} │",
-                    fg=typer.colors.WHITE,
-                )
-                typer.secho(
-                    "└─────────────────────┴────────────────────┘",
-                    fg=typer.colors.WHITE,
+                typo_color = typer.colors.YELLOW if total_typos > 0 else None
+
+                display.section("TYPOSQUATTING SUMMARY")
+                display.kv_rows(
+                    [
+                        ("Typosquats Found", total_typos, typo_color),
+                        ("Total Generated", total_generated, None),
+                        ("Active Domains", total_active, None),
+                    ]
                 )
 
                 # Display detailed findings if available
                 if results["typosquat"].get("typosquats", []):
-                    typer.secho("\nTYPOSQUAT DOMAINS:", fg=typer.colors.BRIGHT_CYAN)
-                    typer.secho(
-                        "┌───────────────────┬────────────────┬───────────┐",
-                        fg=typer.colors.WHITE,
-                    )
-                    typer.secho(
-                        "│ Domain             │ Type              │ Risk Score  │",
-                        fg=typer.colors.WHITE,
-                    )
-                    typer.secho(
-                        "├───────────────────┼────────────────┼───────────┤",
-                        fg=typer.colors.WHITE,
-                    )
-
-                    for i, typo in enumerate(
-                        results["typosquat"]["typosquats"][:7]
-                    ):  # Show top 7 typosquats
+                    typo_rows = []
+                    row_colors = []
+                    for typo in results["typosquat"]["typosquats"][
+                        :7
+                    ]:  # Show top 7 typosquats
                         typo_domain = typo.get("domain", "Unknown")[:17]
                         typo_type = typo.get("type", "Unknown")[:16]
                         risk_score = typo.get("risk_score", 0)
@@ -645,24 +432,17 @@ async def run_scan(
                         else:
                             score_color = typer.colors.GREEN
 
-                        typer.secho(
-                            f"│ {typo_domain:<19} │ {typo_type:<16} │ ",
-                            nl=False,
-                            fg=typer.colors.WHITE,
-                        )
-                        typer.secho(f"{risk_score:<11} │", fg=score_color)
+                        typo_rows.append((typo_domain, typo_type, risk_score))
+                        row_colors.append(score_color)
+
+                    display.section("TYPOSQUAT DOMAINS")
+                    display.columns(
+                        ["Domain", "Type", "Risk Score"], typo_rows, row_colors
+                    )
 
                     if len(results["typosquat"]["typosquats"]) > 7:
                         remaining = len(results["typosquat"]["typosquats"]) - 7
-                        typer.secho(
-                            f"│ ... and {remaining} more typosquatting domains       │",
-                            fg=typer.colors.WHITE,
-                        )
-
-                    typer.secho(
-                        "└───────────────────┴────────────────┴───────────┘",
-                        fg=typer.colors.WHITE,
-                    )
+                        display.more(remaining, "typosquatting domains")
 
     # Run News Monitoring module
     if "news" in enabled_modules:
@@ -686,40 +466,16 @@ async def run_scan(
                             bold=True,
                         )
 
-                        # Display summary table of news findings
-                        typer.secho(
-                            "\nNEWS MONITORING SUMMARY:", fg=typer.colors.BRIGHT_CYAN
-                        )
-                        typer.secho(
-                            "┌─────────────────────┬────────────────────┐",
-                            fg=typer.colors.WHITE,
-                        )
-                        typer.secho(
-                            "│ Category            │ Count              │",
-                            fg=typer.colors.WHITE,
-                        )
-                        typer.secho(
-                            "├─────────────────────┼────────────────────┤",
-                            fg=typer.colors.WHITE,
-                        )
-
-                        # Articles count
+                        # Display summary of news findings
                         total_articles = results["news"].get("total_articles", 0)
-                        typer.secho(
-                            f"│ Total Articles      │ {total_articles:<18} │",
-                            fg=typer.colors.WHITE,
-                        )
-
-                        # Days monitored
                         days_monitored = results["news"].get("days_monitored", 30)
-                        typer.secho(
-                            f"│ Days Monitored      │ {days_monitored:<18} │",
-                            fg=typer.colors.WHITE,
-                        )
 
-                        typer.secho(
-                            "└─────────────────────┴────────────────────┘",
-                            fg=typer.colors.WHITE,
+                        display.section("NEWS MONITORING SUMMARY")
+                        display.kv_rows(
+                            [
+                                ("Total Articles", total_articles, None),
+                                ("Days Monitored", days_monitored, None),
+                            ]
                         )
 
                         # Display recent news articles
@@ -727,16 +483,11 @@ async def run_scan(
                             "articles" in results["news"]
                             and results["news"]["articles"]
                         ):
-                            typer.secho(
-                                "\nRECENT NEWS ARTICLES:", fg=typer.colors.BRIGHT_CYAN
-                            )
-                            typer.secho(
-                                "┌─────────────────────────────────────────────────────┐",
-                                fg=typer.colors.WHITE,
-                            )
+                            display.section("RECENT NEWS ARTICLES")
 
+                            articles_to_show = results["news"]["articles"][:3]
                             for i, article in enumerate(
-                                results["news"]["articles"][:3]
+                                articles_to_show
                             ):  # Show top 3 articles
                                 title = article.get("title", "Untitled")
                                 publisher = article.get(
@@ -755,37 +506,26 @@ async def run_scan(
                                 if len(title) > 60:
                                     title_display = title[:57] + "..."
 
+                                if i > 0:
+                                    typer.echo()
                                 typer.secho(
-                                    f"│ {title_display}",
+                                    f"  {title_display}",
                                     fg=typer.colors.WHITE,
                                     bold=True,
                                 )
                                 typer.secho(
-                                    f"│ Source: {publisher} | Published: {published}{relevance_info}",
-                                    fg=typer.colors.WHITE,
+                                    f"  Source: {publisher} | Published: {published}{relevance_info}",
+                                    fg=typer.colors.BRIGHT_BLACK,
                                 )
                                 if url:
-                                    typer.secho(f"│ URL: {url}", fg=typer.colors.WHITE)
-
-                                if (
-                                    i < len(results["news"]["articles"][:3]) - 1
-                                ):  # Add separator if not the last article
                                     typer.secho(
-                                        "├─────────────────────────────────────────────────────┤",
-                                        fg=typer.colors.WHITE,
+                                        f"  URL: {url}", fg=typer.colors.BRIGHT_BLACK
                                     )
 
                             if len(results["news"]["articles"]) > 3:
                                 remaining = len(results["news"]["articles"]) - 3
-                                typer.secho(
-                                    f"│ ... and {remaining} more articles",
-                                    fg=typer.colors.WHITE,
-                                )
-
-                            typer.secho(
-                                "└─────────────────────────────────────────────────────┘",
-                                fg=typer.colors.WHITE,
-                            )
+                                typer.echo()
+                                display.more(remaining, "articles")
             except ImportError:
                 typer.secho(
                     "GNews library not available. Install with: pip install gnews",
@@ -809,27 +549,13 @@ async def run_scan(
         total_open_ports = port_scan.get("total_open_ports", 0)
         domain_results = port_scan.get("domain_results", {})
 
-        typer.secho("\nPORT SCAN SUMMARY:", fg=typer.colors.BRIGHT_CYAN)
-        typer.secho(
-            "┌─────────────────────┬────────────────────┐", fg=typer.colors.WHITE
-        )
-        typer.secho(
-            "│ Category            │ Value              │", fg=typer.colors.WHITE
-        )
-        typer.secho(
-            "├─────────────────────┼────────────────────┤", fg=typer.colors.WHITE
-        )
-        typer.secho(
-            f"│ Domains Scanned     │ {total_scanned:<18} │", fg=typer.colors.WHITE
-        )
-        typer.secho(
-            f"│ Domains with Ports  │ {domains_with_ports:<18} │", fg=typer.colors.WHITE
-        )
-        typer.secho(
-            f"│ Total Open Ports    │ {total_open_ports:<18} │", fg=typer.colors.WHITE
-        )
-        typer.secho(
-            "└─────────────────────┴────────────────────┘", fg=typer.colors.WHITE
+        display.section("PORT SCAN SUMMARY")
+        display.kv_rows(
+            [
+                ("Domains Scanned", total_scanned, None),
+                ("Domains with Ports", domains_with_ports, None),
+                ("Total Open Ports", total_open_ports, None),
+            ]
         )
 
         # Show up to 5 domains with open ports
@@ -839,24 +565,11 @@ async def run_scan(
                 domains_to_show.append((scan_domain, scan_result))
 
         if domains_to_show:
-            typer.secho("\nOPEN PORTS BY DOMAIN:", fg=typer.colors.BRIGHT_CYAN)
-            typer.secho(
-                "┌────────────────────────────┬────────────────────────┐",
-                fg=typer.colors.WHITE,
-            )
-            typer.secho(
-                "│ Domain                      │ Open Ports                 │",
-                fg=typer.colors.WHITE,
-            )
-            typer.secho(
-                "├────────────────────────────┼────────────────────────┤",
-                fg=typer.colors.WHITE,
-            )
-
             # Display top 5 domains (sort by number of open ports)
             domains_to_show.sort(key=lambda x: x[1].get("open_ports", 0), reverse=True)
             max_domains = min(5, len(domains_to_show))
 
+            domain_port_rows = []
             for i in range(max_domains):
                 domain_name = domains_to_show[i][0]
                 scan_result = domains_to_show[i][1]
@@ -876,20 +589,15 @@ async def run_scan(
                 if len(domain_name) > 26:
                     domain_name = domain_name[:23] + "..."
 
-                typer.secho(
-                    f"│ {domain_name:<26} │ {ports_str:<26} │", fg=typer.colors.WHITE
-                )
+                domain_port_rows.append((domain_name, ports_str))
+
+            display.section("OPEN PORTS BY DOMAIN")
+            display.columns(["Domain", "Open Ports"], domain_port_rows)
 
             if len(domains_to_show) > max_domains:
-                typer.secho(
-                    f"│ ... and {len(domains_to_show) - max_domains} more domains with open ports      │",
-                    fg=typer.colors.WHITE,
+                display.more(
+                    len(domains_to_show) - max_domains, "domains with open ports"
                 )
-
-            typer.secho(
-                "└────────────────────────────┴────────────────────────┘",
-                fg=typer.colors.WHITE,
-            )
 
         # The news article display is already handled within the NewsMonitor context above
 
@@ -1048,82 +756,82 @@ def scan(
             f"{elapsed_time:.2f} seconds", fg=typer.colors.BRIGHT_CYAN, bold=True
         )
 
-        # Display a professional summary table of findings
-        typer.secho("\nSUMMARY OF FINDINGS:", fg=typer.colors.BRIGHT_BLUE, bold=True)
-        typer.secho(
-            "┌───────────────────────────┬─────────────┐", fg=typer.colors.WHITE
-        )
-        typer.secho(
-            "│ Finding Category               │ Count        │", fg=typer.colors.WHITE
-        )
-        typer.secho(
-            "├───────────────────────────┼─────────────┤", fg=typer.colors.WHITE
-        )
+        # Display a summary of findings
+        finding_rows = []
 
         if "org" in scan_results and "all_domains" in scan_results["org"]:
-            typer.secho(
-                f"│ Domains discovered              │ {len(scan_results['org']['all_domains']):<12} │",
-                fg=typer.colors.WHITE,
+            finding_rows.append(
+                (
+                    "Domains discovered",
+                    len(scan_results["org"]["all_domains"]),
+                    None,
+                )
             )
 
         if "recon" in scan_results and "subdomains" in scan_results["recon"]:
-            typer.secho(
-                f"│ Subdomains found               │ {len(scan_results['recon']['subdomains']):<12} │",
-                fg=typer.colors.WHITE,
+            finding_rows.append(
+                (
+                    "Subdomains found",
+                    len(scan_results["recon"]["subdomains"]),
+                    None,
+                )
             )
 
             if (
                 "port_scan" in scan_results["recon"]
                 and "open_ports" in scan_results["recon"]["port_scan"]
             ):
-                typer.secho(
-                    f"│ Open ports                     │ {scan_results['recon']['port_scan']['open_ports']:<12} │",
-                    fg=typer.colors.WHITE,
+                finding_rows.append(
+                    (
+                        "Open ports",
+                        scan_results["recon"]["port_scan"]["open_ports"],
+                        None,
+                    )
                 )
 
         if "threat" in scan_results:
             threat_data = scan_results["threat"]
             if "total_leaks" in threat_data and threat_data["total_leaks"] > 0:
-                typer.secho(
-                    f"│ Potential data leaks           │ {threat_data['total_leaks']:<12} │",
-                    fg=(
-                        typer.colors.RED
-                        if threat_data["total_leaks"] > 0
-                        else typer.colors.WHITE
-                    ),
+                finding_rows.append(
+                    (
+                        "Potential data leaks",
+                        threat_data["total_leaks"],
+                        typer.colors.RED,
+                    )
                 )
             if (
                 "total_credentials" in threat_data
                 and threat_data["total_credentials"] > 0
             ):
-                typer.secho(
-                    f"│ Exposed credentials            │ {threat_data['total_credentials']:<12} │",
-                    fg=(
-                        typer.colors.RED
-                        if threat_data["total_credentials"] > 0
-                        else typer.colors.WHITE
-                    ),
+                finding_rows.append(
+                    (
+                        "Exposed credentials",
+                        threat_data["total_credentials"],
+                        typer.colors.RED,
+                    )
                 )
 
         if "typosquat" in scan_results and "typosquats" in scan_results["typosquat"]:
-            typer.secho(
-                f"│ Typosquatting domains           │ {len(scan_results['typosquat']['typosquats']):<12} │",
-                fg=(
-                    typer.colors.YELLOW
-                    if len(scan_results["typosquat"]["typosquats"]) > 0
-                    else typer.colors.WHITE
-                ),
+            typosquat_count = len(scan_results["typosquat"]["typosquats"])
+            finding_rows.append(
+                (
+                    "Typosquatting domains",
+                    typosquat_count,
+                    typer.colors.YELLOW if typosquat_count > 0 else None,
+                )
             )
 
         if "news" in scan_results and "total_articles" in scan_results["news"]:
-            typer.secho(
-                f"│ News articles found             │ {scan_results['news']['total_articles']:<12} │",
-                fg=typer.colors.WHITE,
+            finding_rows.append(
+                (
+                    "News articles found",
+                    scan_results["news"]["total_articles"],
+                    None,
+                )
             )
 
-        typer.secho(
-            "└───────────────────────────┴─────────────┘", fg=typer.colors.WHITE
-        )
+        typer.secho("\nSUMMARY OF FINDINGS", fg=typer.colors.BRIGHT_BLUE, bold=True)
+        display.kv_rows(finding_rows)
 
         typer.secho(
             "\nDetailed report saved to: ", nl=False, fg=typer.colors.BRIGHT_BLUE
