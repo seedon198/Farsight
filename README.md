@@ -1,5 +1,9 @@
 <div align="center">
 
+## [🛡️ COMING TO DEF CON 34 AppSec Village 🛡️](https://sessionize.com/adlin-seedon-dsouza/)
+
+**DEF CON 34 - AppSec Village** | **Talk: Farsight - Turning OSINT into Actionable Attack Surface Intelligence**
+
 ## [🎯 FEATURED AT BLACKHAT ARSENAL 2025 🎯](https://www.blackhat.com/sector/2025/arsenal/schedule/index.html#farsight-cli-based-recon-and-threat-intelligence-framework-47707)
 
 **Join us at BlackHat Arsenal 2025** | **Session: CLI-Based Recon and Threat Intelligence Framework**
@@ -12,7 +16,7 @@
 
 # FARSIGHT
 
-[![Python](https://img.shields.io/badge/Python-3.9+-blue?style=for-the-badge&logo=python)](https://python.org)
+[![Python](https://img.shields.io/badge/Python-3.10+-blue?style=for-the-badge&logo=python)](https://python.org)
 [![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/seedon198/Farsight?style=for-the-badge)](https://github.com/seedon198/Farsight/stargazers)
 
@@ -45,11 +49,11 @@ FARSIGHT is a powerful, Python-based reconnaissance and threat intelligence fram
 
 ## Installation
 
-FARSIGHT requires Python 3.9+ and several dependencies. Follow these steps for a complete setup:
+FARSIGHT requires Python 3.10+ and several dependencies. Follow these steps for a complete setup:
 
 ### Prerequisites
 
-- Python 3.9 or higher
+- Python 3.10 or higher
 - pip (Python package installer)
 
 ### Quick Setup
@@ -68,13 +72,10 @@ source venv/bin/activate
 # On Windows:
 # venv\Scripts\activate
 
-# 4. Install core dependencies
+# 4. Install dependencies
 pip install -r requirements.txt
 
-# 5. Install optional dependencies for full functionality
-pip install dnstwist rapidfuzz gnews markdown reportlab
-
-# 6. Verify installation
+# 5. Verify installation
 python -m farsight --help
 ```
 
@@ -367,19 +368,17 @@ farsight/
 - **dnspython**: DNS resolution and querying
 - **beautifulsoup4**: Web scraping
 - **requests**: HTTP library for API requests
-
-### Optional Dependencies (Recommended)
 - **dnstwist**: Enhanced typosquatting detection
-- **rapidfuzz**: Better similarity scoring for typosquatting
+- **rapidfuzz**: Similarity scoring for typosquatting
 - **gnews**: News article retrieval
 - **markdown**: Markdown report processing
 - **reportlab**: PDF report generation
 
 ### Installation Notes
 
-- All core dependencies are installed with `pip install -r requirements.txt`
-- Optional dependencies can be installed with: `pip install dnstwist rapidfuzz gnews markdown reportlab`
-- The tool will work without optional dependencies but with limited functionality
+- All dependencies are installed with a single `pip install -r requirements.txt`
+- PDF report generation requires reportlab (installed by default); if PDF
+  generation fails for any reason, Markdown reports are always available
 
 ## Troubleshooting
 
@@ -392,10 +391,10 @@ cd /path/to/Farsight
 python -m farsight --help
 ```
 
-**Issue: `ModuleNotFoundError` for optional dependencies**
+**Issue: `ModuleNotFoundError` for a dependency**
 ```bash
-# Solution: Install optional dependencies
-pip install dnstwist rapidfuzz gnews markdown reportlab
+# Solution: re-install dependencies (all deps are in requirements.txt)
+pip install -r requirements.txt
 ```
 
 **Issue: Permission denied when creating virtual environment**
