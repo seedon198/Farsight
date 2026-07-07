@@ -4,6 +4,8 @@
 <tr>
 <td align="center" width="50%">
 
+### DEFCON 34
+
 <a href="https://sessionize.com/adlin-seedon-dsouza/">
 <img src="docs/assets/appsecvillage-logo.png" alt="AppSec Village" height="64"/>
 </a>
@@ -14,6 +16,8 @@
 
 </td>
 <td align="center" width="50%">
+
+### BLACKHAT 2025
 
 <a href="https://www.blackhat.com/sector/2025/arsenal/schedule/index.html#farsight-cli-based-recon-and-threat-intelligence-framework-47707">
 <img src="docs/assets/blackhat-logo.png" alt="Black Hat" height="64"/>
