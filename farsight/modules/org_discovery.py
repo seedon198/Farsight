@@ -18,6 +18,16 @@ from farsight.utils.common import logger, retry
 from farsight.utils.api_handler import APIManager
 from farsight.config import get_config, is_api_configured
 
+_HOSTNAME_RE = re.compile(
+    r"^(\*\.)?(?!-)[a-zA-Z0-9-]{1,63}(?<!-)(\.(?!-)[a-zA-Z0-9-]{1,63}(?<!-))+$"
+)
+
+
+def _looks_like_hostname(value: str) -> bool:
+    """Check whether a string is plausibly a hostname (not an email, CA
+    metadata string, or other certificate field masquerading as one)."""
+    return bool(_HOSTNAME_RE.match(value.strip()))
+
 
 class OrgDiscovery:
     """Organization domain discovery class for finding related domains."""
@@ -196,15 +206,16 @@ class OrgDiscovery:
 
                     # Extract domains from common_name and name_value fields
                     for cert in data:
-                        if "common_name" in cert and cert["common_name"]:
-                            domains.add(cert["common_name"])
+                        common_name = cert.get("common_name", "").strip()
+                        if common_name and _looks_like_hostname(common_name):
+                            domains.add(common_name)
 
                         if "name_value" in cert and cert["name_value"]:
-                            # Split name_value on newlines and extract domains
-                            for name in cert["name_value"].split("\\n"):
-                                # Remove wildcards
-                                clean_name = re.sub(r"^\*\.", "", name.strip())
-                                if clean_name.endswith(domain) and "." in clean_name:
+                            # name_value is newline-delimited; a cert's SANs
+                            # can include multiple hostnames per entry
+                            for name in cert["name_value"].split("\n"):
+                                clean_name = name.strip()
+                                if _looks_like_hostname(clean_name):
                                     domains.add(clean_name)
 
                     logger.info(f"Retrieved {len(domains)} domains from crt.sh")

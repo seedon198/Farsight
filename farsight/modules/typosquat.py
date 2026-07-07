@@ -8,6 +8,8 @@ import socket
 from urllib.parse import urlparse
 import json
 
+import aiohttp
+
 from farsight.utils.common import logger, retry
 from farsight.utils.dns import DNSResolver
 from farsight.config import get_config
@@ -505,7 +507,7 @@ class TyposquatDetector:
                                 logger.debug(
                                     f"Error processing content for {domain}: {str(e)}"
                                 )
-                except:
+                except Exception:
                     # If HTTP fails, try HTTPS and vice versa
                     continue
         except Exception as e:

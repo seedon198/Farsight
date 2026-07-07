@@ -11,29 +11,24 @@ from typing import Dict, List, Optional, Any, Union
 from pathlib import Path
 import re
 import os
+from xml.sax.saxutils import escape
 
-from farsight.utils.common import logger
+from farsight.utils.common import logger, get_service_name
 from farsight.config import get_config, REPORTS_DIR
 
 # Try to import markdown to PDF converters
 PDF_SUPPORT = False
 try:
+    from reportlab.lib.pagesizes import letter
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+    from reportlab.lib.styles import getSampleStyleSheet
     import markdown
-    import weasyprint
 
     PDF_SUPPORT = True
 except ImportError:
-    try:
-        from reportlab.lib.pagesizes import letter
-        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
-        from reportlab.lib.styles import getSampleStyleSheet
-        import markdown
-
-        PDF_SUPPORT = True
-    except ImportError:
-        logger.warning(
-            "PDF conversion libraries not installed. Only Markdown reports will be generated."
-        )
+    logger.warning(
+        "PDF conversion libraries not installed. Only Markdown reports will be generated."
+    )
 
 
 class ReportWriter:
@@ -237,43 +232,8 @@ All data in this report is presented for informational purposes only.
             with open(markdown_file, "r") as f:
                 markdown_content = f.read()
 
-            # First method: weasyprint
-            if "weasyprint" in globals():
-                # Convert to HTML
-                html = markdown.markdown(
-                    markdown_content, extensions=["tables", "fenced_code"]
-                )
-
-                # Add CSS for better formatting
-                html = f"""
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <meta charset="utf-8">
-                    <style>
-                        body {{ font-family: Arial, sans-serif; margin: 20px; }}
-                        h1 {{ color: #2c3e50; }}
-                        h2 {{ color: #3498db; border-bottom: 1px solid #3498db; }}
-                        h3 {{ color: #2980b9; }}
-                        table {{ border-collapse: collapse; width: 100%; margin: 15px 0; }}
-                        th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
-                        th {{ background-color: #f5f5f5; }}
-                        pre {{ background-color: #f8f8f8; padding: 10px; border-radius: 5px; overflow-x: auto; }}
-                        code {{ font-family: Consolas, monospace; }}
-                    </style>
-                </head>
-                <body>
-                    {html}
-                </body>
-                </html>
-                """
-
-                # Convert to PDF
-                weasyprint.HTML(string=html).write_pdf(pdf_file)
-
-            # Second method: reportlab
-            elif "reportlab" in globals():
-                # Create simple PDF with reportlab
+            # Create PDF with reportlab
+            if PDF_SUPPORT:
                 doc = SimpleDocTemplate(str(pdf_file), pagesize=letter)
                 styles = getSampleStyleSheet()
                 flowables = []
@@ -288,7 +248,7 @@ All data in this report is presented for informational purposes only.
                             level = len(re.match(r"(#+) ", section).group(1))
                             text = section.lstrip("#").strip()
                             style = styles["Heading%d" % min(level, 3)]
-                            flowables.append(Paragraph(text, style))
+                            flowables.append(Paragraph(escape(text), style))
                             flowables.append(Spacer(1, 12))
                         else:
                             # Process paragraphs
@@ -296,7 +256,9 @@ All data in this report is presented for informational purposes only.
                             for p in paragraphs:
                                 if p.strip():
                                     # Process lists and code blocks here if needed
-                                    flowables.append(Paragraph(p, styles["Normal"]))
+                                    flowables.append(
+                                        Paragraph(escape(p), styles["Normal"])
+                                    )
                                     flowables.append(Spacer(1, 6))
 
                 doc.build(flowables)
@@ -549,7 +511,7 @@ All data in this report is presented for informational purposes only.
                                 "| Port | Service |\n|------|---------|\n"
                             )
                             for port in port_list:
-                                service = self._get_service_name(port)
+                                service = get_service_name(port)
                                 port_scan_details += f"| {port} | {service} |\n"
 
                         port_scan_details += "\n---\n\n"
@@ -758,29 +720,3 @@ All data in this report is presented for informational purposes only.
             news_md = "No recent news articles found."
 
         return self.templates["news"].format(news_articles=news_md)
-
-    def _get_service_name(self, port: int) -> str:
-        """Get service name for common ports."""
-        common_ports = {
-            21: "FTP",
-            22: "SSH",
-            23: "Telnet",
-            25: "SMTP",
-            53: "DNS",
-            80: "HTTP",
-            110: "POP3",
-            111: "RPC",
-            135: "RPC",
-            139: "NetBIOS",
-            143: "IMAP",
-            443: "HTTPS",
-            445: "SMB",
-            993: "IMAP/SSL",
-            995: "POP3/SSL",
-            1723: "PPTP",
-            3306: "MySQL",
-            3389: "RDP",
-            5900: "VNC",
-            8080: "HTTP Proxy",
-        }
-        return common_ports.get(port, "Unknown")

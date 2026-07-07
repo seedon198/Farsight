@@ -8,6 +8,7 @@ import typer
 from typing import Optional, List, Dict, Any
 from pathlib import Path
 import asyncio
+import datetime
 import time
 import sys
 
@@ -19,6 +20,7 @@ from farsight.modules.threat_intel import ThreatIntel
 from farsight.modules.typosquat import TyposquatDetector
 from farsight.modules.news import NewsMonitor
 from farsight.modules.report_writer import ReportWriter
+from farsight.utils.common import get_service_name
 
 # Removed the Typer app wrapper - we'll add the command directly to the main app
 
@@ -305,11 +307,7 @@ async def run_scan(
                         banner = ""
                     elif len(banner) > 20:
                         banner = banner[:17] + "..."
-                    service = (
-                        get_service_name(port)
-                        if "get_service_name" in globals()
-                        else "-"
-                    )
+                    service = get_service_name(port) if port != "N/A" else "-"
                     typer.secho(
                         f"│ {port:<7} │ {service:<13} │ {banner:<23} │",
                         fg=typer.colors.WHITE,
