@@ -5,7 +5,7 @@
 <td align="center" width="50%">
 
 <a href="https://sessionize.com/adlin-seedon-dsouza/">
-<img src="docs/assets/defcon34-logo.png" alt="DEF CON 34" height="64"/>&nbsp;&nbsp;<img src="docs/assets/appsecvillage-logo.png" alt="AppSec Village" height="64"/>
+<img src="docs/assets/appsecvillage-logo.png" alt="AppSec Village" height="64"/>
 </a>
 
 <sub>🗓️ Aug 6–9, 2026 &nbsp;•&nbsp; Las Vegas &nbsp;•&nbsp; Upcoming</sub>
@@ -16,10 +16,10 @@
 <td align="center" width="50%">
 
 <a href="https://www.blackhat.com/sector/2025/arsenal/schedule/index.html#farsight-cli-based-recon-and-threat-intelligence-framework-47707">
-<img src="docs/assets/blackhat-logo.png" alt="Black Hat" height="64"/>&nbsp;&nbsp;<img src="docs/assets/blackhat-sector-logo.png" alt="Black Hat Sector" height="64"/>
+<img src="docs/assets/blackhat-logo.png" alt="Black Hat" height="64"/>
 </a>
 
-<sub>🎯 Sector 2025 &nbsp;•&nbsp; Toronto &nbsp;•&nbsp; Presented</sub>
+<sub>🎯 Oct 1–2, 2025 &nbsp;•&nbsp; Toronto &nbsp;•&nbsp; Presented</sub>
 
 **[Arsenal: CLI-Based Recon and Threat Intelligence Framework](https://www.blackhat.com/sector/2025/arsenal/schedule/index.html#farsight-cli-based-recon-and-threat-intelligence-framework-47707)**
 
