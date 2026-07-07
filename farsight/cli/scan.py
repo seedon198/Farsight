@@ -62,13 +62,13 @@ async def run_scan(
     # Print status if verbose with colorful output but without emojis
     if verbose:
         typer.secho(
-            f"Starting scan of ", fg=typer.colors.BRIGHT_BLUE, bold=True, nl=False
+            "Starting scan of ", fg=typer.colors.BRIGHT_BLUE, bold=True, nl=False
         )
         typer.secho(f"{domain}", fg=typer.colors.BRIGHT_GREEN, bold=True, nl=False)
-        typer.secho(f" with depth ", fg=typer.colors.BRIGHT_BLUE, bold=True, nl=False)
+        typer.secho(" with depth ", fg=typer.colors.BRIGHT_BLUE, bold=True, nl=False)
         typer.secho(f"{depth}", fg=typer.colors.BRIGHT_CYAN, bold=True)
         typer.secho(
-            f"Enabled modules: ", fg=typer.colors.BRIGHT_BLUE, bold=True, nl=False
+            "Enabled modules: ", fg=typer.colors.BRIGHT_BLUE, bold=True, nl=False
         )
         typer.secho(
             f"{', '.join(enabled_modules)}", fg=typer.colors.BRIGHT_MAGENTA, bold=True
@@ -976,11 +976,11 @@ def scan(
         fg=typer.colors.BRIGHT_BLUE,
         bold=True,
     )
-    typer.secho(f"Scan initiated against: ", nl=False)
+    typer.secho("Scan initiated against: ", nl=False)
     typer.secho(f"{domain}", fg=typer.colors.BRIGHT_GREEN, bold=True)
-    typer.secho(f"Output file: ", nl=False)
+    typer.secho("Output file: ", nl=False)
     typer.secho(f"{output}", fg=typer.colors.BRIGHT_CYAN)
-    typer.secho(f"Enabled modules: ", nl=False)
+    typer.secho("Enabled modules: ", nl=False)
     typer.secho(f"{', '.join(enabled_modules)}", fg=typer.colors.BRIGHT_MAGENTA)
 
     # Check if output file exists and handle --force flag
@@ -1126,12 +1126,12 @@ def scan(
         )
 
         typer.secho(
-            f"\nDetailed report saved to: ", nl=False, fg=typer.colors.BRIGHT_BLUE
+            "\nDetailed report saved to: ", nl=False, fg=typer.colors.BRIGHT_BLUE
         )
         typer.secho(f"{output}", fg=typer.colors.BRIGHT_CYAN, bold=True)
 
     except Exception as e:
-        typer.secho(f"ERROR: ", fg=typer.colors.BRIGHT_RED, bold=True, nl=False)
+        typer.secho("ERROR: ", fg=typer.colors.BRIGHT_RED, bold=True, nl=False)
         typer.secho(f"{str(e)}", fg=typer.colors.RED)
         if verbose:
             import traceback

@@ -4,8 +4,6 @@ import asyncio
 import time
 from typing import Dict, List, Optional, Any
 from datetime import datetime, timedelta
-import json
-import re
 
 from farsight.utils.common import logger, retry
 from farsight.config import get_config
@@ -182,13 +180,7 @@ class NewsMonitor:
             logger.error("Session not initialized. Use async with context.")
             return
 
-        # Calculate date range
         end_date = datetime.now()
-        start_date = end_date - timedelta(days=days)
-
-        # Format dates for query
-        start_str = start_date.strftime("%Y-%m-%d")
-        end_str = end_date.strftime("%Y-%m-%d")
 
         # Encode query
         import urllib.parse

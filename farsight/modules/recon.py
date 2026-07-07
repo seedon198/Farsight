@@ -5,16 +5,13 @@ subdomain discovery, port scanning, and email security assessment.
 """
 
 import asyncio
-import ipaddress
-from typing import Dict, List, Set, Optional, Any, Tuple, Union
-import socket
+from typing import Dict, List, Optional, Any
 import time
-import os
 import json
 import csv
 from pathlib import Path
 
-from farsight.utils.common import logger, retry
+from farsight.utils.common import logger
 from farsight.utils.api_handler import APIManager
 from farsight.utils.dns import (
     DNSResolver,
@@ -23,7 +20,7 @@ from farsight.utils.dns import (
     check_spf_dmarc,
 )
 from farsight.utils.subdomain_enum import discover_subdomains
-from farsight.config import get_config, is_api_configured, REPORTS_DIR
+from farsight.config import is_api_configured, REPORTS_DIR
 
 
 class Recon:

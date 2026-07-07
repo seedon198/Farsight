@@ -5,24 +5,21 @@ in both Markdown and PDF formats with structured data presentation.
 """
 
 import time
-import json
 from datetime import datetime
 from typing import Dict, List, Optional, Any, Union
 from pathlib import Path
 import re
-import os
 from xml.sax.saxutils import escape
 
 from farsight.utils.common import logger, get_service_name
-from farsight.config import get_config, REPORTS_DIR
+from farsight.config import REPORTS_DIR
 
-# Try to import markdown to PDF converters
+# Try to import PDF conversion libraries
 PDF_SUPPORT = False
 try:
     from reportlab.lib.pagesizes import letter
     from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
     from reportlab.lib.styles import getSampleStyleSheet
-    import markdown
 
     PDF_SUPPORT = True
 except ImportError:
@@ -48,7 +45,7 @@ class ReportWriter:
         # Templates as multi-line strings
         self.templates = {
             "header": """# FARSIGHT Reconnaissance Report
-            
+
 ## Target: {target}
 **Scan Date:** {date}
 **Scan Depth:** {depth}

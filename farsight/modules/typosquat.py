@@ -3,14 +3,12 @@
 import asyncio
 import time
 import re
-from typing import Dict, List, Set, Optional, Any, Tuple, Union
+from typing import Dict, List, Any
 import socket
-from urllib.parse import urlparse
-import json
 
 import aiohttp
 
-from farsight.utils.common import logger, retry
+from farsight.utils.common import logger
 from farsight.utils.dns import DNSResolver
 from farsight.config import get_config
 
@@ -127,9 +125,6 @@ class TyposquatDetector:
         typo_domains = []
 
         if DNSTWIST_AVAILABLE:
-            # Get domain parts
-            domain_parts = domain.split(".")
-
             # Initialize Fuzzer from dnstwist
             fuzzer = dnstwist.Fuzzer(domain)
 
@@ -511,8 +506,7 @@ class TyposquatDetector:
                     # If HTTP fails, try HTTPS and vice versa
                     continue
         except Exception as e:
-            # Ignore errors
-            pass
+            logger.debug(f"Error checking HTTP for {domain}: {str(e)}")
 
         return result
 

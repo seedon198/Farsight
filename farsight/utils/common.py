@@ -4,13 +4,12 @@ This module provides shared utilities including logging, rate limiting,
 retry mechanisms, and other common functionality used across the framework.
 """
 
+import inspect
 import logging
 import time
-from typing import Any, Callable, Dict, List, Optional, TypeVar, Union
+from typing import Any, Callable, TypeVar
 import random
 import asyncio
-
-from farsight.config import get_config
 
 
 # Create a custom colored logging handler
@@ -137,7 +136,7 @@ def retry(
             )
 
         # Determine if the function is async or not and return the appropriate wrapper
-        if asyncio.iscoroutinefunction(func):
+        if inspect.iscoroutinefunction(func):
             return wrapper_async
         return wrapper_sync
 

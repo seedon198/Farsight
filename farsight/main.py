@@ -5,7 +5,6 @@ registration and execution flow.
 """
 
 import typer
-from typing import Optional
 import sys
 
 from farsight import __version__

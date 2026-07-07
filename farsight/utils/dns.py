@@ -6,8 +6,7 @@ capabilities with robust error handling and performance optimizations.
 
 import asyncio
 import dns.resolver
-import socket
-from typing import Dict, List, Set, Optional, Any, Tuple, Union
+from typing import Dict, List, Optional, Any, Tuple
 import ipaddress
 import random
 import time

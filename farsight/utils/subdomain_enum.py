@@ -2,18 +2,11 @@
 
 import asyncio
 import aiohttp
-import aiodns
-import json
 import re
-import time
-import random
-from typing import Dict, List, Set, Optional, Any, Tuple, Union
-import dns.resolver
-import ipaddress
-import requests
+from typing import List, Optional
 
-from farsight.utils.common import logger, retry
-from farsight.utils.dns import DNSResolver, is_domain_alive
+from farsight.utils.common import logger
+from farsight.utils.dns import DNSResolver
 from farsight.config import get_config
 
 # Common subdomain sources
@@ -628,7 +621,7 @@ class SubdomainEnumerator:
                                 ip, host = record.split(",")
                                 if domain in host:
                                     self.discovered.add(host.lower())
-                            except:
+                            except Exception:
                                 continue
 
             logger.info(f"Found {len(self.discovered)} subdomains via BufferOver")

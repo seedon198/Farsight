@@ -9,9 +9,8 @@ import asyncio
 import whois
 import aiohttp
 import re
-from typing import Dict, List, Set, Optional, Any
+from typing import Dict, Optional, Any
 from bs4 import BeautifulSoup
-import json
 import urllib.parse
 
 from farsight.utils.common import logger, retry
@@ -285,7 +284,7 @@ class OrgDiscovery:
                             if subdomain.endswith(domain) and "." in subdomain:
                                 domains.add(subdomain)
 
-                    logger.info(f"Retrieved additional domains from DNSDB.io")
+                    logger.info("Retrieved additional domains from DNSDB.io")
         except Exception as e:
             logger.error(f"Error querying DNSDB.io: {str(e)}")
 

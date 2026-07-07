@@ -8,9 +8,7 @@ and email reputation analysis.
 import asyncio
 import re
 import time
-from typing import Dict, List, Set, Optional, Any, Tuple, Union
-from bs4 import BeautifulSoup
-import json
+from typing import Dict, List, Optional, Any
 import urllib.parse
 
 from farsight.utils.common import logger, retry

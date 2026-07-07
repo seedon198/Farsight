@@ -5,13 +5,10 @@ rate limiting, and graceful error handling for external service integrations.
 """
 
 import aiohttp
-import asyncio
-import time
-from typing import Any, Dict, List, Optional, Union
-import json
+from typing import Any, Dict, List, Optional
 
 from farsight.utils.common import logger, retry, RateLimiter
-from farsight.config import get_api_key, get_api_endpoint, is_api_configured, get_config
+from farsight.config import get_api_key, get_api_endpoint, get_config
 
 
 class APIHandler:
