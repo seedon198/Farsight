@@ -1,12 +1,31 @@
 <div align="center">
 
-## [🛡️ COMING TO DEF CON 34 AppSec Village 🛡️](https://sessionize.com/adlin-seedon-dsouza/)
+<table>
+<tr>
+<td align="center" width="50%">
 
-**DEF CON 34 - AppSec Village** | **Talk: Farsight - Turning OSINT into Actionable Attack Surface Intelligence**
+<a href="https://sessionize.com/adlin-seedon-dsouza/">
+<img src="https://img.shields.io/badge/DEF%20CON%2034-AppSec%20Village-e40000?style=for-the-badge&labelColor=0d0d0d" alt="DEF CON 34 - AppSec Village"/>
+</a>
 
-## [🎯 FEATURED AT BLACKHAT ARSENAL 2025 🎯](https://www.blackhat.com/sector/2025/arsenal/schedule/index.html#farsight-cli-based-recon-and-threat-intelligence-framework-47707)
+<sub>🗓️ Aug 6–9, 2026 &nbsp;•&nbsp; Las Vegas &nbsp;•&nbsp; Upcoming</sub>
 
-**Join us at BlackHat Arsenal 2025** | **Session: CLI-Based Recon and Threat Intelligence Framework**
+**[Farsight: Turning OSINT into Actionable Attack Surface Intelligence](https://sessionize.com/adlin-seedon-dsouza/)**
+
+</td>
+<td align="center" width="50%">
+
+<a href="https://www.blackhat.com/sector/2025/arsenal/schedule/index.html#farsight-cli-based-recon-and-threat-intelligence-framework-47707">
+<img src="https://upload.wikimedia.org/wikipedia/commons/thumb/d/dc/Logo_of_Black_Hat_%28conference%29.svg/330px-Logo_of_Black_Hat_%28conference%29.svg.png" alt="Black Hat" height="28"/>
+</a>
+
+<sub>🎯 Sector 2025 &nbsp;•&nbsp; Toronto &nbsp;•&nbsp; Presented</sub>
+
+**[Arsenal: CLI-Based Recon and Threat Intelligence Framework](https://www.blackhat.com/sector/2025/arsenal/schedule/index.html#farsight-cli-based-recon-and-threat-intelligence-framework-47707)**
+
+</td>
+</tr>
+</table>
 
 </div>
 
