@@ -282,6 +282,79 @@ button:disabled {
   font-size: 12px;
 }
 
+.typosquat-panel h2 {
+  margin: 0 0 12px;
+  font-size: 15px;
+  color: var(--red);
+}
+
+.typosquat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+}
+
+.typosquat-card {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 12px;
+  background: var(--bg);
+}
+
+.typosquat-domain {
+  font-weight: 700;
+  font-size: 13px;
+  word-break: break-all;
+}
+
+.typosquat-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 6px;
+}
+
+.typosquat-type {
+  color: var(--text-dim);
+  font-size: 11px;
+}
+
+.risk-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.risk-badge.high {
+  background: #3a1414;
+  color: var(--red);
+}
+
+.risk-badge.medium {
+  background: #3a3014;
+  color: var(--yellow);
+}
+
+.risk-badge.low {
+  background: #142a1c;
+  color: var(--green);
+}
+
+.graph-panel h2 {
+  margin: 0 0 12px;
+  font-size: 15px;
+  color: var(--green);
+}
+
+#graph {
+  width: 100%;
+  height: 360px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
 .report-header {
   display: flex;
   justify-content: space-between;

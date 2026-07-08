@@ -11,6 +11,11 @@
   const reportBody = document.getElementById("report-body");
   const downloadMd = document.getElementById("download-md");
   const downloadPdf = document.getElementById("download-pdf");
+  const graphContainer = document.getElementById("graph");
+  const typosquatPanel = document.getElementById("typosquat-panel");
+  const typosquatGrid = document.getElementById("typosquat-grid");
+
+  let currentDomain = null;
 
   const moduleRows = {};
   document.querySelectorAll(".module-row").forEach((row) => {
@@ -46,12 +51,58 @@
     clearError();
     reportPanel.classList.add("hidden");
     reportBody.innerHTML = "";
+    typosquatPanel.classList.add("hidden");
+    typosquatGrid.innerHTML = "";
     Object.values(stats).forEach((el) => (el.textContent = "—"));
     Object.values(moduleRows).forEach((m) => {
       m.row.className = "module-row";
       m.summary.textContent = "";
       stopTimer(m);
     });
+  }
+
+  function riskClass(score) {
+    if (score >= 70) return "high";
+    if (score >= 40) return "medium";
+    return "low";
+  }
+
+  function renderTyposquatPanel(data) {
+    const active = (data.typosquats || [])
+      .filter((t) => t.has_dns || t.has_mx || t.http_status)
+      .sort((a, b) => (b.risk_score || 0) - (a.risk_score || 0))
+      .slice(0, 12);
+
+    typosquatGrid.innerHTML = "";
+    if (!active.length) return;
+
+    active.forEach((t) => {
+      const card = document.createElement("div");
+      card.className = "typosquat-card";
+
+      const domainEl = document.createElement("div");
+      domainEl.className = "typosquat-domain";
+      domainEl.textContent = t.domain;
+
+      const meta = document.createElement("div");
+      meta.className = "typosquat-meta";
+
+      const typeEl = document.createElement("span");
+      typeEl.className = "typosquat-type";
+      typeEl.textContent = t.type || "typosquat";
+
+      const badge = document.createElement("span");
+      badge.className = `risk-badge ${riskClass(t.risk_score || 0)}`;
+      badge.textContent = `${t.risk_score || 0}`;
+
+      meta.appendChild(typeEl);
+      meta.appendChild(badge);
+      card.appendChild(domainEl);
+      card.appendChild(meta);
+      typosquatGrid.appendChild(card);
+    });
+
+    typosquatPanel.classList.remove("hidden");
   }
 
   function startTimer(mod) {
@@ -92,10 +143,25 @@
     }
   }
 
+  function updateGraph(moduleName, data) {
+    if (!window.FarsightGraph || !currentDomain) return;
+    if (moduleName === "org") {
+      window.FarsightGraph.ingestOrg(graphContainer, currentDomain, data);
+    } else if (moduleName === "recon") {
+      window.FarsightGraph.ingestRecon(graphContainer, currentDomain, data);
+    } else if (moduleName === "typosquat") {
+      window.FarsightGraph.ingestTyposquat(graphContainer, currentDomain, data);
+    }
+  }
+
   function handleEvent(ev) {
     switch (ev.type) {
       case "scan_started":
+        currentDomain = ev.data ? ev.data.domain : null;
         resetUI();
+        if (window.FarsightGraph) {
+          window.FarsightGraph.reset(graphContainer, currentDomain);
+        }
         break;
 
       case "module_started": {
@@ -113,7 +179,11 @@
         mod.row.className = "module-row done";
         const fmt = SUMMARY_FORMATTERS[ev.module];
         mod.summary.textContent = fmt && ev.data ? fmt(ev.data) : "done";
-        if (ev.data) applyStats(ev.module, ev.data);
+        if (ev.data) {
+          applyStats(ev.module, ev.data);
+          updateGraph(ev.module, ev.data);
+          if (ev.module === "typosquat") renderTyposquatPanel(ev.data);
+        }
         break;
       }
 

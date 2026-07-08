@@ -88,6 +88,16 @@
       </ol>
     </section>
 
+    <section class="panel graph-panel" id="graph-panel">
+      <h2>Attack Surface</h2>
+      <div id="graph"></div>
+    </section>
+
+    <section class="panel typosquat-panel hidden" id="typosquat-panel">
+      <h2>Typosquat Watch</h2>
+      <div class="typosquat-grid" id="typosquat-grid"></div>
+    </section>
+
     <section class="panel report hidden" id="report-panel">
       <div class="report-header">
         <h2>Report</h2>
@@ -100,6 +110,8 @@
     </section>
   </main>
 
+  <script src="/static/js/vendor/cytoscape.min.js"></script>
+  <script src="/static/js/graph.js"></script>
   <script src="/static/js/app.js"></script>
 </body>
 </html>
