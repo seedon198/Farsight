@@ -8,10 +8,15 @@ Deviates from run_scan() in one deliberate way: each module runs in
 its own try/except, so one module failing doesn't abort the whole
 scan. A live demo should degrade gracefully, not die on stage because
 one network call timed out.
+
+The summary builders, MODULE_ORDER, and finalize_scan() are exposed
+(no leading underscore) because farsight.web.replay reuses them to
+emit an identical event sequence when replaying a captured fixture —
+the frontend should not be able to tell the difference.
 """
 
 import asyncio
-from typing import Any, Awaitable, Callable, Dict, List
+from typing import Any, Awaitable, Callable, Dict, List, Optional
 
 from farsight.modules.news import NewsMonitor
 from farsight.modules.org_discovery import OrgDiscovery
@@ -26,8 +31,10 @@ from farsight.web.scan_manager import scan_manager
 
 EmitFn = Callable[[ScanEvent], Awaitable[None]]
 
+MODULE_ORDER = ["org", "recon", "threat", "typosquat", "news"]
 
-def _org_summary(result: Dict[str, Any]) -> Dict[str, Any]:
+
+def org_summary(result: Dict[str, Any]) -> Dict[str, Any]:
     return {
         "total_related_domains": result.get("total_related_domains", 0),
         "total_subdomains": result.get("total_subdomains", 0),
@@ -39,7 +46,7 @@ def _org_summary(result: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-def _recon_summary(result: Dict[str, Any]) -> Dict[str, Any]:
+def recon_summary(result: Dict[str, Any]) -> Dict[str, Any]:
     port_scan = result.get("port_scan") or {}
     email_security = result.get("email_security") or {}
     return {
@@ -51,7 +58,7 @@ def _recon_summary(result: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-def _threat_summary(result: Dict[str, Any]) -> Dict[str, Any]:
+def threat_summary(result: Dict[str, Any]) -> Dict[str, Any]:
     return {
         "total_leaks": result.get("total_leaks", 0),
         "total_dark_web": result.get("total_dark_web", 0),
@@ -60,7 +67,7 @@ def _threat_summary(result: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-def _typosquat_summary(result: Dict[str, Any]) -> Dict[str, Any]:
+def typosquat_summary(result: Dict[str, Any]) -> Dict[str, Any]:
     typosquats = result.get("typosquats") or []
     return {
         "total_generated": result.get("total_generated", 0),
@@ -72,11 +79,65 @@ def _typosquat_summary(result: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-def _news_summary(result: Dict[str, Any]) -> Dict[str, Any]:
+def news_summary(result: Dict[str, Any]) -> Dict[str, Any]:
     return {
         "total_articles": result.get("total_articles", 0),
         "days_monitored": result.get("days_monitored", 0),
     }
+
+
+SUMMARY_BUILDERS = {
+    "org": org_summary,
+    "recon": recon_summary,
+    "threat": threat_summary,
+    "typosquat": typosquat_summary,
+    "news": news_summary,
+}
+
+
+async def finalize_scan(
+    results: Dict[str, Any],
+    domain: str,
+    depth: int,
+    requested_modules: List[str],
+    emit: EmitFn,
+    replay: bool = False,
+) -> Optional[str]:
+    """Generate the report (if any modules produced results) and emit
+    REPORT_READY + SCAN_COMPLETED. Shared by the live orchestrator and
+    the offline replay engine so report-writing logic lives in one
+    place, and both paths behave identically from the frontend's view.
+    """
+    report_id = None
+    if results:
+        writer = ReportWriter()
+        report_path = await asyncio.to_thread(
+            writer.generate_report,
+            results=results,
+            target=domain,
+            depth=depth,
+            modules=list(results.keys()),
+            output_file=None,
+        )
+        pdf_path = await asyncio.to_thread(writer.convert_to_pdf, report_path)
+        report_id = scan_manager.register_report(report_path, pdf_path)
+        await emit(
+            ScanEvent(
+                type=EventType.REPORT_READY,
+                data={"report_id": report_id, "has_pdf": pdf_path is not None},
+            )
+        )
+
+    completed_data: Dict[str, Any] = {
+        "completed_modules": list(results.keys()),
+        "failed_modules": [m for m in requested_modules if m not in results],
+        "report_id": report_id,
+    }
+    if replay:
+        completed_data["replay"] = True
+
+    await emit(ScanEvent(type=EventType.SCAN_COMPLETED, data=completed_data))
+    return report_id
 
 
 async def run_scan_with_events(
@@ -106,7 +167,7 @@ async def run_scan_with_events(
                     ScanEvent(
                         type=EventType.MODULE_COMPLETED,
                         module="org",
-                        data=_org_summary(results["org"]),
+                        data=org_summary(results["org"]),
                     )
                 )
             except Exception as e:
@@ -124,7 +185,7 @@ async def run_scan_with_events(
                     ScanEvent(
                         type=EventType.MODULE_COMPLETED,
                         module="recon",
-                        data=_recon_summary(results["recon"]),
+                        data=recon_summary(results["recon"]),
                     )
                 )
             except Exception as e:
@@ -147,7 +208,7 @@ async def run_scan_with_events(
                     ScanEvent(
                         type=EventType.MODULE_COMPLETED,
                         module="threat",
-                        data=_threat_summary(results["threat"]),
+                        data=threat_summary(results["threat"]),
                     )
                 )
             except Exception as e:
@@ -167,7 +228,7 @@ async def run_scan_with_events(
                     ScanEvent(
                         type=EventType.MODULE_COMPLETED,
                         module="typosquat",
-                        data=_typosquat_summary(results["typosquat"]),
+                        data=typosquat_summary(results["typosquat"]),
                     )
                 )
             except Exception as e:
@@ -197,7 +258,7 @@ async def run_scan_with_events(
                     ScanEvent(
                         type=EventType.MODULE_COMPLETED,
                         module="news",
-                        data=_news_summary(results["news"]),
+                        data=news_summary(results["news"]),
                     )
                 )
             except Exception as e:
@@ -208,37 +269,7 @@ async def run_scan_with_events(
                     )
                 )
 
-        report_id = None
-        if results:
-            writer = ReportWriter()
-            completed_modules = list(results.keys())
-            report_path = await asyncio.to_thread(
-                writer.generate_report,
-                results=results,
-                target=domain,
-                depth=depth,
-                modules=completed_modules,
-                output_file=None,
-            )
-            pdf_path = await asyncio.to_thread(writer.convert_to_pdf, report_path)
-            report_id = scan_manager.register_report(report_path, pdf_path)
-            await emit(
-                ScanEvent(
-                    type=EventType.REPORT_READY,
-                    data={"report_id": report_id, "has_pdf": pdf_path is not None},
-                )
-            )
-
-        await emit(
-            ScanEvent(
-                type=EventType.SCAN_COMPLETED,
-                data={
-                    "completed_modules": list(results.keys()),
-                    "failed_modules": [m for m in modules if m not in results],
-                    "report_id": report_id,
-                },
-            )
-        )
+        await finalize_scan(results, domain, depth, modules, emit)
     except Exception as e:
         logger.exception("scan failed")
         await emit(ScanEvent(type=EventType.SCAN_FAILED, message=str(e)))

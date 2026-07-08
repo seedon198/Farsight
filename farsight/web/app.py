@@ -5,6 +5,7 @@ see farsight/cli/web.py. No auth, no multi-tenant concerns.
 """
 
 from pathlib import Path
+from typing import Optional
 
 import markdown
 from fastapi import FastAPI, HTTPException, WebSocket
@@ -14,9 +15,11 @@ from fastapi.staticfiles import StaticFiles
 from farsight.utils.common import logger
 from farsight.web.events import EventType, ScanEvent
 from farsight.web.orchestrator import run_scan_with_events
+from farsight.web.replay import replay_scan
 from farsight.web.scan_manager import scan_manager
 
 STATIC_DIR = Path(__file__).parent / "static"
+DEFAULT_FIXTURE = Path(__file__).parent / "fixtures" / "demo_scan_example.com.json"
 
 try:
     import gnews  # noqa: F401
@@ -28,7 +31,14 @@ except ImportError:
 DEFAULT_MODULES = ["org", "recon", "threat", "typosquat", "news"]
 
 
-def create_app() -> FastAPI:
+def create_app(demo_fixture: Optional[Path] = None) -> FastAPI:
+    """Build the FastAPI app.
+
+    If `demo_fixture` is set, every scan request replays that captured
+    fixture instead of hitting the network -- see farsight/web/replay.py.
+    Used by `farsight web --demo` as an offline-safe fallback when the
+    venue network can't be relied on.
+    """
     app = FastAPI(title="FARSIGHT Web UI")
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
@@ -38,7 +48,11 @@ def create_app() -> FastAPI:
 
     @app.get("/api/health")
     async def health():
-        return {"status": "ok", "gnews_available": GNEWS_AVAILABLE}
+        return {
+            "status": "ok",
+            "gnews_available": GNEWS_AVAILABLE,
+            "demo_mode": demo_fixture is not None,
+        }
 
     @app.websocket("/ws")
     async def ws_scan(websocket: WebSocket):
@@ -50,21 +64,23 @@ def create_app() -> FastAPI:
             await websocket.close()
             return
 
-        domain = str(request.get("domain", "")).strip()
-        try:
-            depth = int(request.get("depth", 1))
-        except (TypeError, ValueError):
-            depth = 1
-        modules = request.get("modules") or DEFAULT_MODULES
+        domain, depth, modules = None, 1, DEFAULT_MODULES
+        if demo_fixture is None:
+            domain = str(request.get("domain", "")).strip()
+            try:
+                depth = int(request.get("depth", 1))
+            except (TypeError, ValueError):
+                depth = 1
+            modules = request.get("modules") or DEFAULT_MODULES
 
-        if not domain:
-            await websocket.send_json(
-                ScanEvent(
-                    type=EventType.SCAN_REJECTED, message="domain is required"
-                ).to_dict()
-            )
-            await websocket.close()
-            return
+            if not domain:
+                await websocket.send_json(
+                    ScanEvent(
+                        type=EventType.SCAN_REJECTED, message="domain is required"
+                    ).to_dict()
+                )
+                await websocket.close()
+                return
 
         if not await scan_manager.try_start():
             await websocket.send_json(
@@ -86,7 +102,10 @@ def create_app() -> FastAPI:
                 logger.debug("websocket send failed, client likely disconnected")
 
         try:
-            await run_scan_with_events(domain, depth, modules, emit)
+            if demo_fixture is not None:
+                await replay_scan(demo_fixture, emit)
+            else:
+                await run_scan_with_events(domain, depth, modules, emit)
         finally:
             await scan_manager.finish()
             try:
