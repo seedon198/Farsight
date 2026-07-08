@@ -27,16 +27,31 @@ class ColoredConsoleHandler(logging.StreamHandler):
     }
 
     def emit(self, record):
+        # Only inject raw ANSI codes when writing to a real terminal.
+        # Piped/redirected output (files, `> log.txt`, CI logs) isn't a
+        # tty and doesn't interpret escape codes, so they show up as
+        # literal garbage like "[33mWARNING[0m" instead of color.
+        is_tty = getattr(self.stream, "isatty", lambda: False)()
+        if not is_tty:
+            super().emit(record)
+            return
+
         # Get the log level name and corresponding color
         levelname = record.levelname
         color = self.COLORS.get(levelname, self.COLORS["RESET"])
 
-        # Format the message with colors
+        # Format the message with colors (on a copy of the record's
+        # fields so we don't permanently mutate shared state)
+        original_levelname = record.levelname
+        original_msg = record.msg
         record.levelname = f"{color}{levelname}{self.COLORS['RESET']}"
         record.msg = f"{color}{record.msg}{self.COLORS['RESET']}"
 
-        # Call the parent class emit
-        super().emit(record)
+        try:
+            super().emit(record)
+        finally:
+            record.levelname = original_levelname
+            record.msg = original_msg
 
 
 # Set up logging

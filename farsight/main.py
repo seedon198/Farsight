@@ -9,6 +9,14 @@ import sys
 
 from farsight import __version__
 
+# Windows consoles default to a legacy codepage (e.g. cp1252) that can't
+# encode the emoji/status glyphs used throughout the CLI and reports,
+# crashing the whole scan on an UnicodeEncodeError. Force UTF-8 on stdio
+# so output is consistent across platforms regardless of the host codepage.
+for _stream in (sys.stdout, sys.stderr):
+    if hasattr(_stream, "reconfigure"):
+        _stream.reconfigure(encoding="utf-8", errors="replace")
+
 app = typer.Typer(
     help="FARSIGHT - CLI-Based Recon and Threat Intelligence Framework",
     add_completion=True,

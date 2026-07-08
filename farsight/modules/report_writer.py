@@ -198,7 +198,7 @@ All data in this report is presented for informational purposes only.
         )
 
         # Write to file
-        with open(output_file, "w") as f:
+        with open(output_file, "w", encoding="utf-8") as f:
             f.write(report_content)
 
         logger.info(f"Report generated and saved to {output_file}")
@@ -226,7 +226,7 @@ All data in this report is presented for informational purposes only.
             pdf_file = markdown_file.with_suffix(".pdf")
 
             # Read Markdown content
-            with open(markdown_file, "r") as f:
+            with open(markdown_file, "r", encoding="utf-8") as f:
                 markdown_content = f.read()
 
             # Create PDF with reportlab
@@ -414,7 +414,6 @@ All data in this report is presented for informational purposes only.
         # Format DNS records
         dns_md = ""
         if "dns_records" in recon_results and recon_results["dns_records"]:
-            dns_md = "### DNS Records\n\n"
             for domain, records in recon_results["dns_records"].items():
                 dns_md += f"#### {domain}\n\n"
                 for record_type, record_list in records.items():
@@ -431,6 +430,8 @@ All data in this report is presented for informational purposes only.
                                 data = record.get("target", "N/A")
                             elif record_type == "TXT":
                                 data = record.get("txt", "N/A")
+                            elif record_type == "NS":
+                                data = record.get("nameserver", "N/A")
                             else:
                                 data = record.get("value", "N/A")
                             dns_md += f"| {record_type} | {data} |\n"
@@ -520,26 +521,26 @@ All data in this report is presented for informational purposes only.
             port_scan_summary = "No port scan results available.\n"
             port_scan_details = "No port scan results available.\n"
 
-        # Format email security
+        # Format email security. Read from the same "email_security" data
+        # the executive summary uses (utils/dns.check_spf_dmarc) so the two
+        # sections can never disagree about whether SPF/DMARC are present.
         email_md = "#### Email Security Findings\n\n"
 
-        # Check SPF
-        spf_record = ""
-        spf_status = "❌ Not implemented"
-        if "spf_record" in recon_results and recon_results["spf_record"]:
-            spf_record = recon_results["spf_record"]
-            spf_status = "✅ Implemented"
+        email_security = recon_results.get("email_security") or {}
+        spf = email_security.get("spf") or {}
+        dmarc = email_security.get("dmarc") or {}
+
+        spf_found = bool(spf.get("found"))
+        spf_record = spf.get("record") or ""
+        spf_status = "✅ Implemented" if spf_found else "❌ Not implemented"
 
         email_md += f"**SPF Record:** {spf_status}\n\n"
         if spf_record:
             email_md += "```\n" + spf_record + "\n```\n\n"
 
-        # Check DMARC
-        dmarc_record = ""
-        dmarc_status = "❌ Not implemented"
-        if "dmarc_record" in recon_results and recon_results["dmarc_record"]:
-            dmarc_record = recon_results["dmarc_record"]
-            dmarc_status = "✅ Implemented"
+        dmarc_found = bool(dmarc.get("found"))
+        dmarc_record = dmarc.get("record") or ""
+        dmarc_status = "✅ Implemented" if dmarc_found else "❌ Not implemented"
 
         email_md += f"**DMARC Record:** {dmarc_status}\n\n"
         if dmarc_record:
@@ -547,11 +548,19 @@ All data in this report is presented for informational purposes only.
 
         # Add recommendations
         email_md += "**Recommendations:**\n"
-        if (
-            "email_recommendations" in recon_results
-            and recon_results["email_recommendations"]
-        ):
-            for rec in recon_results["email_recommendations"]:
+        recommendations = []
+        if not spf_found:
+            recommendations.append(
+                "Publish an SPF record to specify which mail servers are "
+                "authorized to send email for this domain."
+            )
+        if not dmarc_found:
+            recommendations.append(
+                "Publish a DMARC record to enforce SPF/DKIM alignment and "
+                "receive reports on email spoofing attempts."
+            )
+        if recommendations:
+            for rec in recommendations:
                 email_md += f"- {rec}\n"
         else:
             email_md += "- No specific recommendations at this time.\n"
