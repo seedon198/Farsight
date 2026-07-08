@@ -32,6 +32,10 @@ def _org_summary(result: Dict[str, Any]) -> Dict[str, Any]:
         "total_related_domains": result.get("total_related_domains", 0),
         "total_subdomains": result.get("total_subdomains", 0),
         "whois_found": bool(result.get("whois")),
+        # Full lists (not just counts) so the frontend can render the
+        # attack-surface graph without a second round trip.
+        "related_domains": (result.get("related_domains") or [])[:200],
+        "discovered_subdomains": (result.get("discovered_subdomains") or [])[:200],
     }
 
 
@@ -43,6 +47,7 @@ def _recon_summary(result: Dict[str, Any]) -> Dict[str, Any]:
         "total_open_ports": port_scan.get("total_open_ports", 0),
         "spf_found": bool((email_security.get("spf") or {}).get("found")),
         "dmarc_found": bool((email_security.get("dmarc") or {}).get("found")),
+        "subdomains": (result.get("subdomains") or [])[:200],
     }
 
 
@@ -61,6 +66,9 @@ def _typosquat_summary(result: Dict[str, Any]) -> Dict[str, Any]:
         "total_generated": result.get("total_generated", 0),
         "total_active": result.get("total_active", 0),
         "top_risk": typosquats[:5],
+        # Fuller list (already sorted by risk_score desc) for the graph
+        # and the typosquat "gotcha" panel; capped defensively.
+        "typosquats": typosquats[:100],
     }
 
 
