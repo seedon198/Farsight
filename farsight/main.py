@@ -44,11 +44,29 @@ def run():
     try:
         # Import commands here to avoid circular imports
         from farsight.cli.scan import scan
-        from farsight.cli.web import web
 
-        # Add commands directly to the main app
         app.command()(scan)
-        app.command()(web)
+
+        # The web UI's dependencies (fastapi/uvicorn) are optional -- see
+        # requirements-web.txt -- so a plain `pip install .` must not
+        # break the core CLI if they're missing. Register a helpful
+        # stub instead of letting the import crash `farsight version`/
+        # `farsight scan` for everyone who didn't install the extras.
+        try:
+            from farsight.cli.web import web
+
+            app.command()(web)
+        except ImportError:
+
+            @app.command()
+            def web():
+                """Launch the local FARSIGHT web UI (requires extra deps)."""
+                typer.secho(
+                    "The web UI requires extra dependencies. Install them with:\n"
+                    "  pip install -r requirements-web.txt",
+                    fg=typer.colors.YELLOW,
+                )
+                raise typer.Exit(1)
 
         # Run the main CLI application
         app()
