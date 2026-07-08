@@ -44,9 +44,11 @@ def run():
     try:
         # Import commands here to avoid circular imports
         from farsight.cli.scan import scan
+        from farsight.cli.web import web
 
-        # Add scan command directly to the main app
+        # Add commands directly to the main app
         app.command()(scan)
+        app.command()(web)
 
         # Run the main CLI application
         app()
