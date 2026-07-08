@@ -7,6 +7,7 @@
   const connText = document.getElementById("conn-text");
   const errorBanner = document.getElementById("error-banner");
   const gnewsBanner = document.getElementById("gnews-banner");
+  const demoBanner = document.getElementById("demo-banner");
   const reportPanel = document.getElementById("report-panel");
   const reportBody = document.getElementById("report-body");
   const downloadMd = document.getElementById("download-md");
@@ -284,6 +285,9 @@
       setConn("disconnected", "idle");
       if (!data.gnews_available) {
         gnewsBanner.classList.remove("hidden");
+      }
+      if (data.demo_mode) {
+        demoBanner.classList.remove("hidden");
       }
     })
     .catch(() => setConn("disconnected", "server unreachable"));

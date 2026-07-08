@@ -90,6 +90,15 @@ body {
   border-bottom: 1px solid #4a1c1c;
 }
 
+.banner-demo {
+  background: #142a2c;
+  color: var(--cyan);
+  border-bottom: 1px solid #1c4a4e;
+  text-align: center;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
 main {
   max-width: 960px;
   margin: 24px auto;

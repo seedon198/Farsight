@@ -1,0 +1,879 @@
+{
+  "domain": "example.com",
+  "depth": 1,
+  "results": {
+    "org": {
+      "target_domain": "example.com",
+      "whois": {
+        "domain": "example.com",
+        "registrar": "RESERVED-Internet Assigned Numbers Authority",
+        "creation_date": "1995-08-14 04:00:00+00:00",
+        "expiration_date": "2026-08-13 04:00:00+00:00",
+        "updated_date": "2026-01-16 18:26:50+00:00",
+        "name_servers": [
+          "ELLIOTT.NS.CLOUDFLARE.COM",
+          "HERA.NS.CLOUDFLARE.COM"
+        ],
+        "status": [
+          "clientDeleteProhibited https://icann.org/epp#clientDeleteProhibited",
+          "clientTransferProhibited https://icann.org/epp#clientTransferProhibited",
+          "clientUpdateProhibited https://icann.org/epp#clientUpdateProhibited"
+        ]
+      },
+      "certificate_transparency": [],
+      "passive_dns": [],
+      "api_results": [],
+      "related_domains": [],
+      "discovered_subdomains": [
+        "example.com"
+      ],
+      "total_related_domains": 0,
+      "total_subdomains": 1
+    },
+    "recon": {
+      "target_domain": "example.com",
+      "dns_records": {
+        "example.com": {
+          "A": [
+            {
+              "type": "A",
+              "ip": "172.66.147.243"
+            },
+            {
+              "type": "A",
+              "ip": "104.20.23.154"
+            }
+          ],
+          "MX": [
+            {
+              "type": "MX",
+              "priority": 0,
+              "exchange": "."
+            }
+          ],
+          "NS": [
+            {
+              "type": "NS",
+              "nameserver": "hera.ns.cloudflare.com."
+            },
+            {
+              "type": "NS",
+              "nameserver": "elliott.ns.cloudflare.com."
+            }
+          ],
+          "TXT": [
+            {
+              "type": "TXT",
+              "txt": "\"v=spf1 -all\""
+            },
+            {
+              "type": "TXT",
+              "txt": "\"_k2n1y4vw3qtb4skdx9e7dxt97qrmmq9\""
+            }
+          ],
+          "CNAME": []
+        }
+      },
+      "subdomains": [
+        "www.example.com"
+      ],
+      "email_security": {
+        "domain": "example.com",
+        "spf": {
+          "found": true,
+          "record": "v=spf1 -all"
+        },
+        "dmarc": {
+          "found": true,
+          "record": "v=DMARC1;p=reject;sp=reject;adkim=s;aspf=s"
+        }
+      },
+      "port_scan": {
+        "total_scanned": 2,
+        "domains_with_open_ports": 2,
+        "total_open_ports": 6,
+        "domain_results": {
+          "example.com": {
+            "target": "104.20.23.154",
+            "timestamp": 1783490534.726454,
+            "total_ports": 20,
+            "open_ports": 3,
+            "ports": [
+              {
+                "port": 80,
+                "open": true,
+                "banner": null
+              },
+              {
+                "port": 443,
+                "open": true,
+                "banner": null
+              },
+              {
+                "port": 8080,
+                "open": true,
+                "banner": null
+              }
+            ]
+          },
+          "www.example.com": {
+            "target": "104.20.23.154",
+            "timestamp": 1783490538.9234948,
+            "total_ports": 20,
+            "open_ports": 3,
+            "ports": [
+              {
+                "port": 80,
+                "open": true,
+                "banner": null
+              },
+              {
+                "port": 443,
+                "open": true,
+                "banner": null
+              },
+              {
+                "port": 8080,
+                "open": true,
+                "banner": null
+              }
+            ]
+          }
+        }
+      },
+      "api_results": [],
+      "total_subdomains": 1,
+      "timestamp": 1783490538.923507
+    },
+    "threat": {
+      "target_domain": "example.com",
+      "leaks": [],
+      "dark_web": [],
+      "credentials": [],
+      "email_reputation": [],
+      "unique_emails_found": [],
+      "total_emails_found": 0,
+      "total_leaks": 0,
+      "total_dark_web": 0,
+      "total_credentials": 0,
+      "timestamp": 1783490539.7829866
+    },
+    "typosquat": {
+      "target_domain": "example.com",
+      "total_generated": 1971,
+      "total_active": 82,
+      "similarity_threshold": 80,
+      "typosquats": [
+        {
+          "domain": "exampled.com",
+          "type": "Character insertion",
+          "status": "Suspicious",
+          "risk_score": 71,
+          "has_dns": true,
+          "has_mx": true,
+          "ip": "64.190.63.222",
+          "http_status": 436,
+          "similarity": 93,
+          "content_similarity": 0,
+          "title": null
+        },
+        {
+          "domain": "example7.com",
+          "type": "Character insertion",
+          "status": "Suspicious",
+          "risk_score": 71,
+          "has_dns": true,
+          "has_mx": true,
+          "ip": "35.212.120.76",
+          "http_status": 200,
+          "similarity": 93,
+          "content_similarity": 0,
+          "title": "Example7 - Website Development, Maintenance, Training, Consultation - Larry Otis McCort"
+        },
+        {
+          "domain": "example2.com",
+          "type": "Character insertion",
+          "status": "Suspicious",
+          "risk_score": 71,
+          "has_dns": true,
+          "has_mx": true,
+          "ip": "104.21.44.49",
+          "http_status": 403,
+          "similarity": 93,
+          "content_similarity": 0,
+          "title": null
+        },
+        {
+          "domain": "examplex.com",
+          "type": "Character insertion",
+          "status": "Suspicious",
+          "risk_score": 71,
+          "has_dns": true,
+          "has_mx": true,
+          "ip": "103.224.212.105",
+          "http_status": 0,
+          "similarity": 93,
+          "content_similarity": 0,
+          "title": null
+        },
+        {
+          "domain": "exampler.com",
+          "type": "Character insertion",
+          "status": "Suspicious",
+          "risk_score": 71,
+          "has_dns": true,
+          "has_mx": true,
+          "ip": "103.168.172.37",
+          "http_status": 200,
+          "similarity": 93,
+          "content_similarity": 0,
+          "title": "Exampler Consulting"
+        },
+        {
+          "domain": "examples.com",
+          "type": "Character insertion",
+          "status": "Suspicious",
+          "risk_score": 71,
+          "has_dns": true,
+          "has_mx": true,
+          "ip": "34.54.3.56",
+          "http_status": 403,
+          "similarity": 93,
+          "content_similarity": 0,
+          "title": null
+        },
+        {
+          "domain": "wexample.com",
+          "type": "Character insertion",
+          "status": "Suspicious",
+          "risk_score": 71,
+          "has_dns": true,
+          "has_mx": true,
+          "ip": "151.80.23.108",
+          "http_status": 200,
+          "similarity": 93,
+          "content_similarity": 0,
+          "title": "Le m\u00e9dia des projets web - Wexample"
+        },
+        {
+          "domain": "exampl.com",
+          "type": "Character omission",
+          "status": "Suspicious",
+          "risk_score": 71,
+          "has_dns": true,
+          "has_mx": true,
+          "ip": "199.191.50.184",
+          "http_status": 200,
+          "similarity": 92,
+          "content_similarity": 0,
+          "title": null
+        },
+        {
+          "domain": "examplet.com",
+          "type": "Character insertion",
+          "status": "Suspicious",
+          "risk_score": 71,
+          "has_dns": true,
+          "has_mx": true,
+          "ip": "3.33.130.190",
+          "http_status": 200,
+          "similarity": 93,
+          "content_similarity": 0,
+          "title": null
+        },
+        {
+          "domain": "examp-le.com",
+          "type": "Character insertion",
+          "status": "Suspicious",
+          "risk_score": 71,
+          "has_dns": true,
+          "has_mx": true,
+          "ip": "172.239.193.217",
+          "http_status": 0,
+          "similarity": 93,
+          "content_similarity": 0,
+          "title": null
+        },
+        {
+          "domain": "exampleg.com",
+          "type": "Character insertion",
+          "status": "Suspicious",
+          "risk_score": 71,
+          "has_dns": true,
+          "has_mx": true,
+          "ip": "43.252.42.26",
+          "http_status": 200,
+          "similarity": 93,
+          "content_similarity": 0,
+          "title": "eg.G - exampleG"
+        },
+        {
+          "domain": "exampley.com",
+          "type": "Character insertion",
+          "status": "Suspicious",
+          "risk_score": 71,
+          "has_dns": true,
+          "has_mx": true,
+          "ip": "76.223.54.146",
+          "http_status": 200,
+          "similarity": 93,
+          "content_similarity": 0,
+          "title": null
+        },
+        {
+          "domain": "exxample.com",
+          "type": "Character insertion",
+          "status": "Suspicious",
+          "risk_score": 71,
+          "has_dns": true,
+          "has_mx": true,
+          "ip": "104.21.10.82",
+          "http_status": 403,
+          "similarity": 93,
+          "content_similarity": 0,
+          "title": null
+        },
+        {
+          "domain": "sexample.com",
+          "type": "Character insertion",
+          "status": "Suspicious",
+          "risk_score": 71,
+          "has_dns": true,
+          "has_mx": true,
+          "ip": "13.248.169.48",
+          "http_status": 200,
+          "similarity": 93,
+          "content_similarity": 0,
+          "title": null
+        },
+        {
+          "domain": "exampe.com",
+          "type": "Character omission",
+          "status": "Suspicious",
+          "risk_score": 71,
+          "has_dns": true,
+          "has_mx": true,
+          "ip": "172.238.172.116",
+          "http_status": 0,
+          "similarity": 92,
+          "content_similarity": 0,
+          "title": null
+        },
+        {
+          "domain": "xample.com",
+          "type": "Character omission",
+          "status": "Suspicious",
+          "risk_score": 71,
+          "has_dns": true,
+          "has_mx": true,
+          "ip": "23.227.38.65",
+          "http_status": 200,
+          "similarity": 92,
+          "content_similarity": 0,
+          "title": "XAMPLE"
+        },
+        {
+          "domain": "excample.com",
+          "type": "Character insertion",
+          "status": "Suspicious",
+          "risk_score": 71,
+          "has_dns": true,
+          "has_mx": true,
+          "ip": "103.224.182.241",
+          "http_status": 0,
+          "similarity": 93,
+          "content_similarity": 0,
+          "title": null
+        },
+        {
+          "domain": "eexample.com",
+          "type": "Character insertion",
+          "status": "Suspicious",
+          "risk_score": 71,
+          "has_dns": true,
+          "has_mx": true,
+          "ip": "96.38.240.54",
+          "http_status": 200,
+          "similarity": 93,
+          "content_similarity": 0,
+          "title": "eExample.com"
+        },
+        {
+          "domain": "examplel.com",
+          "type": "Character insertion",
+          "status": "Suspicious",
+          "risk_score": 71,
+          "has_dns": true,
+          "has_mx": true,
+          "ip": "188.40.59.208",
+          "http_status": 200,
+          "similarity": 93,
+          "content_similarity": 0,
+          "title": "Directory listing for /"
+        },
+        {
+          "domain": "example1.com",
+          "type": "Character insertion",
+          "status": "Suspicious",
+          "risk_score": 71,
+          "has_dns": true,
+          "has_mx": true,
+          "ip": "192.185.44.208",
+          "http_status": 200,
+          "similarity": 93,
+          "content_similarity": 0,
+          "title": "Example 1"
+        },
+        {
+          "domain": "4example.com",
+          "type": "Character insertion",
+          "status": "Suspicious",
+          "risk_score": 71,
+          "has_dns": true,
+          "has_mx": true,
+          "ip": "13.248.169.48",
+          "http_status": 200,
+          "similarity": 93,
+          "content_similarity": 0,
+          "title": null
+        },
+        {
+          "domain": "ex-ample.com",
+          "type": "Character insertion",
+          "status": "Suspicious",
+          "risk_score": 71,
+          "has_dns": true,
+          "has_mx": true,
+          "ip": "104.21.32.188",
+          "http_status": 200,
+          "similarity": 93,
+          "content_similarity": 0,
+          "title": "brand.new"
+        },
+        {
+          "domain": "exmple.com",
+          "type": "Character omission",
+          "status": "Suspicious",
+          "risk_score": 71,
+          "has_dns": true,
+          "has_mx": true,
+          "ip": "67.210.233.131",
+          "http_status": 200,
+          "similarity": 92,
+          "content_similarity": 0,
+          "title": "Example Website, Exmple Website - Exmple.com"
+        },
+        {
+          "domain": "exyample.com",
+          "type": "Character insertion",
+          "status": "Potential",
+          "risk_score": 58,
+          "has_dns": true,
+          "has_mx": false,
+          "ip": "104.26.4.80",
+          "http_status": 200,
+          "similarity": 93,
+          "content_similarity": 15,
+          "title": "Online Consultant"
+        },
+        {
+          "domain": "example6.com",
+          "type": "Character insertion",
+          "status": "Potential",
+          "risk_score": 56,
+          "has_dns": true,
+          "has_mx": false,
+          "ip": "172.67.177.133",
+          "http_status": 200,
+          "similarity": 93,
+          "content_similarity": 0,
+          "title": null
+        },
+        {
+          "domain": "eample.com",
+          "type": "Character omission",
+          "status": "Potential",
+          "risk_score": 56,
+          "has_dns": true,
+          "has_mx": false,
+          "ip": "76.223.54.146",
+          "http_status": 200,
+          "similarity": 92,
+          "content_similarity": 0,
+          "title": null
+        },
+        {
+          "domain": "exampleb.com",
+          "type": "Character insertion",
+          "status": "Potential",
+          "risk_score": 56,
+          "has_dns": true,
+          "has_mx": false,
+          "ip": "13.223.25.84",
+          "http_status": 200,
+          "similarity": 93,
+          "content_similarity": 0,
+          "title": null
+        },
+        {
+          "domain": "example4.com",
+          "type": "Character insertion",
+          "status": "Potential",
+          "risk_score": 56,
+          "has_dns": true,
+          "has_mx": false,
+          "ip": "178.104.242.54",
+          "http_status": 200,
+          "similarity": 93,
+          "content_similarity": 0,
+          "title": "example4.com | .us domain statistics, example titles, keywords, links"
+        },
+        {
+          "domain": "dexample.com",
+          "type": "Character insertion",
+          "status": "Potential",
+          "risk_score": 56,
+          "has_dns": true,
+          "has_mx": false,
+          "ip": "185.143.233.235",
+          "http_status": 200,
+          "similarity": 93,
+          "content_similarity": 0,
+          "title": "Coming Soon..."
+        },
+        {
+          "domain": "exapmple.com",
+          "type": "Character insertion",
+          "status": "Potential",
+          "risk_score": 56,
+          "has_dns": true,
+          "has_mx": false,
+          "ip": "103.51.63.150",
+          "http_status": 200,
+          "similarity": 93,
+          "content_similarity": 0,
+          "title": "\u76ee\u5f55\u5927\u5168_\u7b80\u5355\u641c\u7d22\u5bfc\u822a - Exapmple\u4e0a\u7f51\u5bfc\u822a"
+        },
+        {
+          "domain": "exampleq.com",
+          "type": "Character insertion",
+          "status": "Potential",
+          "risk_score": 56,
+          "has_dns": true,
+          "has_mx": false,
+          "ip": "192.241.217.167",
+          "http_status": 200,
+          "similarity": 93,
+          "content_similarity": 0,
+          "title": null
+        },
+        {
+          "domain": "examle.com",
+          "type": "Character omission",
+          "status": "Potential",
+          "risk_score": 56,
+          "has_dns": true,
+          "has_mx": false,
+          "ip": "212.92.104.5",
+          "http_status": 200,
+          "similarity": 92,
+          "content_similarity": 0,
+          "title": "Loading..."
+        },
+        {
+          "domain": "example5.com",
+          "type": "Character insertion",
+          "status": "Potential",
+          "risk_score": 56,
+          "has_dns": true,
+          "has_mx": false,
+          "ip": "54.243.117.197",
+          "http_status": 200,
+          "similarity": 93,
+          "content_similarity": 0,
+          "title": "Example5.com is for sale | HugeDomains"
+        },
+        {
+          "domain": "examplee.com",
+          "type": "Character insertion",
+          "status": "Potential",
+          "risk_score": 56,
+          "has_dns": true,
+          "has_mx": false,
+          "ip": "162.248.211.18",
+          "http_status": 200,
+          "similarity": 93,
+          "content_similarity": 0,
+          "title": null
+        },
+        {
+          "domain": "example9.com",
+          "type": "Character insertion",
+          "status": "Potential",
+          "risk_score": 56,
+          "has_dns": true,
+          "has_mx": false,
+          "ip": "54.243.117.197",
+          "http_status": 200,
+          "similarity": 93,
+          "content_similarity": 0,
+          "title": "HugeDomains.com"
+        },
+        {
+          "domain": "examplez.com",
+          "type": "Character insertion",
+          "status": "Potential",
+          "risk_score": 56,
+          "has_dns": true,
+          "has_mx": false,
+          "ip": "13.248.169.48",
+          "http_status": 200,
+          "similarity": 93,
+          "content_similarity": 0,
+          "title": null
+        },
+        {
+          "domain": "examplec.com",
+          "type": "Character insertion",
+          "status": "Potential",
+          "risk_score": 56,
+          "has_dns": true,
+          "has_mx": false,
+          "ip": "13.223.25.84",
+          "http_status": 200,
+          "similarity": 93,
+          "content_similarity": 0,
+          "title": "ExampleC.com is for sale | HugeDomains"
+        },
+        {
+          "domain": "e-xample.com",
+          "type": "Character insertion",
+          "status": "Potential",
+          "risk_score": 56,
+          "has_dns": true,
+          "has_mx": false,
+          "ip": "172.67.130.200",
+          "http_status": 200,
+          "similarity": 93,
+          "content_similarity": 0,
+          "title": "Tech &amp; Betting Mastermind: Innov\u00e1ci\u00f3k \u00e9s strat\u00e9gi\u00e1k a fogad\u00e1s vil\u00e1g\u00e1ban"
+        },
+        {
+          "domain": "exsample.com",
+          "type": "Character insertion",
+          "status": "Potential",
+          "risk_score": 56,
+          "has_dns": true,
+          "has_mx": false,
+          "ip": "13.248.169.48",
+          "http_status": 200,
+          "similarity": 93,
+          "content_similarity": 0,
+          "title": null
+        },
+        {
+          "domain": "exammple.com",
+          "type": "Character insertion",
+          "status": "Potential",
+          "risk_score": 56,
+          "has_dns": true,
+          "has_mx": false,
+          "ip": "13.223.25.84",
+          "http_status": 200,
+          "similarity": 93,
+          "content_similarity": 0,
+          "title": "Exammple.com is for sale | HugeDomains"
+        },
+        {
+          "domain": "exampple.com",
+          "type": "Character insertion",
+          "status": "Potential",
+          "risk_score": 56,
+          "has_dns": true,
+          "has_mx": false,
+          "ip": "3.33.130.190",
+          "http_status": 200,
+          "similarity": 93,
+          "content_similarity": 0,
+          "title": null
+        },
+        {
+          "domain": "rexample.com",
+          "type": "Character insertion",
+          "status": "Potential",
+          "risk_score": 56,
+          "has_dns": true,
+          "has_mx": false,
+          "ip": "13.223.25.84",
+          "http_status": 200,
+          "similarity": 93,
+          "content_similarity": 0,
+          "title": "HugeDomains.com"
+        },
+        {
+          "domain": "examplea.com",
+          "type": "Character insertion",
+          "status": "Potential",
+          "risk_score": 56,
+          "has_dns": true,
+          "has_mx": false,
+          "ip": "54.243.117.197",
+          "http_status": 200,
+          "similarity": 93,
+          "content_similarity": 0,
+          "title": "ExampleA.com is for sale | HugeDomains"
+        },
+        {
+          "domain": "exampole.com",
+          "type": "Character insertion",
+          "status": "Potential",
+          "risk_score": 56,
+          "has_dns": true,
+          "has_mx": false,
+          "ip": "15.197.148.33",
+          "http_status": 200,
+          "similarity": 93,
+          "content_similarity": 0,
+          "title": null
+        },
+        {
+          "domain": "examplle.com",
+          "type": "Character insertion",
+          "status": "Potential",
+          "risk_score": 46,
+          "has_dns": true,
+          "has_mx": false,
+          "ip": "104.21.25.153",
+          "http_status": 0,
+          "similarity": 93,
+          "content_similarity": 0,
+          "title": null
+        },
+        {
+          "domain": "exaple.com",
+          "type": "Character omission",
+          "status": "Potential",
+          "risk_score": 46,
+          "has_dns": true,
+          "has_mx": false,
+          "ip": "104.247.81.99",
+          "http_status": 410,
+          "similarity": 92,
+          "content_similarity": 0,
+          "title": null
+        },
+        {
+          "domain": "examplek.com",
+          "type": "Character insertion",
+          "status": "Potential",
+          "risk_score": 46,
+          "has_dns": true,
+          "has_mx": false,
+          "ip": "162.159.130.6",
+          "http_status": 500,
+          "similarity": 93,
+          "content_similarity": 0,
+          "title": null
+        },
+        {
+          "domain": "example3.com",
+          "type": "Character insertion",
+          "status": "Potential",
+          "risk_score": 46,
+          "has_dns": true,
+          "has_mx": false,
+          "ip": "104.26.15.194",
+          "http_status": 429,
+          "similarity": 93,
+          "content_similarity": 0,
+          "title": "example3.com | domain statistics, example titles, keywords, links"
+        },
+        {
+          "domain": "example8.com",
+          "type": "Character insertion",
+          "status": "Potential",
+          "risk_score": 46,
+          "has_dns": true,
+          "has_mx": false,
+          "ip": "104.21.23.31",
+          "http_status": 404,
+          "similarity": 93,
+          "content_similarity": 0,
+          "title": null
+        }
+      ],
+      "timestamp": 1783490605.0957117
+    },
+    "news": {
+      "target": "example.com",
+      "days_monitored": 30,
+      "total_articles": 9,
+      "articles": [
+        {
+          "title": "Spice Girls at 30: how girl power changed pop - The Conversation",
+          "url": "https://news.google.com/rss/articles/CBMihgFBVV95cUxNS2RoMVlPRnJzR3JTUWlSdFdpUHpkTzdqQ2JLVzhoODNmNENzWTBoNVluZGQwcmNDWXV4Tzk4c2hOSXQzWFhEVV81Y1VqSWVOaVBmc29KUjZVNGN3REY5ai1hMkQ5S2hTT29PVUl5V1V2ZGdQOXdpXzY1M281Mks0bml4Nk1IUQ?oc=5&hl=en-IN&gl=IN&ceid=IN:en",
+          "published": "Tue, 09 Jun 2026 07:00:00 GMT",
+          "publisher": "The Conversation",
+          "snippet": "Spice Girls at 30: how girl power changed pop  The Conversation"
+        },
+        {
+          "title": "Fight Club at 30: toxic masculinity handbook or clever takedown of capitalism? - The Conversation",
+          "url": "https://news.google.com/rss/articles/CBMisAFBVV95cUxOU2NXQXlSd0JZbFdoaVRsdnZITW9sM3IwSXFLTkVjSGJzeHBMUUN6SkoxN0dQMFdCT3JiWC1WelplSkJPX3BYbkhmOEZXNHJ0N1BQQ3hFa0V0ZVpFMzZINm1kOUhZcEI2c25oZ2JIWGZDOTFlQ0VXVUNtS1ZVWEVseXY1cDZ5QlRhUG5zYmZoQi14SGYwNFdNOE9WWkJQcTJXNmdEVDUzOG5tTm91Qk8yWA?oc=5&hl=en-IN&gl=IN&ceid=IN:en",
+          "published": "Tue, 28 Apr 2026 07:00:00 GMT",
+          "publisher": "The Conversation",
+          "snippet": "Fight Club at 30: toxic masculinity handbook or clever takedown of capitalism?  The Conversation"
+        },
+        {
+          "title": "One-of-a-kind experiment tracked plant evolution in response to climate change at 30 sites worldwide - University of California, Berkeley",
+          "url": "https://news.google.com/rss/articles/CBMi1AFBVV95cUxPQzFVazFpdlZZSWRqS1dna3ZHYzltaTBUTTREaHFRbXVNckdMWXBwTURrQTl3QmtBRDhWeHdERUdMMEZkbk5nQ19DM3kxcC1HcG15RURWcERDVzVOY096c0lOT3N2NmpFMFlPd2huemFrWFFwOWxyWjE2S3AtX0hCNEtZMzJVZ3hERU11cTc2bFJtbmJwS2xLalRVT0drWGRTNkt4a1pJUVYtNFdoeW15bUZxRzNCel9IQnV6cnd1SmV3WUVIbExRMTdfazNQUnRKeWt1cA?oc=5&hl=en-IN&gl=IN&ceid=IN:en",
+          "published": "Thu, 26 Mar 2026 07:00:00 GMT",
+          "publisher": "University of California, Berkeley",
+          "snippet": "One-of-a-kind experiment tracked plant evolution in response to climate change at 30 sites worldwide  University of California, Berkeley"
+        },
+        {
+          "title": "'Steroids gave me heart failure at 30 and I could die early' - BBC",
+          "url": "https://news.google.com/rss/articles/CBMiWkFVX3lxTE9xM1lobmhtTzl5T2EtZ2dJLTVETDJ1VXFvNkVnTUUxbnRnTkxoaFJqNTBiOFIwRGV5elp5VmUtZkJmV2tHQzN6cE1RXzhKa3VNb08tUUV2anhnZw?oc=5&hl=en-IN&gl=IN&ceid=IN:en",
+          "published": "Fri, 14 Feb 2025 08:00:00 GMT",
+          "publisher": "BBC",
+          "snippet": "'Steroids gave me heart failure at 30 and I could die early'  BBC"
+        },
+        {
+          "title": "Global annual wetland dataset at 30 m with a fine classification system from 2000 to 2022 - Nature",
+          "url": "https://news.google.com/rss/articles/CBMiX0FVX3lxTE05M1RtRHNaSVAwaXlPaTR2MlhGU3Q2YXY4eUtjemZYdlV5SkVycnJtRkkwTHdTbHdRZnhuREEtRXktZVFlQkdzSE9Mb0lrdXRDUml3ZTNiaHlVdmU1eWlJ?oc=5&hl=en-IN&gl=IN&ceid=IN:en",
+          "published": "Sat, 23 Mar 2024 07:00:00 GMT",
+          "publisher": "Nature",
+          "snippet": "Global annual wetland dataset at 30 m with a fine classification system from 2000 to 2022  Nature"
+        },
+        {
+          "title": "Jurassic Park at 30: Spielberg\u2019s sleek blockbuster remains a grave warning - The Guardian",
+          "url": "https://news.google.com/rss/articles/CBMimwFBVV95cUxNTUktS3l1TGNWZzFYVE5NcWJCNl8wdzJUQ2doX05rX0tpLXh4LVJIQTllQ3IxV1MxbEVacUpYYU1DZ0dZWC15cmhldEtjdXB3ZWRtclFvd3lXbDczWkFXWXZhZTFTeU9BQU1pSEN4VnRnbkJDUGkxTFJjb1BxcE5DRVN3ektTRV9maWRRZjdIN2xpOHZYdXZ5U0J6Zw?oc=5&hl=en-IN&gl=IN&ceid=IN:en",
+          "published": "Sun, 11 Jun 2023 07:00:00 GMT",
+          "publisher": "The Guardian",
+          "snippet": "Jurassic Park at 30: Spielberg\u2019s sleek blockbuster remains a grave warning  The Guardian"
+        },
+        {
+          "title": "GoodFellas at 30: Scorsese\u2019s massively influential, virtuoso gangster film - The Conversation",
+          "url": "https://news.google.com/rss/articles/CBMiqgFBVV95cUxQX1hYM0w2M3JOWnRnX3dlSjFpZmRIQ09GQ1c3VmQyYmNhNlYtMFRXOWpwcThmUDRXb2FSYW5wT1BiVmZ2TkNOanpvandpVnZoY0JzN29BamV6NGxDSlJkbVp6V0xReC02V0xWSlBJa0k4OGhYX3o0OGRMdFpMTENCeVdNNmU1NElpdlgydktaQTZtU3VQU1pqVHNKTGRuU25LWTZYX2owT1ZpZw?oc=5&hl=en-IN&gl=IN&ceid=IN:en",
+          "published": "Tue, 08 Sep 2020 07:00:00 GMT",
+          "publisher": "The Conversation",
+          "snippet": "GoodFellas at 30: Scorsese\u2019s massively influential, virtuoso gangster film  The Conversation"
+        },
+        {
+          "title": "\u2018The Simpsons\u2019 at 30: Six Era-Defining Episodes (Published 2018) - The New York Times",
+          "url": "https://news.google.com/rss/articles/CBMilgFBVV95cUxNWUphRWRLMGlWd0hKZVN0RGpuelFmQ0FfTmpEZHo3T0pBRXlMb2VDRG5mNjlTTG1hcmFGQ2pDcFhqNUd3WGI4enIxWHNUV2dZNDd1RWRNUGhQTk5BNEJLYW5BZ1F4Q2hYdk9Ia0hneFc3RHNqa3puQXU3Wjh6NTQ5RnItNUJzOWZKMlEyLUozZTFEMTRWMUE?oc=5&hl=en-IN&gl=IN&ceid=IN:en",
+          "published": "Fri, 28 Sep 2018 07:00:00 GMT",
+          "publisher": "The New York Times",
+          "snippet": "\u2018The Simpsons\u2019 at 30: Six Era-Defining Episodes (Published 2018)  The New York Times"
+        },
+        {
+          "title": "Die Hard at 30: how it remains the quintessential American action movie - The Guardian",
+          "url": "https://news.google.com/rss/articles/CBMinwFBVV95cUxQT2lEMUlBNjhaTWRHV3BOaVFJR1E1dktTZE5HemgxMU1sNVBiWU9VTXRpWmZOeEpNTHFOWTd0SG9Oc1l1WWxEdjFJc2gzTUE1d25Kb0dicDAxV0o2aDZnSWpWSUNzUUdNR1N5ZjZoajc3ZHd6TmNjcEEwMlJoQWxIbWRtSmFTcFhMcWczV19OeDRNQllWY2ZBTzFjSlU0eXc?oc=5&hl=en-IN&gl=IN&ceid=IN:en",
+          "published": "Thu, 12 Jul 2018 07:00:00 GMT",
+          "publisher": "The Guardian",
+          "snippet": "Die Hard at 30: how it remains the quintessential American action movie  The Guardian"
+        }
+      ],
+      "timestamp": 1783490610.89364
+    }
+  }
+}
