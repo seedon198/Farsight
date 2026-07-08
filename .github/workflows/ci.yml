@@ -36,9 +36,10 @@ jobs:
 
   test:
     name: Test
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
+        os: [ubuntu-latest, windows-latest]
         python-version: ["3.10", "3.12"]
 
     steps:
@@ -57,3 +58,6 @@ jobs:
 
       - name: Run tests
         run: pytest tests/ -v
+
+      - name: Smoke-test CLI against a live scan (catches console-encoding regressions)
+        run: python -m farsight scan example.com --verbose

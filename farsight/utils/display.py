@@ -42,6 +42,7 @@ def columns(
         max(len(str(headers[i])), *(len(str(row[i])) for row in rows))
         for i in range(len(headers))
     ]
+
     def render(values: Sequence[Any]) -> str:
         cells = [f"{str(v):<{w}}" for v, w in zip(values, widths)]
         cells[-1] = str(values[-1])  # don't pad the last column
