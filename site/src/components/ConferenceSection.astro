@@ -32,7 +32,7 @@ const talks = [
         rel="noopener noreferrer"
         class="flex flex-col items-center gap-4 rounded-lg border border-slate-800 bg-slate-900 p-6 text-center transition hover:border-slate-600"
       >
-        <img src={talk.logo} alt={`${talk.conference} logo`} class="h-16 w-auto" />
+        <img src={talk.logo} alt={`${talk.conference} logo`} class="h-16 w-auto" loading="lazy" />
         <div>
           <p class="font-semibold text-white">{talk.conference} &middot; {talk.venue}</p>
           <p class="text-sm text-slate-500">{talk.date} &bull; {talk.location} &bull; {talk.status}</p>
