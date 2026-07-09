@@ -29,12 +29,19 @@ const commands = [
       if (!targetId) return;
       const target = document.getElementById(targetId);
       if (!target) return;
-      await navigator.clipboard.writeText(target.innerText);
+      if (button.disabled) return;
       const original = button.textContent;
-      button.textContent = 'Copied!';
-      setTimeout(() => {
+      button.disabled = true;
+      try {
+        await navigator.clipboard.writeText(target.innerText);
+        button.textContent = 'Copied!';
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+      } catch {
+        // Clipboard write failed silently; no error UI for this progressive enhancement.
+      } finally {
         button.textContent = original;
-      }, 2000);
+        button.disabled = false;
+      }
     });
   });
 </script>
