@@ -1,0 +1,22 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Hero from '../components/Hero.astro';
+import InstallBlock from '../components/InstallBlock.astro';
+import FeatureGrid from '../components/FeatureGrid.astro';
+import DemoSection from '../components/DemoSection.astro';
+import ConferenceSection from '../components/ConferenceSection.astro';
+import SpeakerSection from '../components/SpeakerSection.astro';
+import Footer from '../components/Footer.astro';
+---
+<BaseLayout
+  title="FARSIGHT — OSINT & Attack Surface Intelligence"
+  description="A fast, modular CLI recon and threat-intelligence framework. Presenting at DEFCON 34 AppSec Village."
+>
+  <Hero />
+  <InstallBlock />
+  <FeatureGrid />
+  <DemoSection />
+  <ConferenceSection />
+  <SpeakerSection />
+  <Footer />
+</BaseLayout>

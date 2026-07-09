@@ -54,7 +54,4 @@ Thumbs.db
 
 # Reports
 report.md
-/reports/
 
-# Local planning/spec docs -- not for upstream
-/docs/superpowers/
