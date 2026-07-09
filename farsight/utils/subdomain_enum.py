@@ -7,7 +7,7 @@ from typing import List, Optional
 
 from farsight.utils.common import logger
 from farsight.utils.dns import DNSResolver
-from farsight.config import get_config
+from farsight.config import get_api_key, get_config
 
 # Common subdomain sources
 SOURCES = {
@@ -120,7 +120,7 @@ class SubdomainEnumerator:
             tasks.append(self._query_urlscan(domain))
 
             # Only query VirusTotal if API key is available
-            virustotal_api_key = get_config("FARSIGHT_VIRUSTOTAL_API_KEY", None)
+            virustotal_api_key = get_api_key("virustotal")
             if virustotal_api_key:
                 tasks.append(self._query_virustotal(domain, virustotal_api_key))
 
