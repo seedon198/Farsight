@@ -1,0 +1,44 @@
+---
+const talks = [
+  {
+    logo: '/assets/appsecvillage-logo.png',
+    conference: 'DEFCON 34',
+    venue: 'AppSec Village',
+    date: 'Aug 6–9, 2026',
+    location: 'Las Vegas',
+    status: 'Upcoming',
+    title: 'Farsight: Turning OSINT into Actionable Attack Surface Intelligence',
+    href: 'https://sessionize.com/adlin-seedon-dsouza/',
+  },
+  {
+    logo: '/assets/blackhat-logo.png',
+    conference: 'BLACKHAT 2025',
+    venue: 'Arsenal',
+    date: 'Oct 1–2, 2025',
+    location: 'Toronto',
+    status: 'Presented',
+    title: 'Farsight: CLI-Based Recon and Threat Intelligence Framework',
+    href: 'https://www.blackhat.com/sector/2025/arsenal/schedule/index.html#farsight-cli-based-recon-and-threat-intelligence-framework-47707',
+  },
+];
+---
+<section class="mx-auto max-w-5xl px-6 py-16">
+  <h2 class="mb-10 text-center text-2xl font-semibold text-white">Talks</h2>
+  <div class="grid gap-6 sm:grid-cols-2">
+    {talks.map((talk) => (
+      <a
+        href={talk.href}
+        target="_blank"
+        rel="noopener noreferrer"
+        class="flex flex-col items-center gap-4 rounded-lg border border-slate-800 bg-slate-900 p-6 text-center transition hover:border-slate-600"
+      >
+        <img src={talk.logo} alt={`${talk.conference} logo`} class="h-16 w-auto" loading="lazy" />
+        <div>
+          <p class="font-semibold text-white">{talk.conference} &middot; {talk.venue}</p>
+          <p class="text-sm text-slate-500">{talk.date} &bull; {talk.location} &bull; {talk.status}</p>
+        </div>
+        <p class="text-sm text-slate-300">{talk.title}</p>
+      </a>
+    ))}
+  </div>
+</section>
