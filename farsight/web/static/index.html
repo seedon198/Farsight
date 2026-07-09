@@ -98,6 +98,13 @@
 
     <section class="panel typosquat-panel hidden" id="typosquat-panel">
       <h2>Typosquat Watch</h2>
+      <div class="groundtruth-slot">
+        <div class="groundtruth-label">Real site</div>
+        <div class="groundtruth-thumb-wrap" id="groundtruth-thumb-wrap">
+          <div class="thumb-placeholder" id="groundtruth-placeholder">No preview available</div>
+          <img class="groundtruth-thumb hidden" id="groundtruth-thumb" alt="Real site screenshot" />
+        </div>
+      </div>
       <div class="typosquat-grid" id="typosquat-grid"></div>
     </section>
 
@@ -112,6 +119,23 @@
       <div id="report-body" class="report-body"></div>
     </section>
   </main>
+
+  <div class="screenshot-modal hidden" id="screenshot-modal">
+    <div class="screenshot-modal-backdrop" id="screenshot-modal-backdrop"></div>
+    <div class="screenshot-modal-content">
+      <button class="screenshot-modal-close" id="screenshot-modal-close" aria-label="Close">&times;</button>
+      <div class="screenshot-modal-columns">
+        <div class="screenshot-modal-col" id="modal-groundtruth-col">
+          <div class="screenshot-modal-label">Real site</div>
+          <img class="screenshot-modal-img" id="modal-groundtruth-img" alt="Real site" />
+        </div>
+        <div class="screenshot-modal-col">
+          <div class="screenshot-modal-label" id="modal-typosquat-label"></div>
+          <img class="screenshot-modal-img" id="modal-typosquat-img" alt="Typosquat site" />
+        </div>
+      </div>
+    </div>
+  </div>
 
   <script src="/static/js/vendor/cytoscape.min.js"></script>
   <script src="/static/js/graph.js"></script>
