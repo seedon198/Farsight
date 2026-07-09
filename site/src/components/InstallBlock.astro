@@ -1,0 +1,47 @@
+---
+const commands = [
+  'git clone https://github.com/seedon198/Farsight.git',
+  'cd Farsight',
+  'python3 -m venv venv && source venv/bin/activate',
+  'pip install -r requirements.txt',
+  'python -m farsight scan example.com',
+].join('\n');
+---
+<section id="install" class="mx-auto max-w-3xl px-6 py-16">
+  <h2 class="mb-6 text-center text-2xl font-semibold text-white">Install &amp; Quickstart</h2>
+  <div class="relative rounded-lg border border-slate-800 bg-slate-900">
+    <button
+      type="button"
+      data-copy-target="install-commands"
+      class="absolute right-3 top-3 rounded-md border border-slate-700 px-3 py-1 text-sm text-slate-300 transition hover:border-slate-500 hover:text-white"
+    >
+      Copy
+    </button>
+    <pre id="install-commands" class="overflow-x-auto p-6 pr-20 font-mono text-sm text-emerald-300"><code>{commands}</code></pre>
+  </div>
+  <p class="mt-4 text-center text-sm text-slate-500">Requires Python 3.10+.</p>
+</section>
+
+<script>
+  document.querySelectorAll<HTMLButtonElement>('[data-copy-target]').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const targetId = button.dataset.copyTarget;
+      if (!targetId) return;
+      const target = document.getElementById(targetId);
+      if (!target) return;
+      if (button.disabled) return;
+      const original = button.textContent;
+      button.disabled = true;
+      try {
+        await navigator.clipboard.writeText(target.innerText);
+        button.textContent = 'Copied!';
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+      } catch {
+        // Clipboard write failed silently; no error UI for this progressive enhancement.
+      } finally {
+        button.textContent = original;
+        button.disabled = false;
+      }
+    });
+  });
+</script>
