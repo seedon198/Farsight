@@ -55,3 +55,34 @@ async def capture(url: str, timeout: float = 10.0) -> bytes:
         return await page.screenshot(type="png")
     finally:
         await page.close()
+
+
+async def capture_domain(domain: str, timeout: float = 10.0) -> bytes:
+    """Screenshot a domain, trying http then https, with an in-memory cache.
+
+    Cache is a simple bounded dict keyed by domain -- a session-lifetime
+    demo aid, not a correctness-critical cache. Raises the last exception
+    if neither protocol loads within the timeout.
+    """
+    if domain in _cache:
+        return _cache[domain]
+
+    last_error: Optional[Exception] = None
+    for protocol in ("http", "https"):
+        try:
+            image = await capture(f"{protocol}://{domain}", timeout=timeout)
+            _store_in_cache(domain, image)
+            return image
+        except Exception as e:
+            last_error = e
+            continue
+
+    assert last_error is not None
+    raise last_error
+
+
+def _store_in_cache(domain: str, image: bytes) -> None:
+    if len(_cache) >= _CACHE_MAX_ENTRIES:
+        oldest_key = next(iter(_cache))
+        del _cache[oldest_key]
+    _cache[domain] = image
