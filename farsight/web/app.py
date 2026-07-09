@@ -9,10 +9,11 @@ from typing import Optional
 
 import markdown
 from fastapi import FastAPI, HTTPException, WebSocket
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 from farsight.utils.common import logger
+from farsight.web import screenshot
 from farsight.web.events import EventType, ScanEvent
 from farsight.web.orchestrator import run_scan_with_events
 from farsight.web.replay import replay_scan
@@ -136,5 +137,21 @@ def create_app(demo_fixture: Optional[Path] = None) -> FastAPI:
         if path is None or not path.exists():
             raise HTTPException(status_code=404, detail=f"{fmt} report not available")
         return FileResponse(path, media_type=media_type, filename=path.name)
+
+    @app.get("/api/screenshot")
+    async def get_screenshot(domain: str):
+        if not screenshot.PLAYWRIGHT_AVAILABLE:
+            return JSONResponse(
+                status_code=503,
+                content={
+                    "error": "playwright_not_installed",
+                    "hint": screenshot.NOT_INSTALLED_HINT,
+                },
+            )
+        try:
+            image = await screenshot.capture_domain(domain)
+        except Exception:
+            return JSONResponse(status_code=502, content={"error": "unreachable"})
+        return Response(content=image, media_type="image/png")
 
     return app
