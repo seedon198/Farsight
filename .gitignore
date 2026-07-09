@@ -54,3 +54,6 @@ Thumbs.db
 
 # Reports
 report.md
+
+# Local planning artifacts (specs/plans) - not for upstream
+docs/superpowers/
