@@ -194,35 +194,60 @@ class OrgDiscovery:
             logger.error("Session not initialized. Use async with context.")
             return
 
-        crt_sh_url = f"https://crt.sh/?q=%.{domain}&output=json"
-        domains = set()
-
         try:
-            async with self.session.get(crt_sh_url) as response:
-                if response.status == 200:
-                    # Parse JSON response
-                    data = await response.json()
-
-                    # Extract domains from common_name and name_value fields
-                    for cert in data:
-                        common_name = cert.get("common_name", "").strip()
-                        if common_name and _looks_like_hostname(common_name):
-                            domains.add(common_name)
-
-                        if "name_value" in cert and cert["name_value"]:
-                            # name_value is newline-delimited; a cert's SANs
-                            # can include multiple hostnames per entry
-                            for name in cert["name_value"].split("\n"):
-                                clean_name = name.strip()
-                                if _looks_like_hostname(clean_name):
-                                    domains.add(clean_name)
-
-                    logger.info(f"Retrieved {len(domains)} domains from crt.sh")
-                    self.results["crt_sh"] = list(domains)
-                else:
-                    logger.warning(f"crt.sh returned status {response.status}")
+            domains = await self._fetch_crt_sh(domain)
+            logger.info(f"Retrieved {len(domains)} domains from crt.sh")
+            self.results["crt_sh"] = list(domains)
         except Exception as e:
             logger.error(f"Error querying crt.sh: {str(e)}")
+
+    @retry(max_retries=2, delay=1.0, backoff=2.0)
+    async def _fetch_crt_sh(self, domain: str) -> set:
+        """
+        Fetch and parse crt.sh's certificate transparency JSON for a domain.
+
+        Retries transient server errors (crt.sh is a shared public service
+        that occasionally 502s under load). A 404 means "no matching
+        certificates" per crt.sh's own API behavior, not an error, so it's
+        returned as an empty result rather than retried.
+
+        Args:
+            domain: Domain to query
+
+        Returns:
+            Set of hostnames found in matching certificates
+        """
+        crt_sh_url = f"https://crt.sh/?q=%.{domain}&output=json"
+
+        async with self.session.get(crt_sh_url) as response:
+            if response.status == 404:
+                return set()
+            if response.status != 200:
+                raise aiohttp.ClientResponseError(
+                    response.request_info,
+                    response.history,
+                    status=response.status,
+                    message=f"crt.sh returned status {response.status}",
+                )
+
+            data = await response.json()
+            domains = set()
+
+            # Extract domains from common_name and name_value fields
+            for cert in data:
+                common_name = cert.get("common_name", "").strip()
+                if common_name and _looks_like_hostname(common_name):
+                    domains.add(common_name)
+
+                if "name_value" in cert and cert["name_value"]:
+                    # name_value is newline-delimited; a cert's SANs
+                    # can include multiple hostnames per entry
+                    for name in cert["name_value"].split("\n"):
+                        clean_name = name.strip()
+                        if _looks_like_hostname(clean_name):
+                            domains.add(clean_name)
+
+            return domains
 
     @retry(max_retries=2, delay=1.0, backoff=2.0)
     async def _get_passive_dns(self, domain: str) -> None:
@@ -308,6 +333,12 @@ class OrgDiscovery:
         """
         Check if Censys API is available and run query if it is.
 
+        Note: Censys's certificate search (what _query_censys needs) is only
+        available on paid/organization API tiers -- free personal-access-token
+        accounts get a 403 telling you to use the Platform UI instead. There's
+        no header or endpoint fix for that, so this is skipped rather than
+        retried and failed on every scan.
+
         Args:
             domain: Domain to query
 
@@ -315,7 +346,10 @@ class OrgDiscovery:
             Task for Censys API query or None if API not available
         """
         if is_api_configured("censys"):
-            return asyncio.create_task(self._query_censys(domain))
+            logger.info(
+                "Censys certificate search requires a paid/organization API "
+                "tier and is not available on free accounts; skipping."
+            )
         return None
 
     async def _query_security_trails(self, domain: str) -> None:
