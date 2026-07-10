@@ -1,24 +1,67 @@
 ---
+const speakers = [
+  {
+    name: "Adlin Seedon D'Souza",
+    title: 'Hardware Security Enthusiast and Guide',
+    bio: 'Over a decade of experience in RF hacking, drone security, and exploitation techniques. Previously at Sony, currently at Festo.',
+    photo: '/assets/speaker.jpg',
+    links: [
+      { label: 'Twitter', href: 'https://twitter.com/seedonD' },
+      { label: 'LinkedIn', href: 'https://www.linkedin.com/in/seedon/' },
+    ],
+  },
+  {
+    name: 'Mohd. Arif',
+    title: 'Independent Researcher',
+    bio: null,
+    photo: null,
+    links: [{ label: 'LinkedIn', href: 'https://www.linkedin.com/in/mohd--arif/' }],
+  },
+  {
+    name: 'Prashant KV',
+    title: 'Independent Researcher',
+    bio: null,
+    photo: null,
+    links: [{ label: 'LinkedIn', href: 'https://linkedin.com/in/prashant-v-99018999/?skipRedirect=true' }],
+  },
+];
+
+function initials(name: string) {
+  return name
+    .split(' ')
+    .filter((part) => /[A-Za-z]/.test(part))
+    .map((part) => part[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+}
 ---
-<section class="mx-auto max-w-3xl px-6 py-16">
-  <h2 class="mb-10 text-center text-2xl font-semibold text-white">Speaker</h2>
-  <div class="flex flex-col items-center gap-6 rounded-lg border border-slate-800 bg-slate-900 p-8 text-center sm:flex-row sm:text-left">
-    <img
-      src="/assets/speaker.jpg"
-      alt="Adlin Seedon D'Souza"
-      class="h-28 w-28 rounded-full object-cover"
-    />
-    <div>
-      <h3 class="text-lg font-semibold text-white">Adlin Seedon D'Souza</h3>
-      <p class="mb-3 text-sm text-emerald-300">Hardware Security Enthusiast and Guide</p>
-      <p class="mb-4 text-sm text-slate-400">
-        Over a decade of experience in RF hacking, drone security, and exploitation techniques.
-        Previously at Sony, currently at Festo.
-      </p>
-      <div class="flex justify-center gap-4 text-sm sm:justify-start">
-        <a href="https://twitter.com/seedonD" class="text-slate-300 underline-offset-4 hover:underline">Twitter</a>
-        <a href="https://www.linkedin.com/in/seedon/" class="text-slate-300 underline-offset-4 hover:underline">LinkedIn</a>
+<section class="mx-auto max-w-5xl px-6 py-16 2xl:max-w-6xl">
+  <h2 class="mb-10 text-center font-display text-2xl uppercase text-[var(--ink)]">Speakers</h2>
+  <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+    {speakers.map((speaker) => (
+      <div class="brutal-border brutal-shadow flex flex-col items-center gap-4 bg-[var(--surface)] p-6 text-center">
+        {speaker.photo ? (
+          <img src={speaker.photo} alt={speaker.name} class="h-24 w-24 rounded-full object-cover" loading="lazy" />
+        ) : (
+          <div
+            class="surface-primary brutal-border flex h-24 w-24 items-center justify-center font-display text-2xl"
+            aria-label={`${speaker.name} placeholder photo`}
+          >
+            {initials(speaker.name)}
+          </div>
+        )}
+        <div>
+          <h3 class="font-display uppercase text-[var(--ink)]">{speaker.name}</h3>
+          <p class="mb-2 text-sm text-[var(--accent-primary)]">{speaker.title}</p>
+          {speaker.bio && <p class="mb-3 text-sm text-[var(--ink)]">{speaker.bio}</p>}
+          <div class="flex justify-center gap-4 text-sm">
+            {speaker.links.map((link) => (
+              <a href={link.href} class="text-[var(--ink)] underline-offset-4 hover:underline">{link.label}</a>
+            ))}
+          </div>
+        </div>
       </div>
-    </div>
+    ))}
   </div>
 </section>
