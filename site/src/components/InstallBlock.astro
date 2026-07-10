@@ -7,29 +7,29 @@ const commands = [
   'python -m farsight scan example.com',
 ].join('\n');
 ---
-<section id="install" class="mx-auto max-w-3xl px-6 py-16">
-  <h2 class="mb-6 text-center text-2xl font-semibold text-white">Install &amp; Quickstart</h2>
-  <div class="relative rounded-lg border border-slate-800 bg-slate-900">
+<section id="install" class="mx-auto max-w-3xl px-6 py-16 2xl:max-w-4xl">
+  <h2 class="mb-6 text-center font-display text-2xl uppercase text-[var(--ink)]">Zero to Scanning in 4 Commands</h2>
+  <div class="brutal-border brutal-shadow relative bg-[var(--surface)]">
     <button
       type="button"
       data-copy-target="install-commands"
-      class="absolute right-3 top-3 rounded-md border border-slate-700 px-3 py-1 text-sm text-slate-300 transition hover:border-slate-500 hover:text-white"
+      class="surface-cta brutal-border absolute right-3 top-3 px-3 py-1 font-display text-xs uppercase"
     >
       Copy
     </button>
-    <pre id="install-commands" class="overflow-x-auto p-6 pr-20 font-mono text-sm text-emerald-300"><code>{commands}</code></pre>
+    <pre id="install-commands" class="overflow-x-auto p-6 pr-24 font-mono text-sm text-[var(--ink)]"><code>{commands}</code></pre>
   </div>
-  <p class="mt-4 text-center text-sm text-slate-500">Requires Python 3.10+.</p>
+  <p class="mt-4 text-center text-sm text-[var(--ink)]">Requires Python 3.10+.</p>
 </section>
 
 <script>
   document.querySelectorAll<HTMLButtonElement>('[data-copy-target]').forEach((button) => {
     button.addEventListener('click', async () => {
+      if (button.disabled) return;
       const targetId = button.dataset.copyTarget;
       if (!targetId) return;
       const target = document.getElementById(targetId);
       if (!target) return;
-      if (button.disabled) return;
       const original = button.textContent;
       button.disabled = true;
       try {
@@ -37,7 +37,7 @@ const commands = [
         button.textContent = 'Copied!';
         await new Promise((resolve) => setTimeout(resolve, 2000));
       } catch {
-        // Clipboard write failed silently; no error UI for this progressive enhancement.
+        // clipboard write failed (denied permission or insecure context) — fall through to restore label
       } finally {
         button.textContent = original;
         button.disabled = false;
