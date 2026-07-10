@@ -1,0 +1,27 @@
+---
+---
+<header class="sticky top-0 z-50 flex items-center justify-between border-b-[3px] border-[var(--ink)] bg-[var(--surface)] px-6 py-3">
+  <a href="/" class="flex items-center gap-2">
+    <img src="/assets/logo.svg" alt="FARSIGHT logo" class="h-8 w-auto" />
+    <span class="font-display text-lg uppercase tracking-wide text-[var(--ink)]">Farsight</span>
+  </a>
+  <button
+    id="theme-toggle"
+    type="button"
+    aria-label="Toggle light and dark theme"
+    class="brutal-border brutal-shadow-sm bg-[var(--surface)] px-3 py-1 font-display text-xs uppercase text-[var(--ink)]"
+  >
+    <span id="theme-toggle-label">Toggle theme</span>
+  </button>
+</header>
+
+<script>
+  const button = document.getElementById('theme-toggle');
+  button?.addEventListener('click', () => {
+    const root = document.documentElement;
+    const current = root.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+    const next = current === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+  });
+</script>
