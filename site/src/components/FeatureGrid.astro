@@ -1,38 +1,20 @@
 ---
 const features = [
-  {
-    title: 'Organization Discovery',
-    description: 'WHOIS, certificate transparency, passive DNS, related domains.',
-  },
-  {
-    title: 'Recon & Asset Discovery',
-    description: 'DNS enumeration, subdomain discovery, async port scanning.',
-  },
-  {
-    title: 'Threat Intelligence',
-    description: 'Leak detection, credential exposure, dark web mentions, email reputation.',
-  },
-  {
-    title: 'Typosquatting Detection',
-    description: 'Domain permutation, content similarity, risk scoring.',
-  },
-  {
-    title: 'News Monitoring',
-    description: 'Relevance-scored news tracking across multiple sources.',
-  },
-  {
-    title: 'Reporting',
-    description: 'Markdown and PDF output with executive summaries.',
-  },
+  { title: 'Organization Discovery', description: 'WHOIS. Certificate transparency. Passive DNS. Related domains.' },
+  { title: 'Recon & Asset Discovery', description: 'DNS enumeration. Subdomain discovery. Async port scanning.' },
+  { title: 'Threat Intelligence', description: 'Leak detection. Credential exposure. Dark web mentions. Email reputation.' },
+  { title: 'Typosquatting Detection', description: 'Domain permutation. Content similarity. Risk scoring.' },
+  { title: 'News Monitoring', description: 'Relevance-scored news tracking across multiple sources.' },
+  { title: 'Reporting', description: 'Markdown and PDF output with executive summaries.' },
 ];
 ---
-<section class="mx-auto max-w-5xl px-6 py-16">
-  <h2 class="mb-10 text-center text-2xl font-semibold text-white">Features</h2>
-  <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+<section class="mx-auto max-w-5xl px-6 py-16 2xl:max-w-6xl">
+  <h2 class="mb-10 text-center font-display text-2xl uppercase text-[var(--ink)]">Features</h2>
+  <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
     {features.map((feature) => (
-      <div class="rounded-lg border border-slate-800 bg-slate-900 p-6">
-        <h3 class="mb-2 font-semibold text-emerald-300">{feature.title}</h3>
-        <p class="text-sm text-slate-400">{feature.description}</p>
+      <div class="brutal-border brutal-shadow bg-[var(--surface)] p-6">
+        <h3 class="font-display mb-2 uppercase text-[var(--ink)]">{feature.title}</h3>
+        <p class="text-sm text-[var(--ink)]">{feature.description}</p>
       </div>
     ))}
   </div>
