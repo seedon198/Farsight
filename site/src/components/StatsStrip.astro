@@ -1,0 +1,17 @@
+---
+const stats = [
+  { label: 'Stars', src: 'https://img.shields.io/github/stars/seedon198/Farsight?style=for-the-badge&cacheSeconds=3600', alt: 'GitHub stars' },
+  { label: 'Forks', src: 'https://img.shields.io/github/forks/seedon198/Farsight?style=for-the-badge&cacheSeconds=3600', alt: 'GitHub forks' },
+  { label: 'Contributors', src: 'https://img.shields.io/github/contributors/seedon198/Farsight?style=for-the-badge&cacheSeconds=3600', alt: 'GitHub contributors' },
+];
+---
+<section class="mx-auto max-w-5xl px-6 py-10 2xl:max-w-6xl">
+  <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+    {stats.map((stat) => (
+      <div class="brutal-border brutal-shadow flex flex-col items-center gap-2 bg-[var(--surface)] p-4">
+        <img src={stat.src} alt={stat.alt} class="h-8 w-auto" loading="lazy" />
+        <span class="font-display text-xs uppercase text-[var(--ink)]">{stat.label}</span>
+      </div>
+    ))}
+  </div>
+</section>
