@@ -1,5 +1,54 @@
 @import "tailwindcss";
 
 :root {
-  color-scheme: dark;
+  --accent-primary: #ff3b30;
+  --accent-cta: #ffd400;
+  --font-display: 'Archivo Black', sans-serif;
+  --font-body: Georgia, 'Times New Roman', serif;
+}
+
+:root[data-theme="light"] {
+  --surface: #fdfcf8;
+  --ink: #111111;
+}
+
+:root[data-theme="dark"] {
+  --surface: #111111;
+  --ink: #fdfcf8;
+}
+
+html {
+  color-scheme: light dark;
+}
+
+body {
+  background-color: var(--surface);
+  color: var(--ink);
+  font-family: var(--font-body);
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+.brutal-border {
+  border: 3px solid var(--ink);
+}
+
+.brutal-shadow {
+  box-shadow: 4px 4px 0 0 var(--ink);
+}
+
+.brutal-shadow-sm {
+  box-shadow: 3px 3px 0 0 var(--ink);
+}
+
+.surface-primary {
+  background-color: var(--accent-primary);
+  color: #ffffff;
+}
+
+.surface-cta {
+  background-color: var(--accent-cta);
+  color: #111111;
 }
