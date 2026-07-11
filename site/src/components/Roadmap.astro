@@ -1,0 +1,20 @@
+---
+const milestones = [
+  'Core framework and all 6 modules shipped (Org Discovery, Recon, Threat Intel, Typosquatting, News Monitoring, Reporting)',
+  'v1.0.0 release',
+  'pytest suite and CI pipeline, including Windows CI coverage',
+  'Presented at BlackHat Arsenal 2025 (Toronto)',
+  'Speaking at DEFCON 34 AppSec Village (upcoming — Aug 6-9, 2026, Las Vegas)',
+];
+---
+<section class="mx-auto max-w-3xl px-6 py-16 2xl:max-w-4xl">
+  <h2 class="mb-10 text-center font-display text-2xl uppercase text-[var(--ink)]">Roadmap</h2>
+  <ul class="flex flex-col gap-3">
+    {milestones.map((milestone) => (
+      <li class="brutal-border brutal-shadow-sm flex items-start gap-3 bg-[var(--surface)] p-4">
+        <span class="surface-primary brutal-border flex h-6 w-6 shrink-0 items-center justify-center font-display text-xs" aria-hidden="true">&#10003;</span>
+        <span class="text-sm text-[var(--ink)]">{milestone}</span>
+      </li>
+    ))}
+  </ul>
+</section>

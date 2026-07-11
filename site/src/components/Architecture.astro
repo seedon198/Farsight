@@ -1,0 +1,27 @@
+---
+const stages = [
+  'Org Discovery',
+  'Recon & Asset Discovery',
+  'Threat Intelligence',
+  'Typosquatting Detection',
+  'News Monitoring',
+  'Report',
+];
+---
+<section class="mx-auto max-w-5xl px-6 py-16 2xl:max-w-6xl">
+  <h2 class="mb-10 text-center font-display text-2xl uppercase text-[var(--ink)]">How It Works</h2>
+  <div class="flex flex-col items-center gap-2 md:flex-row md:flex-wrap md:justify-center md:gap-3">
+    {stages.map((stage, index) => (
+      <>
+        <div class="brutal-border brutal-shadow-sm bg-[var(--surface)] px-4 py-3 text-center font-display text-xs uppercase text-[var(--ink)]">
+          {stage}
+        </div>
+        {index < stages.length - 1 && (
+          <span class="font-display rotate-90 text-xl text-[var(--accent-primary)] md:rotate-0" aria-hidden="true">
+            &rarr;
+          </span>
+        )}
+      </>
+    ))}
+  </div>
+</section>
