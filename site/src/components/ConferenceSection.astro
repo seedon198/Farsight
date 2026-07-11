@@ -22,22 +22,22 @@ const talks = [
   },
 ];
 ---
-<section class="mx-auto max-w-5xl px-6 py-16">
-  <h2 class="mb-10 text-center text-2xl font-semibold text-white">Talks</h2>
+<section class="mx-auto max-w-5xl px-6 py-16 2xl:max-w-6xl">
+  <h2 class="mb-10 text-center font-display text-2xl uppercase text-[var(--ink)]">Talks</h2>
   <div class="grid gap-6 sm:grid-cols-2">
     {talks.map((talk) => (
       <a
         href={talk.href}
         target="_blank"
         rel="noopener noreferrer"
-        class="flex flex-col items-center gap-4 rounded-lg border border-slate-800 bg-slate-900 p-6 text-center transition hover:border-slate-600"
+        class="brutal-border brutal-shadow flex flex-col items-center gap-4 bg-[var(--surface)] p-6 text-center"
       >
         <img src={talk.logo} alt={`${talk.conference} logo`} class="h-16 w-auto" loading="lazy" />
         <div>
-          <p class="font-semibold text-white">{talk.conference} &middot; {talk.venue}</p>
-          <p class="text-sm text-slate-500">{talk.date} &bull; {talk.location} &bull; {talk.status}</p>
+          <p class="font-display uppercase text-[var(--ink)]">{talk.conference} &middot; {talk.venue}</p>
+          <p class="text-sm text-[var(--ink)]">{talk.date} &bull; {talk.location} &bull; {talk.status}</p>
         </div>
-        <p class="text-sm text-slate-300">{talk.title}</p>
+        <p class="text-sm text-[var(--ink)]">{talk.title}</p>
       </a>
     ))}
   </div>
