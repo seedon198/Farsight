@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FARSIGHT</title>
+  <link rel="stylesheet" href="/static/css/style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">FARSIGHT</span>
+      <span class="brand-sub">Recon &amp; Threat Intelligence</span>
+    </div>
+    <div class="conn-status" id="conn-status">
+      <span class="dot" id="conn-dot"></span>
+      <span id="conn-text">connecting&hellip;</span>
+    </div>
+  </header>
+
+  <div id="demo-banner" class="banner banner-demo hidden">
+    DEMO MODE &mdash; replaying a pre-captured scan. No network calls are being made.
+  </div>
+  <div id="gnews-banner" class="banner banner-warn hidden">
+    News monitoring library not installed on this machine &mdash; the News module will be skipped.
+  </div>
+  <div id="error-banner" class="banner banner-error hidden"></div>
+
+  <main>
+    <section class="panel scan-form">
+      <form id="scan-form">
+        <div class="field">
+          <label for="domain">Target domain</label>
+          <input id="domain" name="domain" type="text" placeholder="example.com" autocomplete="off" required />
+        </div>
+        <div class="field field-narrow">
+          <label for="depth">Depth</label>
+          <select id="depth" name="depth">
+            <option value="1" selected>1 &mdash; fast</option>
+            <option value="2">2 &mdash; standard</option>
+            <option value="3">3 &mdash; deep</option>
+          </select>
+        </div>
+        <fieldset class="modules">
+          <legend>Modules</legend>
+          <label><input type="checkbox" name="modules" value="org" checked /> Org Discovery</label>
+          <label><input type="checkbox" name="modules" value="recon" checked /> Recon</label>
+          <label><input type="checkbox" name="modules" value="threat" checked /> Threat Intel</label>
+          <label><input type="checkbox" name="modules" value="typosquat" checked /> Typosquat</label>
+          <label><input type="checkbox" name="modules" value="news" checked /> News</label>
+        </fieldset>
+        <button id="scan-btn" type="submit">Start Scan</button>
+      </form>
+    </section>
+
+    <section class="panel stats" id="stats">
+      <div class="stat-tile" data-stat="subdomains"><span class="stat-value">&mdash;</span><span class="stat-label">Subdomains</span></div>
+      <div class="stat-tile" data-stat="ports"><span class="stat-value">&mdash;</span><span class="stat-label">Open Ports</span></div>
+      <div class="stat-tile" data-stat="leaks"><span class="stat-value">&mdash;</span><span class="stat-label">Leaks / Creds</span></div>
+      <div class="stat-tile" data-stat="typosquats"><span class="stat-value">&mdash;</span><span class="stat-label">Typosquats</span></div>
+      <div class="stat-tile" data-stat="news"><span class="stat-value">&mdash;</span><span class="stat-label">News Articles</span></div>
+    </section>
+
+    <section class="panel progress" id="progress">
+      <ol id="module-list">
+        <li class="module-row" data-module="org">
+          <span class="module-status"></span>
+          <span class="module-name">Organization Discovery</span>
+          <span class="module-summary"></span>
+        </li>
+        <li class="module-row" data-module="recon">
+          <span class="module-status"></span>
+          <span class="module-name">Reconnaissance &amp; Assets</span>
+          <span class="module-summary"></span>
+        </li>
+        <li class="module-row" data-module="threat">
+          <span class="module-status"></span>
+          <span class="module-name">Threat Intelligence</span>
+          <span class="module-summary"></span>
+        </li>
+        <li class="module-row" data-module="typosquat">
+          <span class="module-status"></span>
+          <span class="module-name">Typosquatting Detection</span>
+          <span class="module-summary"></span>
+        </li>
+        <li class="module-row" data-module="news">
+          <span class="module-status"></span>
+          <span class="module-name">News Monitoring</span>
+          <span class="module-summary"></span>
+        </li>
+      </ol>
+    </section>
+
+    <section class="panel graph-panel" id="graph-panel">
+      <h2>Attack Surface</h2>
+      <div id="graph"></div>
+    </section>
+
+    <section class="panel typosquat-panel hidden" id="typosquat-panel">
+      <h2>Typosquat Watch</h2>
+      <div class="groundtruth-slot">
+        <div class="groundtruth-label">Real site</div>
+        <div class="groundtruth-thumb-wrap" id="groundtruth-thumb-wrap">
+          <div class="thumb-placeholder" id="groundtruth-placeholder">No preview available</div>
+          <img class="groundtruth-thumb hidden" id="groundtruth-thumb" alt="Real site screenshot" />
+        </div>
+      </div>
+      <div class="typosquat-grid" id="typosquat-grid"></div>
+    </section>
+
+    <section class="panel report hidden" id="report-panel">
+      <div class="report-header">
+        <h2>Report</h2>
+        <div class="report-links">
+          <a id="download-md" href="#" download>Download Markdown</a>
+          <a id="download-pdf" href="#" download class="hidden">Download PDF</a>
+        </div>
+      </div>
+      <div id="report-body" class="report-body"></div>
+    </section>
+  </main>
+
+  <div class="screenshot-modal hidden" id="screenshot-modal">
+    <div class="screenshot-modal-backdrop" id="screenshot-modal-backdrop"></div>
+    <div class="screenshot-modal-content">
+      <button class="screenshot-modal-close" id="screenshot-modal-close" aria-label="Close">&times;</button>
+      <div class="screenshot-modal-columns">
+        <div class="screenshot-modal-col" id="modal-groundtruth-col">
+          <div class="screenshot-modal-label">Real site</div>
+          <img class="screenshot-modal-img" id="modal-groundtruth-img" alt="Real site" />
+        </div>
+        <div class="screenshot-modal-col">
+          <div class="screenshot-modal-label" id="modal-typosquat-label"></div>
+          <img class="screenshot-modal-img" id="modal-typosquat-img" alt="Typosquat site" />
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/js/vendor/cytoscape.min.js"></script>
+  <script src="/static/js/graph.js"></script>
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

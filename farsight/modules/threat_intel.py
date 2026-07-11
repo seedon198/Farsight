@@ -223,7 +223,7 @@ class ThreatIntel:
             }
 
             # Run search request
-            search_resp = await handler.post("intelligent/search", json=search_params)
+            search_resp = await handler.post("intelligent/search", data=search_params)
 
             if search_resp and "id" in search_resp:
                 search_id = search_resp["id"]
@@ -264,7 +264,7 @@ class ThreatIntel:
 
                     # Run search request
                     email_resp = await handler.post(
-                        "intelligent/search", json=email_search
+                        "intelligent/search", data=email_search
                     )
 
                     if email_resp and "id" in email_resp:

@@ -43,6 +43,13 @@ isort = "^5.13.2"
 mypy = "^1.13.0"
 pre-commit = "^4.0.1"
 
+[tool.poetry.group.web]
+optional = true
+
+[tool.poetry.group.web.dependencies]
+fastapi = "^0.115.0"
+uvicorn = {extras = ["standard"], version = "^0.32.0"}
+
 [tool.poetry.scripts]
 farsight = "farsight.main:run"
 
