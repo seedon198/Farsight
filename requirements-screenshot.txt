@@ -1,0 +1,3 @@
+# Optional: powers screenshot thumbnails in the web UI's typosquat panel.
+# After installing, also run: playwright install chromium
+playwright>=1.48.0
