@@ -5,20 +5,12 @@
   --accent-cta: #ffd400;
   --font-display: 'Archivo Black', sans-serif;
   --font-body: Georgia, 'Times New Roman', serif;
-}
-
-:root[data-theme="light"] {
   --surface: #fdfcf8;
   --ink: #111111;
 }
 
-:root[data-theme="dark"] {
-  --surface: #111111;
-  --ink: #fdfcf8;
-}
-
 html {
-  color-scheme: light dark;
+  color-scheme: light;
 }
 
 body {
