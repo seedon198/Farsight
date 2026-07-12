@@ -20,20 +20,6 @@ const { title, description } = Astro.props;
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&display=swap" rel="stylesheet" />
     <title>{title}</title>
-    <script is:inline>
-      (function () {
-        var theme;
-        try {
-          theme = localStorage.getItem('theme');
-        } catch (e) {
-          theme = null;
-        }
-        if (!theme) {
-          theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-        }
-        document.documentElement.setAttribute('data-theme', theme);
-      })();
-    </script>
   </head>
   <body class="min-h-screen">
     <main>
