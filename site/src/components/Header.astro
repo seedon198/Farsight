@@ -4,23 +4,4 @@
   <a href="/" class="flex items-center gap-2">
     <span class="font-display text-lg uppercase tracking-wide text-[var(--ink)]">Farsight</span>
   </a>
-  <button
-    id="theme-toggle"
-    type="button"
-    aria-label="Toggle light and dark theme"
-    class="brutal-border brutal-shadow-sm bg-[var(--surface)] px-3 py-1 font-display text-xs uppercase text-[var(--ink)]"
-  >
-    <span id="theme-toggle-label">Toggle theme</span>
-  </button>
 </header>
-
-<script>
-  const button = document.getElementById('theme-toggle');
-  button?.addEventListener('click', () => {
-    const root = document.documentElement;
-    const current = root.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
-    const next = current === 'dark' ? 'light' : 'dark';
-    root.setAttribute('data-theme', next);
-    localStorage.setItem('theme', next);
-  });
-</script>
