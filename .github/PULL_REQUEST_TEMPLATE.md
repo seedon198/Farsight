@@ -8,7 +8,7 @@
 
 ## Checklist
 
-- [ ] `black farsight/ tests/` and `flake8 farsight/ tests/` pass
+- [ ] `ruff format farsight/ tests/` and `ruff check farsight/ tests/` pass
 - [ ] `pytest tests/ -v` passes
 - [ ] Tests added/updated for the behavior changed (if applicable)
 - [ ] Targeted at `dev`, not `main`
