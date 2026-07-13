@@ -92,7 +92,7 @@ class SubdomainEnumerator:
             # Early return if we found enough subdomains from crt.sh
             if len(self.discovered) > max_results * 2:
                 logger.info(
-                    f"Found more than {max_results*2} subdomains from certificate logs, skipping other methods"
+                    f"Found more than {max_results * 2} subdomains from certificate logs, skipping other methods"
                 )
                 techniques = []
 
