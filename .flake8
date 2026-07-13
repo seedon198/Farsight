@@ -1,6 +1,0 @@
-[flake8]
-max-line-length = 88
-# E203: conflicts with black's slice formatting (documented black/flake8 interaction)
-# E501: black governs code line length; long lines here are string literals
-# (log/error messages) black intentionally leaves unwrapped
-extend-ignore = E203, E501
