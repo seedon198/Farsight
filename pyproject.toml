@@ -37,9 +37,7 @@ pillow = ">=12.2.0"
 pytest = "^9.0.3"
 pytest-asyncio = "^1.4.0"
 pytest-cov = "^5.0.0"
-flake8 = "^7.0.0"
-black = "^26.3.1"
-isort = "^5.13.2"
+ruff = "^0.9.6"
 mypy = "^1.13.0"
 pre-commit = "^4.0.1"
 
@@ -60,3 +58,14 @@ build-backend = "poetry.core.masonry.api"
 [tool.pytest.ini_options]
 asyncio_mode = "strict"
 testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W"]
+# E203: conflicts with the formatter's slice spacing (same rationale as black)
+# E501: the formatter governs line length; long lines here are string literals
+# (log/error messages) intentionally left unwrapped
+ignore = ["E203", "E501"]
