@@ -11,32 +11,34 @@
     {
       selector: "node",
       style: {
-        "background-color": "#56d4dd",
+        "background-color": "#1c6fd0",
         label: "data(label)",
         "font-size": 7,
-        color: "#c9d1d9",
+        color: "#111111",
         "text-outline-width": 0,
         width: 12,
         height: 12,
+        "border-width": 2,
+        "border-color": "#111111",
       },
     },
     {
       selector: 'node[kind = "root"]',
-      style: { "background-color": "#39ff88", width: 28, height: 28, "font-size": 11 },
+      style: { "background-color": "#1f9d55", width: 28, height: 28, "font-size": 11, "border-width": 3 },
     },
-    { selector: 'node[kind = "subdomain"]', style: { "background-color": "#56d4dd" } },
+    { selector: 'node[kind = "subdomain"]', style: { "background-color": "#1c6fd0" } },
     { selector: 'node[kind = "related"]', style: { "background-color": "#8892a0" } },
     {
       selector: 'node[kind = "typosquat-high"]',
-      style: { "background-color": "#ff5f56" },
+      style: { "background-color": "#ff3b30" },
     },
     {
       selector: 'node[kind = "typosquat-med"]',
-      style: { "background-color": "#f0c674" },
+      style: { "background-color": "#ffd400" },
     },
     {
       selector: "edge",
-      style: { "line-color": "#202a33", width: 1, "curve-style": "haystack" },
+      style: { "line-color": "#111111", width: 1, "curve-style": "haystack" },
     },
   ];
 
