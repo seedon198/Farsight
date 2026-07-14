@@ -26,12 +26,12 @@ poetry install --with dev,web
 ## Before opening a PR
 
 ```bash
-black farsight/ tests/
-flake8 farsight/ tests/
+ruff format farsight/ tests/
+ruff check farsight/ tests/
 pytest tests/ -v
 ```
 
-CI runs `black --check`, `flake8`, and the full test suite on `ubuntu-latest` and `windows-latest`, Python 3.10 and 3.12 — please make sure all of that passes locally first. If you have `pre-commit` installed, `pre-commit install` will run the formatting/lint checks automatically on commit.
+CI runs `ruff format --check`, `ruff check`, and the full test suite on `ubuntu-latest` and `windows-latest`, Python 3.10 and 3.12, plus Gitleaks, `pip-audit`, and CodeQL scans — please make sure the formatting/lint/test commands above pass locally first. If you have `pre-commit` installed, `pre-commit install` will run the formatting/lint checks automatically on commit.
 
 ## Making changes
 
@@ -47,7 +47,7 @@ Open a GitHub issue with steps to reproduce, your OS/Python version, and the exa
 
 ## Code style
 
-- Formatted with [black](https://github.com/psf/black), linted with `flake8`, imports sorted with `isort`.
+- Formatted and linted with [ruff](https://github.com/astral-sh/ruff).
 - Type hints are used throughout the module return shapes; please keep new code consistent with that.
 - Prefer small, readable functions over cleverness — this is a security tool, and reviewers (including future-you) need to be able to trust what it's doing.
 
