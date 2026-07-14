@@ -103,18 +103,18 @@ class Recon:
                     scan_result = await self.port_scanner.scan_ports(target_ip)
 
                     # Store result for this domain
-                    self.results["port_scan"]["domain_results"][
-                        scan_domain
-                    ] = scan_result
+                    self.results["port_scan"]["domain_results"][scan_domain] = (
+                        scan_result
+                    )
 
                     # Update aggregate stats
                     self.results["port_scan"]["total_scanned"] += 1
 
                     if scan_result.get("open_ports", 0) > 0:
                         self.results["port_scan"]["domains_with_open_ports"] += 1
-                        self.results["port_scan"][
-                            "total_open_ports"
-                        ] += scan_result.get("open_ports", 0)
+                        self.results["port_scan"]["total_open_ports"] += (
+                            scan_result.get("open_ports", 0)
+                        )
 
                     domains_scanned += 1
 
@@ -198,9 +198,9 @@ class Recon:
                     )
 
                     # Update or add the enhanced scan result
-                    self.results["port_scan"]["domain_results"][
-                        scan_domain
-                    ] = scan_result
+                    self.results["port_scan"]["domain_results"][scan_domain] = (
+                        scan_result
+                    )
 
                     # Update aggregate stats
                     if scan_result.get("open_ports", 0) > 0:
@@ -214,9 +214,9 @@ class Recon:
                         additional_ports = max(
                             0, scan_result.get("open_ports", 0) - previous_count
                         )
-                        self.results["port_scan"][
-                            "total_open_ports"
-                        ] += additional_ports
+                        self.results["port_scan"]["total_open_ports"] += (
+                            additional_ports
+                        )
 
         # For the most comprehensive scan
         if depth >= 3:
