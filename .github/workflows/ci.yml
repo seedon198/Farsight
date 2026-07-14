@@ -28,11 +28,11 @@ jobs:
           pip install -r requirements.txt
           pip install -r requirements-dev.txt
 
-      - name: Check formatting (black)
-        run: black --check farsight/ tests/
+      - name: Check formatting (ruff format)
+        run: ruff format --check farsight/ tests/
 
-      - name: Lint (flake8)
-        run: flake8 farsight/ tests/
+      - name: Lint (ruff)
+        run: ruff check farsight/ tests/
 
   test:
     name: Test
@@ -55,9 +55,46 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt
           pip install -r requirements-dev.txt
+          pip install -r requirements-web.txt
 
       - name: Run tests
         run: pytest tests/ -v
 
       - name: Smoke-test CLI against a live scan (catches console-encoding regressions)
         run: python -m farsight scan example.com --verbose
+
+  gitleaks:
+    name: Gitleaks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Scan for leaked secrets
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  dependency-audit:
+    name: Dependency Audit (pip-audit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install pip-audit
+        run: |
+          pip install --upgrade pip
+          pip install pip-audit
+
+      - name: Audit dependencies
+        run: |
+          pip-audit -r requirements.txt \
+            -r requirements-dev.txt \
+            -r requirements-web.txt \
+            -r requirements-screenshot.txt
