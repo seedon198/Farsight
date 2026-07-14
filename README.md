@@ -98,6 +98,21 @@ python -m farsight web
 
 Opens a browser at `http://127.0.0.1:8000` with real-time module progress, live stats, and an in-browser report with Markdown/PDF download. Binds to loopback only — there's no authentication, so don't expose it beyond your own machine. Run `python -m farsight web --help` for options.
 
+<p align="center">
+  <img src="docs/assets/web-ui-scan.png" alt="FARSIGHT web UI: scan form with live stats" width="100%"/>
+</p>
+
+<table>
+<tr>
+<td width="55%"><img src="docs/assets/web-ui-graph.png" alt="FARSIGHT web UI: attack surface graph"/></td>
+<td width="45%"><img src="docs/assets/web-ui-typosquat.png" alt="FARSIGHT web UI: typosquat watch grid"/></td>
+</tr>
+</table>
+
+<p align="center">
+  <img src="docs/assets/web-ui-report.png" alt="FARSIGHT web UI: in-browser report" width="100%"/>
+</p>
+
 ## API Keys (optional)
 
 FARSIGHT works with zero configuration. Set these for deeper results:
