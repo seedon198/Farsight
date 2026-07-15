@@ -349,12 +349,18 @@ class Recon:
         """Bulk-discover open ports with masscan, then grab banners on just those."""
         open_ports_by_ip = await self.masscan_scanner.scan(unique_ips, ports, rate)
 
+        semaphore = asyncio.Semaphore(get_config("max_concurrent_requests", 10))
+
+        async def _grab_banner(ip: str, port: int) -> Dict[str, Any]:
+            async with semaphore:
+                return await self.port_scanner.scan_port(ip, port)
+
         banner_targets = []
         banner_tasks = []
         for ip, open_ports in open_ports_by_ip.items():
             for port in open_ports:
                 banner_targets.append((ip, port))
-                banner_tasks.append(self.port_scanner.scan_port(ip, port))
+                banner_tasks.append(_grab_banner(ip, port))
 
         banner_results = await asyncio.gather(*banner_tasks) if banner_tasks else []
 
@@ -386,9 +392,13 @@ class Recon:
         self, unique_ips: List[str], ports: List[int]
     ) -> Dict[str, Dict[str, Any]]:
         """Scan each IP with the built-in asyncio scanner (masscan unavailable)."""
-        results = await asyncio.gather(
-            *(self.port_scanner.scan_ports(ip, ports) for ip in unique_ips)
-        )
+        semaphore = asyncio.Semaphore(get_config("max_concurrent_requests", 10))
+
+        async def _scan_with_limit(ip: str) -> Dict[str, Any]:
+            async with semaphore:
+                return await self.port_scanner.scan_ports(ip, ports)
+
+        results = await asyncio.gather(*(_scan_with_limit(ip) for ip in unique_ips))
         return dict(zip(unique_ips, results))
 
     def _get_wordlist(self, depth: int) -> List[str]:
