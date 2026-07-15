@@ -19,8 +19,9 @@ from farsight.utils.dns import (
     enum_subdomains,
     check_spf_dmarc,
 )
+from farsight.utils.masscan import MasscanPermissionError, MasscanScanner
 from farsight.utils.subdomain_enum import discover_subdomains
-from farsight.config import is_api_configured, REPORTS_DIR
+from farsight.config import is_api_configured, REPORTS_DIR, get_config
 
 
 class Recon:
@@ -36,6 +37,7 @@ class Recon:
         self.api_manager = api_manager or APIManager()
         self.dns_resolver = DNSResolver()
         self.port_scanner = PortScanner()
+        self.masscan_scanner = MasscanScanner()
         self.results = {
             "dns": {},
             "subdomains": [],
@@ -88,35 +90,22 @@ class Recon:
                 "domain_results": {},
             }
 
-            # Port scan all domains with resolved IPs (limit to 10 for performance)
-            max_domains_to_scan = min(10, len(all_domains))
-            domains_scanned = 0
+            basic_ports = get_config("default_ports")
+            masscan_rate = get_config("masscan_rate", 10000)
 
-            logger.info(f"Port scanning up to {max_domains_to_scan} domains")
+            logger.info(f"Port scanning {len(all_domains)} domains")
 
-            for scan_domain in all_domains:
-                if domains_scanned >= max_domains_to_scan:
-                    break
-
-                if scan_domain in ips and ips[scan_domain]:
-                    target_ip = ips[scan_domain][0]  # Use first IP if multiple found
-                    scan_result = await self.port_scanner.scan_ports(target_ip)
-
-                    # Store result for this domain
-                    self.results["port_scan"]["domain_results"][scan_domain] = (
-                        scan_result
-                    )
-
-                    # Update aggregate stats
-                    self.results["port_scan"]["total_scanned"] += 1
-
-                    if scan_result.get("open_ports", 0) > 0:
-                        self.results["port_scan"]["domains_with_open_ports"] += 1
-                        self.results["port_scan"]["total_open_ports"] += (
-                            scan_result.get("open_ports", 0)
-                        )
-
-                    domains_scanned += 1
+            domain_results = await self._port_scan_targets(
+                all_domains, ips, basic_ports, masscan_rate
+            )
+            self.results["port_scan"]["domain_results"] = domain_results
+            self.results["port_scan"]["total_scanned"] = len(domain_results)
+            self.results["port_scan"]["domains_with_open_ports"] = sum(
+                1 for r in domain_results.values() if r.get("open_ports", 0) > 0
+            )
+            self.results["port_scan"]["total_open_ports"] = sum(
+                r.get("open_ports", 0) for r in domain_results.values()
+            )
 
         # For deeper scan, check API sources and expanded port range
         if depth >= 2:
@@ -127,8 +116,7 @@ class Recon:
                 if shodan_result:
                     self.results["api_results"].append(shodan_result)
 
-            # Enhanced port scan with more ports on domains that had open ports
-            # or important domains like the main domain
+            # Enhanced port scan with a wider port list, across every domain
             expanded_ports = [
                 21,
                 22,
@@ -167,56 +155,26 @@ class Recon:
                 27017,
             ]
 
-            # Select domains for enhanced port scanning
-            enhanced_scan_domains = []
+            expanded_rate = get_config("masscan_rate", 10000)
 
-            # Always include main domain
-            if domain in ips and ips[domain]:
-                enhanced_scan_domains.append(domain)
+            logger.info(f"Running enhanced port scans on {len(all_domains)} domains")
 
-            # Include domains that had open ports in the basic scan
-            for scan_domain, scan_result in self.results["port_scan"][
-                "domain_results"
-            ].items():
-                if (
-                    scan_result.get("open_ports", 0) > 0
-                    and scan_domain not in enhanced_scan_domains
-                ):
-                    enhanced_scan_domains.append(scan_domain)
+            expanded_domain_results = await self._port_scan_targets(
+                all_domains, ips, expanded_ports, expanded_rate
+            )
 
-            # Limit enhanced scans
-            max_enhanced_scans = min(5, len(enhanced_scan_domains))
-            domains_scanned = 0
+            for scan_domain, scan_result in expanded_domain_results.items():
+                previous = self.results["port_scan"]["domain_results"].get(
+                    scan_domain
+                )
+                previous_count = previous.get("open_ports", 0) if previous else 0
 
-            logger.info(f"Running enhanced port scans on {max_enhanced_scans} domains")
+                self.results["port_scan"]["domain_results"][scan_domain] = scan_result
 
-            for scan_domain in enhanced_scan_domains[:max_enhanced_scans]:
-                if scan_domain in ips and ips[scan_domain]:
-                    target_ip = ips[scan_domain][0]
-                    scan_result = await self.port_scanner.scan_ports(
-                        target_ip, expanded_ports
-                    )
-
-                    # Update or add the enhanced scan result
-                    self.results["port_scan"]["domain_results"][scan_domain] = (
-                        scan_result
-                    )
-
-                    # Update aggregate stats
-                    if scan_result.get("open_ports", 0) > 0:
-                        # Only count additional ports not already counted
-                        previous_count = 0
-                        if self.results["port_scan"]["domain_results"].get(scan_domain):
-                            previous_count = self.results["port_scan"][
-                                "domain_results"
-                            ][scan_domain].get("open_ports", 0)
-
-                        additional_ports = max(
-                            0, scan_result.get("open_ports", 0) - previous_count
-                        )
-                        self.results["port_scan"]["total_open_ports"] += (
-                            additional_ports
-                        )
+                additional_ports = max(
+                    0, scan_result.get("open_ports", 0) - previous_count
+                )
+                self.results["port_scan"]["total_open_ports"] += additional_ports
 
         # For the most comprehensive scan
         if depth >= 3:
@@ -320,6 +278,128 @@ class Recon:
                 ip_mapping[domain] = [record["ip"] for record in records["A"]]
 
         return ip_mapping
+
+    async def _port_scan_targets(
+        self,
+        domains: List[str],
+        ips: Dict[str, List[str]],
+        ports: List[int],
+        rate: int,
+    ) -> Dict[str, Dict[str, Any]]:
+        """
+        Port scan every domain that resolved to an IP.
+
+        Domains sharing an IP (CDN, load balancer) are deduped so each
+        unique IP is only scanned once; the result is then fanned out to
+        every domain that resolved to it.
+
+        Args:
+            domains: Domains to scan (must be present in `ips` to be scanned)
+            ips: Mapping of domain -> resolved IPs (first IP is used)
+            ports: Ports to check
+            rate: masscan packets/sec rate (used only if masscan is available)
+
+        Returns:
+            Mapping of domain -> scan result, in the same shape as
+            PortScanner.scan_ports().
+        """
+        ip_to_domains: Dict[str, List[str]] = {}
+        for scan_domain in domains:
+            domain_ips = ips.get(scan_domain)
+            if domain_ips:
+                ip_to_domains.setdefault(domain_ips[0], []).append(scan_domain)
+
+        unique_ips = list(ip_to_domains.keys())
+        if not unique_ips:
+            return {}
+
+        ip_results = await self._scan_unique_ips(unique_ips, ports, rate)
+
+        domain_results: Dict[str, Dict[str, Any]] = {}
+        for ip, scan_result in ip_results.items():
+            for scan_domain in ip_to_domains[ip]:
+                domain_results[scan_domain] = scan_result
+
+        return domain_results
+
+    async def _scan_unique_ips(
+        self, unique_ips: List[str], ports: List[int], rate: int
+    ) -> Dict[str, Dict[str, Any]]:
+        """Scan a list of unique IPs, preferring masscan with an asyncio fallback."""
+        if self.masscan_scanner.is_available():
+            try:
+                return await self._masscan_scan_ips(unique_ips, ports, rate)
+            except MasscanPermissionError as e:
+                logger.info(
+                    "masscan needs elevated privileges (sudo or setcap), "
+                    f"falling back to built-in scanner: {e}"
+                )
+            except Exception as e:
+                logger.error(
+                    f"masscan scan failed, falling back to built-in scanner: {e}"
+                )
+        else:
+            logger.info("masscan not found, using built-in scanner")
+
+        return await self._fallback_scan_ips(unique_ips, ports)
+
+    async def _masscan_scan_ips(
+        self, unique_ips: List[str], ports: List[int], rate: int
+    ) -> Dict[str, Dict[str, Any]]:
+        """Bulk-discover open ports with masscan, then grab banners on just those."""
+        open_ports_by_ip = await self.masscan_scanner.scan(unique_ips, ports, rate)
+
+        semaphore = asyncio.Semaphore(get_config("max_concurrent_requests", 10))
+
+        async def _grab_banner(ip: str, port: int) -> Dict[str, Any]:
+            async with semaphore:
+                return await self.port_scanner.scan_port(ip, port)
+
+        banner_targets = []
+        banner_tasks = []
+        for ip, open_ports in open_ports_by_ip.items():
+            for port in open_ports:
+                banner_targets.append((ip, port))
+                banner_tasks.append(_grab_banner(ip, port))
+
+        banner_results = await asyncio.gather(*banner_tasks) if banner_tasks else []
+
+        ports_by_ip: Dict[str, List[Dict[str, Any]]] = {ip: [] for ip in unique_ips}
+        for (ip, port), port_result in zip(banner_targets, banner_results):
+            ports_by_ip[ip].append(
+                {
+                    "port": port,
+                    "open": True,
+                    "banner": port_result.get("banner")
+                    if port_result.get("open")
+                    else None,
+                }
+            )
+
+        timestamp = time.time()
+        return {
+            ip: {
+                "target": ip,
+                "timestamp": timestamp,
+                "total_ports": len(ports),
+                "open_ports": len(ports_by_ip[ip]),
+                "ports": ports_by_ip[ip],
+            }
+            for ip in unique_ips
+        }
+
+    async def _fallback_scan_ips(
+        self, unique_ips: List[str], ports: List[int]
+    ) -> Dict[str, Dict[str, Any]]:
+        """Scan each IP with the built-in asyncio scanner (masscan unavailable)."""
+        semaphore = asyncio.Semaphore(get_config("max_concurrent_requests", 10))
+
+        async def _scan_with_limit(ip: str) -> Dict[str, Any]:
+            async with semaphore:
+                return await self.port_scanner.scan_ports(ip, ports)
+
+        results = await asyncio.gather(*(_scan_with_limit(ip) for ip in unique_ips))
+        return dict(zip(unique_ips, results))
 
     def _get_wordlist(self, depth: int) -> List[str]:
         """
