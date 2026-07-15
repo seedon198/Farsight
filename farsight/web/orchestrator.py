@@ -64,6 +64,13 @@ def threat_summary(result: Dict[str, Any]) -> Dict[str, Any]:
         "total_dark_web": result.get("total_dark_web", 0),
         "total_credentials": result.get("total_credentials", 0),
         "total_emails_found": result.get("total_emails_found", 0),
+        "total_intelx_phonebook": result.get("total_intelx_phonebook", 0),
+        # Full (capped) lists so the frontend can render finding details,
+        # not just the roll-up counts above.
+        "leaks": (result.get("leaks") or [])[:50],
+        "dark_web": (result.get("dark_web") or [])[:50],
+        "credentials": (result.get("credentials") or [])[:50],
+        "intelx_phonebook": (result.get("intelx_phonebook") or [])[:50],
     }
 
 

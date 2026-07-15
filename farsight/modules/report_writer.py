@@ -107,6 +107,9 @@ This report presents the findings from a reconnaissance scan of **{target}**.
 
 ### Exposed Credentials
 {credentials}
+
+### IntelX Phonebook
+{phonebook}
 {email_reputation}
 
 ---
@@ -328,6 +331,14 @@ All data in this report is presented for informational purposes only.
                 total_leaks = len(results["threat"]["leaks"])
                 additional_points.append(
                     f"**{total_leaks}** potential data leaks identified"
+                )
+            if (
+                "intelx_phonebook" in results["threat"]
+                and results["threat"]["intelx_phonebook"]
+            ):
+                total_phonebook = len(results["threat"]["intelx_phonebook"])
+                additional_points.append(
+                    f"**{total_phonebook}** related selectors found via IntelX Phonebook"
                 )
 
         # Check for typosquatting
@@ -676,10 +687,29 @@ All data in this report is presented for informational purposes only.
 
             # No need to modify the template structure as we'll pass email_rep_md as a parameter
 
+        # Format IntelX Phonebook selectors (related domains, emails, URLs)
+        phonebook_md = ""
+        if "intelx_phonebook" in threat_results and threat_results["intelx_phonebook"]:
+            entries = threat_results["intelx_phonebook"]
+            phonebook_md = f"**Total related selectors:** {len(entries)}\n\n"
+            phonebook_md += "| Type | Value |\n|------|-------|\n"
+            for selector in entries:
+                sel_type = selector.get("type", "Unknown")
+                value = (
+                    selector.get("value", "")
+                    .replace("|", "\\|")
+                    .replace("@", "[at]")  # Obfuscate emails
+                )
+                phonebook_md += f"| {sel_type} | {value} |\n"
+        else:
+            phonebook_md = "No related domains, emails, or URLs found.\n\n"
+            phonebook_md += "**Note:** Requires the IntelX API to be configured.\n"
+
         return self.templates["threat_intel"].format(
             leaks=leaks_md,
             dark_web=dark_web_md,
             credentials=creds_md,
+            phonebook=phonebook_md,
             email_reputation=(
                 email_rep_md if "email_reputation" in threat_results else ""
             ),

@@ -60,6 +60,7 @@
       <div class="stat-tile" data-stat="subdomains"><span class="stat-value">&mdash;</span><span class="stat-label">Subdomains</span></div>
       <div class="stat-tile" data-stat="ports"><span class="stat-value">&mdash;</span><span class="stat-label">Open Ports</span></div>
       <div class="stat-tile" data-stat="leaks"><span class="stat-value">&mdash;</span><span class="stat-label">Leaks / Creds</span></div>
+      <div class="stat-tile" data-stat="phonebook"><span class="stat-value">&mdash;</span><span class="stat-label">Phonebook Hits</span></div>
       <div class="stat-tile" data-stat="typosquats"><span class="stat-value">&mdash;</span><span class="stat-label">Typosquats</span></div>
       <div class="stat-tile" data-stat="news"><span class="stat-value">&mdash;</span><span class="stat-label">News Articles</span></div>
     </section>
@@ -97,6 +98,28 @@
     <section class="panel graph-panel" id="graph-panel">
       <h2>Attack Surface</h2>
       <div id="graph"></div>
+    </section>
+
+    <section class="panel threat-panel hidden" id="threat-panel">
+      <h2>Threat Intelligence</h2>
+      <div class="threat-groups">
+        <div class="threat-group">
+          <h3>Data Leaks &amp; Breaches</h3>
+          <ul class="threat-list" id="threat-leaks"></ul>
+        </div>
+        <div class="threat-group">
+          <h3>Dark Web Mentions</h3>
+          <ul class="threat-list" id="threat-dark-web"></ul>
+        </div>
+        <div class="threat-group">
+          <h3>Exposed Credentials</h3>
+          <ul class="threat-list" id="threat-credentials"></ul>
+        </div>
+        <div class="threat-group">
+          <h3>IntelX Phonebook</h3>
+          <ul class="threat-list" id="threat-phonebook"></ul>
+        </div>
+      </div>
     </section>
 
     <section class="panel typosquat-panel hidden" id="typosquat-panel">

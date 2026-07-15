@@ -15,6 +15,13 @@
   const graphContainer = document.getElementById("graph");
   const typosquatPanel = document.getElementById("typosquat-panel");
   const typosquatGrid = document.getElementById("typosquat-grid");
+  const threatPanel = document.getElementById("threat-panel");
+  const threatLists = {
+    leaks: document.getElementById("threat-leaks"),
+    dark_web: document.getElementById("threat-dark-web"),
+    credentials: document.getElementById("threat-credentials"),
+    intelx_phonebook: document.getElementById("threat-phonebook"),
+  };
 
   let currentDomain = null;
 
@@ -54,6 +61,8 @@
     reportBody.innerHTML = "";
     typosquatPanel.classList.add("hidden");
     typosquatGrid.innerHTML = "";
+    threatPanel.classList.add("hidden");
+    Object.values(threatLists).forEach((el) => (el.innerHTML = ""));
     Object.values(stats).forEach((el) => (el.textContent = "—"));
     Object.values(moduleRows).forEach((m) => {
       m.row.className = "module-row";
@@ -106,6 +115,100 @@
     typosquatPanel.classList.remove("hidden");
   }
 
+  function makeThreatItem(titleText, metaText, badgeText) {
+    const li = document.createElement("li");
+    li.className = "threat-item";
+
+    const title = document.createElement("span");
+    title.className = "threat-item-title";
+    title.textContent = titleText;
+    li.appendChild(title);
+
+    if (badgeText) {
+      const badge = document.createElement("span");
+      badge.className = `risk-badge ${riskLevelClass(badgeText)}`;
+      badge.textContent = badgeText;
+      li.appendChild(badge);
+    }
+
+    if (metaText) {
+      const meta = document.createElement("span");
+      meta.className = "threat-item-meta";
+      meta.textContent = metaText;
+      li.appendChild(meta);
+    }
+
+    return li;
+  }
+
+  function emptyThreatItem(text) {
+    const li = document.createElement("li");
+    li.className = "threat-item threat-item-empty";
+    li.textContent = text;
+    return li;
+  }
+
+  function riskLevelClass(level) {
+    if (level === "critical") return "critical";
+    if (level === "high") return "high";
+    if (level === "low") return "low";
+    return "medium";
+  }
+
+  function fillThreatList(listEl, items, emptyText, builder) {
+    listEl.innerHTML = "";
+    if (!items.length) {
+      listEl.appendChild(emptyThreatItem(emptyText));
+      return;
+    }
+    items.forEach((item) => listEl.appendChild(builder(item)));
+  }
+
+  function renderThreatPanel(data) {
+    fillThreatList(
+      threatLists.leaks,
+      data.leaks || [],
+      "No data leaks found.",
+      (leak) =>
+        makeThreatItem(
+          leak.title || leak.details || leak.source || "Untitled",
+          `${leak.source || "Unknown"} · ${leak.date || "Unknown"}`
+        )
+    );
+
+    fillThreatList(
+      threatLists.dark_web,
+      data.dark_web || [],
+      "No dark web mentions found.",
+      (mention) =>
+        makeThreatItem(
+          mention.target || mention.title || mention.source || "Unknown",
+          mention.source || "",
+          mention.risk_level
+        )
+    );
+
+    fillThreatList(
+      threatLists.credentials,
+      data.credentials || [],
+      "No exposed credentials found.",
+      (cred) =>
+        makeThreatItem(
+          cred.email || "Unknown",
+          `${cred.source || "Unknown"}${cred.has_password ? " · password exposed" : ""}`
+        )
+    );
+
+    fillThreatList(
+      threatLists.intelx_phonebook,
+      data.intelx_phonebook || [],
+      "No related selectors found.",
+      (sel) => makeThreatItem(sel.value || "Unknown", sel.type || "Unknown")
+    );
+
+    threatPanel.classList.remove("hidden");
+  }
+
   function startTimer(mod) {
     mod.startedAt = Date.now();
     mod.timer = setInterval(() => {
@@ -124,7 +227,8 @@
   const SUMMARY_FORMATTERS = {
     org: (d) => `${d.total_related_domains} related domains, ${d.total_subdomains} subdomains`,
     recon: (d) => `${d.total_subdomains} subdomains, ${d.total_open_ports} open ports`,
-    threat: (d) => `${d.total_leaks} leaks, ${d.total_credentials} exposed creds`,
+    threat: (d) =>
+      `${d.total_leaks} leaks, ${d.total_credentials} exposed creds, ${d.total_intelx_phonebook} phonebook hits`,
     typosquat: (d) => `${d.total_active} active of ${d.total_generated} generated`,
     news: (d) => `${d.total_articles} articles (${d.days_monitored}d window)`,
   };
@@ -137,6 +241,7 @@
       stats.subdomains.textContent = data.total_subdomains;
     } else if (moduleName === "threat") {
       stats.leaks.textContent = data.total_leaks + data.total_credentials;
+      stats.phonebook.textContent = data.total_intelx_phonebook;
     } else if (moduleName === "typosquat") {
       stats.typosquats.textContent = data.total_active;
     } else if (moduleName === "news") {
@@ -184,6 +289,7 @@
           applyStats(ev.module, ev.data);
           updateGraph(ev.module, ev.data);
           if (ev.module === "typosquat") renderTyposquatPanel(ev.data);
+          if (ev.module === "threat") renderThreatPanel(ev.data);
         }
         break;
       }
