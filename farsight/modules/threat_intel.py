@@ -243,9 +243,7 @@ class ThreatIntel:
                         and result_resp["records"]
                     ):
                         # Process search results
-                        await self._process_intelx_results(
-                            result_resp["records"], domain
-                        )
+                        self._process_intelx_results(result_resp["records"], domain)
                         break
 
                     # Wait before retrying
