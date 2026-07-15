@@ -7,7 +7,7 @@
 ### DEFCON 34
 
 <a href="https://sessionize.com/adlin-seedon-dsouza/">
-<img src="docs/assets/appsecvillage-logo.png" alt="AppSec Village" height="64"/>
+<img src="https://raw.githubusercontent.com/seedon198/Farsight/main/docs/assets/appsecvillage-logo.png" alt="AppSec Village" height="64"/>
 </a>
 
 <sub>🗓️ Aug 6–9, 2026 &nbsp;•&nbsp; Las Vegas &nbsp;•&nbsp; Upcoming</sub>
@@ -20,7 +20,7 @@
 ### BLACKHAT 2025
 
 <a href="https://www.blackhat.com/sector/2025/arsenal/schedule/index.html#farsight-cli-based-recon-and-threat-intelligence-framework-47707">
-<img src="docs/assets/blackhat-logo.png" alt="Black Hat" height="64"/>
+<img src="https://raw.githubusercontent.com/seedon198/Farsight/main/docs/assets/blackhat-logo.png" alt="Black Hat" height="64"/>
 </a>
 
 <sub>🎯 Oct 1–2, 2025 &nbsp;•&nbsp; Toronto &nbsp;•&nbsp; Presented</sub>
@@ -34,7 +34,7 @@
 </div>
 
 <p align="center">
-  <img src="docs/assets/logo.svg" alt="FARSIGHT Logo" width="100%"/>
+  <img src="https://raw.githubusercontent.com/seedon198/Farsight/main/docs/assets/logo.svg" alt="FARSIGHT Logo" width="100%"/>
 </p>
 
 # FARSIGHT
@@ -48,7 +48,7 @@
 **A fast, modular CLI recon and threat-intelligence framework. Works with or without API keys.**
 
 <p align="center">
-  <img src="docs/assets/demo.gif" alt="FARSIGHT demo: scanning a domain from the CLI" width="100%"/>
+  <img src="https://raw.githubusercontent.com/seedon198/Farsight/main/docs/assets/demo.gif" alt="FARSIGHT demo: scanning a domain from the CLI" width="100%"/>
 </p>
 
 ## Features
@@ -115,18 +115,18 @@ python -m farsight web
 Opens a browser at `http://127.0.0.1:8000` with real-time module progress, live stats, and an in-browser report with Markdown/PDF download. Binds to loopback only — there's no authentication, so don't expose it beyond your own machine. Run `python -m farsight web --help` for options.
 
 <p align="center">
-  <img src="docs/assets/web-ui-scan.png" alt="FARSIGHT web UI: scan form with live stats" width="100%"/>
+  <img src="https://raw.githubusercontent.com/seedon198/Farsight/main/docs/assets/web-ui-scan.png" alt="FARSIGHT web UI: scan form with live stats" width="100%"/>
 </p>
 
 <table>
 <tr>
-<td width="55%"><img src="docs/assets/web-ui-graph.png" alt="FARSIGHT web UI: attack surface graph"/></td>
-<td width="45%"><img src="docs/assets/web-ui-typosquat.png" alt="FARSIGHT web UI: typosquat watch grid"/></td>
+<td width="55%"><img src="https://raw.githubusercontent.com/seedon198/Farsight/main/docs/assets/web-ui-graph.png" alt="FARSIGHT web UI: attack surface graph"/></td>
+<td width="45%"><img src="https://raw.githubusercontent.com/seedon198/Farsight/main/docs/assets/web-ui-typosquat.png" alt="FARSIGHT web UI: typosquat watch grid"/></td>
 </tr>
 </table>
 
 <p align="center">
-  <img src="docs/assets/web-ui-report.png" alt="FARSIGHT web UI: in-browser report" width="100%"/>
+  <img src="https://raw.githubusercontent.com/seedon198/Farsight/main/docs/assets/web-ui-report.png" alt="FARSIGHT web UI: in-browser report" width="100%"/>
 </p>
 
 ## API Keys (optional)
