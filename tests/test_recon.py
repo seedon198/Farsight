@@ -6,6 +6,7 @@ unavailable or unprivileged, and IP dedup when multiple domains share
 one resolved IP.
 """
 
+import asyncio
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -118,3 +119,71 @@ async def test_port_scan_targets_dedupes_shared_ip_across_domains():
     recon.masscan_scanner.scan.assert_awaited_once_with(["1.2.3.4"], [80], 10000)
     assert result["a.example.com"] is result["b.example.com"]
     assert result["a.example.com"]["open_ports"] == 1
+
+
+@pytest.mark.asyncio
+async def test_fallback_scan_ips_bounds_outer_concurrency(monkeypatch):
+    from farsight import config as farsight_config
+
+    monkeypatch.setitem(farsight_config.DEFAULT_CONFIG, "max_concurrent_requests", 2)
+
+    recon = make_recon()
+    recon.masscan_scanner.is_available.return_value = False
+
+    active = 0
+    max_active = 0
+
+    async def fake_scan_ports(ip, ports):
+        nonlocal active, max_active
+        active += 1
+        max_active = max(max_active, active)
+        await asyncio.sleep(0.01)
+        active -= 1
+        return {
+            "target": ip,
+            "timestamp": 0,
+            "total_ports": len(ports),
+            "open_ports": 0,
+            "ports": [],
+        }
+
+    recon.port_scanner.scan_ports = AsyncMock(side_effect=fake_scan_ports)
+
+    unique_ips = [f"10.0.0.{i}" for i in range(6)]
+    await recon._fallback_scan_ips(unique_ips, [80])
+
+    assert max_active <= 2
+
+
+@pytest.mark.asyncio
+async def test_masscan_scan_ips_bounds_banner_grab_concurrency(monkeypatch):
+    from farsight import config as farsight_config
+
+    monkeypatch.setitem(farsight_config.DEFAULT_CONFIG, "max_concurrent_requests", 2)
+
+    recon = make_recon()
+    recon.masscan_scanner.is_available.return_value = True
+    recon.masscan_scanner.scan = AsyncMock(
+        return_value={f"10.0.0.{i}": [80, 443] for i in range(4)}
+    )
+
+    active = 0
+    max_active = 0
+
+    async def fake_scan_port(target, port):
+        nonlocal active, max_active
+        active += 1
+        max_active = max(max_active, active)
+        await asyncio.sleep(0.01)
+        active -= 1
+        return {"port": port, "open": True, "banner": None}
+
+    recon.port_scanner.scan_port = AsyncMock(side_effect=fake_scan_port)
+
+    unique_ips = [f"10.0.0.{i}" for i in range(4)]
+    ips = {f"host{i}.example.com": [f"10.0.0.{i}"] for i in range(4)}
+    domains = list(ips.keys())
+
+    await recon._port_scan_targets(domains, ips, [80, 443], rate=10000)
+
+    assert max_active <= 2
