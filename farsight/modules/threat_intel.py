@@ -8,6 +8,7 @@ and email reputation analysis.
 import asyncio
 import re
 import time
+from datetime import datetime
 from typing import Dict, List, Optional, Any
 import urllib.parse
 
@@ -480,12 +481,17 @@ class ThreatIntel:
             # Get basic info
             bucket = record.get("bucket", "unknown")
             title = record.get("name", "Untitled")
-            date_epoch = record.get("date", 0)
-            date_str = (
-                time.strftime("%Y-%m-%d", time.localtime(date_epoch))
-                if date_epoch
-                else "Unknown"
-            )
+            # IntelX returns `date` as an ISO-8601 string (e.g.
+            # "2026-07-13T00:50:45.484249Z"), not a Unix epoch number.
+            date_value = record.get("date")
+            date_str = "Unknown"
+            if date_value:
+                try:
+                    date_str = datetime.fromisoformat(
+                        date_value.replace("Z", "+00:00")
+                    ).strftime("%Y-%m-%d")
+                except (ValueError, AttributeError):
+                    date_str = "Unknown"
 
             snippet = record.get("snippet", "")
 
