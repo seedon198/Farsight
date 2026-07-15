@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "farsight-recon"
-version = "2.0.0b2"
+version = "2.0.0"
 description = "CLI-Based Recon and Threat Intelligence Framework"
 authors = ["FARSIGHT Team <contact@farsight-security.com>"]
 license = "MIT"
