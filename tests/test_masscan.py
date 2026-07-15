@@ -100,6 +100,47 @@ async def test_scan_raises_runtime_error_on_other_failure():
             await scanner.scan(["1.2.3.4"], [80], rate=10000)
 
 
+@pytest.mark.asyncio
+async def test_scan_returns_empty_dict_when_output_file_is_empty():
+    """Test that zero-byte output file (not JSON array) returns empty dict."""
+    scanner = MasscanScanner()
+
+    async def fake_create_subprocess_exec(*cmd, **kwargs):
+        output_path = cmd[cmd.index("-oJ") + 1]
+        # Write empty file (zero bytes) to exercise the `if not content: return {}` branch
+        with open(output_path, "w") as f:
+            pass  # Write nothing
+        return _mock_proc(returncode=0)
+
+    with patch(
+        "farsight.utils.masscan.asyncio.create_subprocess_exec",
+        side_effect=fake_create_subprocess_exec,
+    ):
+        result = await scanner.scan(["1.2.3.4"], [80], rate=10000)
+
+    assert result == {}
+
+
+@pytest.mark.asyncio
+async def test_scan_raises_runtime_error_on_malformed_json():
+    """Test that malformed JSON in output file raises RuntimeError."""
+    scanner = MasscanScanner()
+
+    async def fake_create_subprocess_exec(*cmd, **kwargs):
+        output_path = cmd[cmd.index("-oJ") + 1]
+        # Write genuinely malformed JSON to exercise the JSONDecodeError branch
+        with open(output_path, "w") as f:
+            f.write("not valid json {{{")
+        return _mock_proc(returncode=0)
+
+    with patch(
+        "farsight.utils.masscan.asyncio.create_subprocess_exec",
+        side_effect=fake_create_subprocess_exec,
+    ):
+        with pytest.raises(RuntimeError):
+            await scanner.scan(["1.2.3.4"], [80], rate=10000)
+
+
 def test_is_available_true_when_binary_on_path():
     _find_masscan_binary.cache_clear()
     with patch("farsight.utils.masscan.shutil.which", return_value="/usr/bin/masscan"):
