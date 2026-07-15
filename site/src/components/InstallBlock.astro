@@ -1,14 +1,11 @@
 ---
 const commands = [
-  'git clone https://github.com/seedon198/Farsight.git',
-  'cd Farsight',
-  'python3 -m venv venv && source venv/bin/activate',
-  'pip install -r requirements.txt',
-  'python -m farsight scan example.com',
+  'pip install --pre farsight-recon',
+  'farsight scan example.com',
 ].join('\n');
 ---
 <section id="install" class="mx-auto max-w-3xl px-6 py-16 2xl:max-w-4xl">
-  <h2 class="mb-6 text-center font-display text-2xl uppercase text-[var(--ink)]">Zero to Scanning in 4 Commands</h2>
+  <h2 class="mb-6 text-center font-display text-2xl uppercase text-[var(--ink)]">Zero to Scanning in 2 Commands</h2>
   <div class="brutal-border brutal-shadow relative bg-[var(--surface)]">
     <button
       type="button"
@@ -19,7 +16,10 @@ const commands = [
     </button>
     <pre id="install-commands" class="overflow-x-auto p-6 pr-24 font-mono text-sm text-[var(--ink)]"><code>{commands}</code></pre>
   </div>
-  <p class="mt-4 text-center text-sm text-[var(--ink)]">Requires Python 3.10+.</p>
+  <p class="mt-4 text-center text-sm text-[var(--ink)]">
+    Requires Python 3.10+. <code>--pre</code> is required while FARSIGHT is in beta. Prefer to run from source? See the
+    <a href="https://github.com/seedon198/Farsight#install" class="underline">README</a>.
+  </p>
 </section>
 
 <script>

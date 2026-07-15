@@ -64,6 +64,20 @@
 ## Install
 
 ```bash
+pip install --pre farsight-recon
+```
+
+(`--pre` is required while FARSIGHT is in beta. The PyPI distribution is named `farsight-recon` since `farsight` was already taken, but it installs the same `farsight` command.)
+
+With [Poetry](https://python-poetry.org/):
+
+```bash
+poetry add farsight-recon --allow-prereleases
+```
+
+Or run from source:
+
+```bash
 git clone https://github.com/seedon198/Farsight.git
 cd Farsight
 python3 -m venv venv && source venv/bin/activate
@@ -76,16 +90,18 @@ Requires Python 3.10+.
 
 ```bash
 # Basic scan (org discovery + recon)
-python -m farsight scan example.com
+farsight scan example.com
 
 # Everything, verbose
-python -m farsight scan example.com --all --verbose
+farsight scan example.com --all --verbose
 
 # Specific modules, PDF output
-python -m farsight scan example.com -m org -m threat --output report.pdf
+farsight scan example.com -m org -m threat --output report.pdf
 ```
 
-Run `python -m farsight scan --help` for the full option list.
+Running from source instead of a pip install? Swap `farsight` for `python -m farsight` in any command above.
+
+Run `farsight scan --help` for the full option list.
 
 ## Web UI
 
