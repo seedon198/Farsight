@@ -64,15 +64,15 @@
 ## Install
 
 ```bash
-pip install --pre farsight-recon
+pip install farsight-recon
 ```
 
-(`--pre` is required while FARSIGHT is in beta. The PyPI distribution is named `farsight-recon` since `farsight` was already taken, but it installs the same `farsight` command.)
+(The PyPI distribution is named `farsight-recon` since `farsight` was already taken, but it installs the same `farsight` command.)
 
 With [Poetry](https://python-poetry.org/):
 
 ```bash
-poetry add farsight-recon --allow-prereleases
+poetry add farsight-recon
 ```
 
 Or run from source:
