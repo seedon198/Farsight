@@ -8,6 +8,15 @@ import os
 from pathlib import Path
 from typing import Dict, Optional, Any
 
+from dotenv import find_dotenv, load_dotenv
+
+# Load variables from a .env file into the process environment before
+# API_KEYS below reads them. usecwd=True anchors the search at the caller's
+# current working directory instead of this installed package's location,
+# so a .env sitting in the user's project dir is found regardless of
+# whether farsight is installed editable or from a wheel.
+load_dotenv(find_dotenv(usecwd=True))
+
 # Base directories - dynamically determined at runtime
 PROJECT_ROOT = Path(__file__).parent.parent
 REPORTS_DIR = PROJECT_ROOT / "reports"
