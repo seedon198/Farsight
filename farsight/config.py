@@ -88,7 +88,7 @@ API_ENDPOINTS = {
     "censys": "https://search.censys.io/api",
     "securitytrails": "https://api.securitytrails.com",
     "virustotal": "https://www.virustotal.com/api/v3",
-    "intelx": "https://2.intelx.io",
+    "intelx": "https://free.intelx.io",
     "leakpeek": "https://api.leakpeek.com",
 }
 
