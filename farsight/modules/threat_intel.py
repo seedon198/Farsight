@@ -13,7 +13,8 @@ from typing import Dict, List, Optional, Any
 import urllib.parse
 
 from farsight.utils.common import logger, retry
-from farsight.utils.api_handler import APIManager
+from farsight.utils.api_handler import APIManager, APIHandler
+from farsight.utils import intelx_cache
 from farsight.config import get_config, is_api_configured
 
 
@@ -149,6 +150,57 @@ class ThreatIntel:
             "timestamp": time.time(),
         }
 
+    async def _cached_intelx_search(
+        self,
+        handler: APIHandler,
+        search_endpoint: str,
+        result_endpoint: str,
+        params: Dict[str, Any],
+        records_key: str,
+        limit: int,
+        max_attempts: int = 5,
+        poll_delay: float = 2.0,
+    ) -> List[Dict[str, Any]]:
+        """
+        Run an IntelX search, reusing a cached search ID and locally
+        cached results for identical queries so repeat lookups don't
+        burn a search credit.
+
+        `POST search_endpoint` starts a new search and costs a credit;
+        `GET result_endpoint?id=...` fetches results for an existing
+        search ID for free. The query is hashed to a cache key so a
+        duplicate query either serves cached results directly or
+        reuses the cached search ID against the free result endpoint.
+        """
+        cached = intelx_cache.load(search_endpoint, params)
+
+        if cached and cached.get("records") and intelx_cache.is_fresh(cached):
+            logger.info(
+                f"IntelX cache hit for {search_endpoint} (term={params.get('term')})"
+            )
+            return cached["records"]
+
+        search_id = cached.get("search_id") if cached else None
+
+        if not search_id:
+            search_resp = await handler.post(search_endpoint, data=params)
+            if not search_resp or "id" not in search_resp:
+                return []
+            search_id = search_resp["id"]
+            intelx_cache.save(search_endpoint, params, search_id)
+
+        for _ in range(max_attempts):
+            result_resp = await handler.get(
+                f"{result_endpoint}?id={search_id}&limit={limit}"
+            )
+            records = result_resp.get(records_key) if result_resp else None
+            if records:
+                intelx_cache.save(search_endpoint, params, search_id, records=records)
+                return records
+            await asyncio.sleep(poll_delay)
+
+        return []
+
     @retry(max_retries=2, delay=1.0, backoff=2.0)
     async def _check_phonebook(self, domain: str) -> None:
         """
@@ -228,31 +280,22 @@ class ThreatIntel:
                 "terminate": [],  # No reasons to terminate
             }
 
-            # Run search request
-            search_resp = await handler.post("intelligent/search", data=search_params)
+            # Run search request (cached: reuses the search ID and any
+            # locally cached results for an identical query instead of
+            # spending a new search credit)
+            records = await self._cached_intelx_search(
+                handler,
+                "intelligent/search",
+                "intelligent/search/result",
+                search_params,
+                "records",
+                limit=20,
+                max_attempts=5,
+            )
 
-            if search_resp and "id" in search_resp:
-                search_id = search_resp["id"]
-
-                # Wait for search to complete
-                max_attempts = 5
-                for attempt in range(max_attempts):
-                    # Check search status
-                    result_resp = await handler.get(
-                        f"intelligent/search/result?id={search_id}&limit=20"
-                    )
-
-                    if (
-                        result_resp
-                        and "records" in result_resp
-                        and result_resp["records"]
-                    ):
-                        # Process search results
-                        self._process_intelx_results(result_resp["records"], domain)
-                        break
-
-                    # Wait before retrying
-                    await asyncio.sleep(2)
+            if records:
+                # Process search results
+                self._process_intelx_results(records, domain)
 
             # If emails provided, check each one
             if emails:
@@ -266,76 +309,62 @@ class ThreatIntel:
                         "terminate": [],  # No reasons to terminate
                     }
 
-                    # Run search request
-                    email_resp = await handler.post(
-                        "intelligent/search", data=email_search
+                    # Run search request (cached, same as the domain search above)
+                    email_records = await self._cached_intelx_search(
+                        handler,
+                        "intelligent/search",
+                        "intelligent/search/result",
+                        email_search,
+                        "records",
+                        limit=10,
+                        max_attempts=3,
+                        poll_delay=1.0,
                     )
 
-                    if email_resp and "id" in email_resp:
-                        email_search_id = email_resp["id"]
+                    # Process search results - add more detailed information
+                    for record in email_records:
+                        if "name" in record and "bucket" in record:
+                            name = record["name"]
+                            bucket = record["bucket"]
+                            added = record.get("added", "unknown")
+                            media_type = record.get("media", 0)
 
-                        # Wait for search to complete
-                        max_attempts = 3
-                        for attempt in range(max_attempts):
-                            # Check search status
-                            email_result = await handler.get(
-                                f"intelligent/search/result?id={email_search_id}&limit=10"
-                            )
+                            # Determine the type of leak based on media type
+                            leak_type = "unknown"
+                            if media_type == 1:
+                                leak_type = "text_leak"
+                            elif media_type == 2:
+                                leak_type = "credential_leak"
+                            elif media_type == 8:
+                                leak_type = "database_dump"
+                            elif media_type == 13:
+                                leak_type = "forum_data"
+                            elif media_type == 15:
+                                leak_type = "dark_web_market"
 
+                            # Add more detailed risk assessment based on the source
+                            risk_level = "medium"
                             if (
-                                email_result
-                                and "records" in email_result
-                                and email_result["records"]
+                                "password" in bucket.lower()
+                                or "credentials" in bucket.lower()
                             ):
-                                # Process search results - add more detailed information
-                                for record in email_result["records"]:
-                                    if "name" in record and "bucket" in record:
-                                        name = record["name"]
-                                        bucket = record["bucket"]
-                                        added = record.get("added", "unknown")
-                                        media_type = record.get("media", 0)
+                                risk_level = "high"
+                            if (
+                                "darkweb" in bucket.lower()
+                                or "market" in bucket.lower()
+                            ):
+                                risk_level = "critical"
 
-                                        # Determine the type of leak based on media type
-                                        leak_type = "unknown"
-                                        if media_type == 1:
-                                            leak_type = "text_leak"
-                                        elif media_type == 2:
-                                            leak_type = "credential_leak"
-                                        elif media_type == 8:
-                                            leak_type = "database_dump"
-                                        elif media_type == 13:
-                                            leak_type = "forum_data"
-                                        elif media_type == 15:
-                                            leak_type = "dark_web_market"
-
-                                        # Add more detailed risk assessment based on the source
-                                        risk_level = "medium"
-                                        if (
-                                            "password" in bucket.lower()
-                                            or "credentials" in bucket.lower()
-                                        ):
-                                            risk_level = "high"
-                                        if (
-                                            "darkweb" in bucket.lower()
-                                            or "market" in bucket.lower()
-                                        ):
-                                            risk_level = "critical"
-
-                                        self.results["dark_web"].append(
-                                            {
-                                                "type": leak_type,
-                                                "target": email,
-                                                "source": bucket,
-                                                "date": added,
-                                                "risk_level": risk_level,
-                                                "details": f"Email found in {name}",
-                                            }
-                                        )
-
-                                break
-
-                            # Wait before retrying
-                            await asyncio.sleep(1)
+                            self.results["dark_web"].append(
+                                {
+                                    "type": leak_type,
+                                    "target": email,
+                                    "source": bucket,
+                                    "date": added,
+                                    "risk_level": risk_level,
+                                    "details": f"Email found in {name}",
+                                }
+                            )
 
         except Exception as e:
             logger.error(f"Error checking IntelX: {str(e)}")
@@ -370,38 +399,26 @@ class ThreatIntel:
                 "terminate": [],  # No reasons to terminate
             }
 
-            # Run search request
-            search_resp = await handler.post("phonebook/search", data=search_params)
+            # Run search request (cached, see _cached_intelx_search)
+            selectors = await self._cached_intelx_search(
+                handler,
+                "phonebook/search",
+                "phonebook/search/result",
+                search_params,
+                "selectors",
+                limit=20,
+                max_attempts=5,
+            )
 
-            if search_resp and "id" in search_resp:
-                search_id = search_resp["id"]
-
-                # Wait for search to complete
-                max_attempts = 5
-                for attempt in range(max_attempts):
-                    # Check search status
-                    result_resp = await handler.get(
-                        f"phonebook/search/result?id={search_id}&limit=20"
-                    )
-
-                    if (
-                        result_resp
-                        and "selectors" in result_resp
-                        and result_resp["selectors"]
-                    ):
-                        # Process search results
-                        for selector in result_resp["selectors"]:
-                            self.results["intelx_phonebook"].append(
-                                {
-                                    "type": selector.get("selectortypeh", "Unknown"),
-                                    "value": selector.get("selectorvalue", ""),
-                                    "source": "IntelX Phonebook",
-                                }
-                            )
-                        break
-
-                    # Wait before retrying
-                    await asyncio.sleep(2)
+            # Process search results
+            for selector in selectors:
+                self.results["intelx_phonebook"].append(
+                    {
+                        "type": selector.get("selectortypeh", "Unknown"),
+                        "value": selector.get("selectorvalue", ""),
+                        "source": "IntelX Phonebook",
+                    }
+                )
 
         except Exception as e:
             logger.error(f"Error checking IntelX Phonebook: {str(e)}")
@@ -633,54 +650,37 @@ class ThreatIntel:
                 "terminate": [],
             }
 
-            # Start search
-            search_response = await handler.post("intelligent/search", data=search_data)
+            # Start search (cached, see _cached_intelx_search)
+            records = await self._cached_intelx_search(
+                handler,
+                "intelligent/search",
+                "intelligent/search/result",
+                search_data,
+                "records",
+                limit=10,
+                max_attempts=10,
+                poll_delay=2.0,
+            )
 
-            if not search_response or "id" not in search_response:
-                return
-
-            # Get search ID
-            search_id = search_response["id"]
-
-            # Wait for results (with timeout)
-            start_time = time.time()
-            max_wait = 20  # seconds
-
-            while time.time() - start_time < max_wait:
-                # Check search status
-                status_response = await handler.get(
-                    f"intelligent/search/result?id={search_id}&limit=10&offset=0"
+            # Process document results
+            for record in records:
+                title = record.get("name", "Untitled Document")
+                date_epoch = record.get("date", 0)
+                date_str = (
+                    time.strftime("%Y-%m-%d", time.localtime(date_epoch))
+                    if date_epoch
+                    else "Unknown"
                 )
 
-                if (
-                    status_response
-                    and "records" in status_response
-                    and status_response["records"]
-                ):
-                    # Process document results
-                    for record in status_response["records"]:
-                        title = record.get("name", "Untitled Document")
-                        date_epoch = record.get("date", 0)
-                        date_str = (
-                            time.strftime("%Y-%m-%d", time.localtime(date_epoch))
-                            if date_epoch
-                            else "Unknown"
-                        )
-
-                        self.results["leaks"].append(
-                            {
-                                "source": "IntelX (Document)",
-                                "type": "document",
-                                "date": date_str,
-                                "title": title,
-                                "details": f"Document: {title}",
-                            }
-                        )
-
-                    break
-
-                # Wait before next check
-                await asyncio.sleep(2)
+                self.results["leaks"].append(
+                    {
+                        "source": "IntelX (Document)",
+                        "type": "document",
+                        "date": date_str,
+                        "title": title,
+                        "details": f"Document: {title}",
+                    }
+                )
 
         except Exception as e:
             logger.error(f"Error checking IntelX for documents: {str(e)}")
