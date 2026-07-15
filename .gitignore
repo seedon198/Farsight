@@ -48,6 +48,9 @@ htmlcov/
 config.local.py
 .env
 
+# Local IntelX search cache
+/cache/
+
 # OS
 .DS_Store
 Thumbs.db

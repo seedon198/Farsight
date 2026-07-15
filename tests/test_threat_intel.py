@@ -18,6 +18,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from farsight.modules.threat_intel import ThreatIntel
+from farsight.utils import intelx_cache
 
 
 def test_process_intelx_results_parses_iso_date_string():
@@ -162,3 +163,91 @@ async def test_check_intelx_phonebook_failure_does_not_raise(monkeypatch):
     await threat_intel._check_intelx_phonebook("example.com")
 
     assert threat_intel.results["intelx_phonebook"] == []
+
+
+@pytest.mark.asyncio
+async def test_check_intelx_reuses_cached_results_for_duplicate_query(monkeypatch):
+    """A second identical search must be served from the local cache
+    without spending another IntelX search credit.
+    """
+    monkeypatch.setattr(
+        "farsight.modules.threat_intel.is_api_configured", lambda provider: True
+    )
+
+    handler = MagicMock()
+    handler.post = AsyncMock(return_value={"id": "search-id-123"})
+    handler.get = AsyncMock(
+        return_value={
+            "records": [
+                {
+                    "bucket": "pastes",
+                    "name": "Example Paste",
+                    "date": "2026-07-13T00:50:45.484249Z",
+                    "snippet": "leaked content",
+                }
+            ]
+        }
+    )
+
+    api_manager = MagicMock()
+    api_manager.get_handler = MagicMock(return_value=handler)
+
+    threat_intel = ThreatIntel(api_manager=api_manager)
+    await threat_intel._check_intelx("example.com", None)
+    assert handler.post.call_count == 1
+    assert handler.get.call_count == 1
+
+    # Second identical search: should be a full cache hit, no API calls.
+    threat_intel.results["leaks"] = []
+    await threat_intel._check_intelx("example.com", None)
+
+    assert handler.post.call_count == 1
+    assert handler.get.call_count == 1
+    assert len(threat_intel.results["leaks"]) == 1
+
+
+@pytest.mark.asyncio
+async def test_check_intelx_reuses_search_id_without_new_credit(monkeypatch):
+    """If a search ID is already cached (but results aren't fresh), a
+    repeat search must reuse it against the free result endpoint instead
+    of starting a new (credit-consuming) search.
+    """
+    monkeypatch.setattr(
+        "farsight.modules.threat_intel.is_api_configured", lambda provider: True
+    )
+
+    search_params = {
+        "term": "example.com",
+        "maxresults": 20,
+        "media": 0,
+        "sort": 4,
+        "terminate": [],
+    }
+    intelx_cache.save("intelligent/search", search_params, "cached-search-id")
+
+    handler = MagicMock()
+    handler.post = AsyncMock(return_value={"id": "should-not-be-used"})
+    handler.get = AsyncMock(
+        return_value={
+            "records": [
+                {
+                    "bucket": "pastes",
+                    "name": "Example Paste",
+                    "date": "2026-07-13T00:50:45.484249Z",
+                    "snippet": "leaked content",
+                }
+            ]
+        }
+    )
+
+    api_manager = MagicMock()
+    api_manager.get_handler = MagicMock(return_value=handler)
+
+    threat_intel = ThreatIntel(api_manager=api_manager)
+    await threat_intel._check_intelx("example.com", None)
+
+    handler.post.assert_not_called()
+    handler.get.assert_called_once_with(
+        "intelligent/search/result?id=cached-search-id&limit=20"
+    )
+    assert len(threat_intel.results["leaks"]) == 1

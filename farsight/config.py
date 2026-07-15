@@ -20,6 +20,7 @@ load_dotenv(find_dotenv(usecwd=True))
 # Base directories - dynamically determined at runtime
 PROJECT_ROOT = Path(__file__).parent.parent
 REPORTS_DIR = PROJECT_ROOT / "reports"
+CACHE_DIR = PROJECT_ROOT / "cache"
 
 # Ensure reports directory exists for output files
 REPORTS_DIR.mkdir(exist_ok=True)
@@ -60,6 +61,7 @@ DEFAULT_CONFIG = {
     ],
     "typosquat_threshold": 80,  # Similarity threshold for typosquat detection
     "news_results_limit": 10,
+    "intelx_cache_ttl": 21600,  # seconds a cached IntelX result is considered fresh (6h)
     # Rate limiting
     "rate_limit": {
         "default": 60,  # requests per minute
