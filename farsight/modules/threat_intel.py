@@ -33,6 +33,7 @@ class ThreatIntel:
             "leaks": [],
             "dark_web": [],
             "credentials": [],
+            "intelx_phonebook": [],
         }
 
     async def __aenter__(self):
@@ -69,6 +70,7 @@ class ThreatIntel:
             "dark_web": [],
             "credentials": [],
             "email_reputation": [],
+            "intelx_phonebook": [],
         }
 
         # Initialize tasks list
@@ -86,6 +88,7 @@ class ThreatIntel:
             # Add dark web check via API if available
             if is_api_configured("intelx"):
                 tasks.append(self._check_intelx(domain, emails))
+                tasks.append(self._check_intelx_phonebook(domain))
 
             # Check leaked credentials
             if emails and is_api_configured("leakpeek"):
@@ -136,11 +139,13 @@ class ThreatIntel:
             "dark_web": self.results["dark_web"],
             "credentials": self.results["credentials"],
             "email_reputation": self.results["email_reputation"],
+            "intelx_phonebook": self.results["intelx_phonebook"],
             "unique_emails_found": list(unique_emails),
             "total_emails_found": len(unique_emails),
             "total_leaks": len(self.results["leaks"]),
             "total_dark_web": len(self.results["dark_web"]),
             "total_credentials": len(self.results["credentials"]),
+            "total_intelx_phonebook": len(self.results["intelx_phonebook"]),
             "timestamp": time.time(),
         }
 
@@ -336,6 +341,70 @@ class ThreatIntel:
             logger.error(f"Error checking IntelX: {str(e)}")
             # Fall back to alternative method if IntelX fails
             await self._check_dark_web_alternative(domain, emails)
+
+    async def _check_intelx_phonebook(self, domain: str) -> None:
+        """
+        Check IntelX Phonebook for related domains, emails, and URLs.
+
+        Phonebook is a separate IntelX endpoint from intelligent/search: it
+        returns related selectors (domains, email addresses, URLs) for a
+        search term rather than leak/paste/darknet records.
+
+        Args:
+            domain: Target domain
+        """
+        if not is_api_configured("intelx"):
+            return
+
+        try:
+            # Get IntelX API handler
+            handler = self.api_manager.get_handler("intelx")
+
+            # Search Phonebook for everything related to the domain
+            search_params = {
+                "term": domain,
+                "target": 0,  # 0 = All (domains, email addresses, URLs)
+                "maxresults": 20,
+                "timeout": 20,
+                "media": 0,  # All media types
+                "terminate": [],  # No reasons to terminate
+            }
+
+            # Run search request
+            search_resp = await handler.post("phonebook/search", data=search_params)
+
+            if search_resp and "id" in search_resp:
+                search_id = search_resp["id"]
+
+                # Wait for search to complete
+                max_attempts = 5
+                for attempt in range(max_attempts):
+                    # Check search status
+                    result_resp = await handler.get(
+                        f"phonebook/search/result?id={search_id}&limit=20"
+                    )
+
+                    if (
+                        result_resp
+                        and "selectors" in result_resp
+                        and result_resp["selectors"]
+                    ):
+                        # Process search results
+                        for selector in result_resp["selectors"]:
+                            self.results["intelx_phonebook"].append(
+                                {
+                                    "type": selector.get("selectortypeh", "Unknown"),
+                                    "value": selector.get("selectorvalue", ""),
+                                    "source": "IntelX Phonebook",
+                                }
+                            )
+                        break
+
+                    # Wait before retrying
+                    await asyncio.sleep(2)
+
+        except Exception as e:
+            logger.error(f"Error checking IntelX Phonebook: {str(e)}")
 
     async def _check_dark_web_alternative(
         self, domain: str, emails: Optional[List[str]] = None

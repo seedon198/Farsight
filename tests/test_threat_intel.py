@@ -87,3 +87,78 @@ async def test_check_intelx_does_not_await_sync_result_processing(monkeypatch):
 
     assert len(threat_intel.results["leaks"]) == 1
     assert threat_intel.results["leaks"][0]["date"] == "2026-07-13"
+
+
+@pytest.mark.asyncio
+async def test_check_intelx_phonebook_maps_selectors_to_results(monkeypatch):
+    monkeypatch.setattr(
+        "farsight.modules.threat_intel.is_api_configured", lambda provider: True
+    )
+
+    handler = MagicMock()
+    handler.post = AsyncMock(return_value={"id": "search-id-456"})
+    handler.get = AsyncMock(
+        return_value={
+            "selectors": [
+                {"selectortypeh": "Domain", "selectorvalue": "box.example.com"},
+                {
+                    "selectortypeh": "Email Address",
+                    "selectorvalue": "info@example.com",
+                },
+            ]
+        }
+    )
+
+    api_manager = MagicMock()
+    api_manager.get_handler = MagicMock(return_value=handler)
+
+    threat_intel = ThreatIntel(api_manager=api_manager)
+
+    await threat_intel._check_intelx_phonebook("example.com")
+
+    assert threat_intel.results["intelx_phonebook"] == [
+        {"type": "Domain", "value": "box.example.com", "source": "IntelX Phonebook"},
+        {
+            "type": "Email Address",
+            "value": "info@example.com",
+            "source": "IntelX Phonebook",
+        },
+    ]
+
+
+@pytest.mark.asyncio
+async def test_gather_intelligence_gates_intelx_phonebook_to_depth_2(monkeypatch):
+    monkeypatch.setattr(
+        "farsight.modules.threat_intel.is_api_configured", lambda provider: True
+    )
+
+    api_manager = MagicMock()
+    threat_intel = ThreatIntel(api_manager=api_manager)
+    threat_intel._check_phonebook = AsyncMock()
+    threat_intel._check_intelx = AsyncMock()
+    threat_intel._check_intelx_phonebook = AsyncMock()
+
+    await threat_intel.gather_intelligence("example.com", None, depth=1)
+    threat_intel._check_intelx_phonebook.assert_not_called()
+
+    await threat_intel.gather_intelligence("example.com", None, depth=2)
+    threat_intel._check_intelx_phonebook.assert_called_once_with("example.com")
+
+
+@pytest.mark.asyncio
+async def test_check_intelx_phonebook_failure_does_not_raise(monkeypatch):
+    monkeypatch.setattr(
+        "farsight.modules.threat_intel.is_api_configured", lambda provider: True
+    )
+
+    handler = MagicMock()
+    handler.post = AsyncMock(side_effect=RuntimeError("network error"))
+
+    api_manager = MagicMock()
+    api_manager.get_handler = MagicMock(return_value=handler)
+
+    threat_intel = ThreatIntel(api_manager=api_manager)
+
+    await threat_intel._check_intelx_phonebook("example.com")
+
+    assert threat_intel.results["intelx_phonebook"] == []
