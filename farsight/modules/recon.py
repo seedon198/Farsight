@@ -19,8 +19,9 @@ from farsight.utils.dns import (
     enum_subdomains,
     check_spf_dmarc,
 )
+from farsight.utils.masscan import MasscanPermissionError, MasscanScanner
 from farsight.utils.subdomain_enum import discover_subdomains
-from farsight.config import is_api_configured, REPORTS_DIR
+from farsight.config import is_api_configured, REPORTS_DIR, get_config
 
 
 class Recon:
@@ -36,6 +37,7 @@ class Recon:
         self.api_manager = api_manager or APIManager()
         self.dns_resolver = DNSResolver()
         self.port_scanner = PortScanner()
+        self.masscan_scanner = MasscanScanner()
         self.results = {
             "dns": {},
             "subdomains": [],
@@ -320,6 +322,118 @@ class Recon:
                 ip_mapping[domain] = [record["ip"] for record in records["A"]]
 
         return ip_mapping
+
+    async def _port_scan_targets(
+        self,
+        domains: List[str],
+        ips: Dict[str, List[str]],
+        ports: List[int],
+        rate: int,
+    ) -> Dict[str, Dict[str, Any]]:
+        """
+        Port scan every domain that resolved to an IP.
+
+        Domains sharing an IP (CDN, load balancer) are deduped so each
+        unique IP is only scanned once; the result is then fanned out to
+        every domain that resolved to it.
+
+        Args:
+            domains: Domains to scan (must be present in `ips` to be scanned)
+            ips: Mapping of domain -> resolved IPs (first IP is used)
+            ports: Ports to check
+            rate: masscan packets/sec rate (used only if masscan is available)
+
+        Returns:
+            Mapping of domain -> scan result, in the same shape as
+            PortScanner.scan_ports().
+        """
+        ip_to_domains: Dict[str, List[str]] = {}
+        for scan_domain in domains:
+            domain_ips = ips.get(scan_domain)
+            if domain_ips:
+                ip_to_domains.setdefault(domain_ips[0], []).append(scan_domain)
+
+        unique_ips = list(ip_to_domains.keys())
+        if not unique_ips:
+            return {}
+
+        ip_results = await self._scan_unique_ips(unique_ips, ports, rate)
+
+        domain_results: Dict[str, Dict[str, Any]] = {}
+        for ip, scan_result in ip_results.items():
+            for scan_domain in ip_to_domains[ip]:
+                domain_results[scan_domain] = scan_result
+
+        return domain_results
+
+    async def _scan_unique_ips(
+        self, unique_ips: List[str], ports: List[int], rate: int
+    ) -> Dict[str, Dict[str, Any]]:
+        """Scan a list of unique IPs, preferring masscan with an asyncio fallback."""
+        if self.masscan_scanner.is_available():
+            try:
+                return await self._masscan_scan_ips(unique_ips, ports, rate)
+            except MasscanPermissionError as e:
+                logger.info(
+                    "masscan needs elevated privileges (sudo or setcap), "
+                    f"falling back to built-in scanner: {e}"
+                )
+            except Exception as e:
+                logger.error(
+                    f"masscan scan failed, falling back to built-in scanner: {e}"
+                )
+        else:
+            logger.info("masscan not found, using built-in scanner")
+
+        return await self._fallback_scan_ips(unique_ips, ports)
+
+    async def _masscan_scan_ips(
+        self, unique_ips: List[str], ports: List[int], rate: int
+    ) -> Dict[str, Dict[str, Any]]:
+        """Bulk-discover open ports with masscan, then grab banners on just those."""
+        open_ports_by_ip = await self.masscan_scanner.scan(unique_ips, ports, rate)
+
+        banner_targets = []
+        banner_tasks = []
+        for ip, open_ports in open_ports_by_ip.items():
+            for port in open_ports:
+                banner_targets.append((ip, port))
+                banner_tasks.append(self.port_scanner.scan_port(ip, port))
+
+        banner_results = await asyncio.gather(*banner_tasks) if banner_tasks else []
+
+        ports_by_ip: Dict[str, List[Dict[str, Any]]] = {ip: [] for ip in unique_ips}
+        for (ip, port), port_result in zip(banner_targets, banner_results):
+            ports_by_ip[ip].append(
+                {
+                    "port": port,
+                    "open": True,
+                    "banner": port_result.get("banner")
+                    if port_result.get("open")
+                    else None,
+                }
+            )
+
+        timestamp = time.time()
+        return {
+            ip: {
+                "target": ip,
+                "timestamp": timestamp,
+                "total_ports": len(ports),
+                "open_ports": len(ports_by_ip[ip]),
+                "ports": ports_by_ip[ip],
+            }
+            for ip in unique_ips
+        }
+
+    async def _fallback_scan_ips(
+        self, unique_ips: List[str], ports: List[int]
+    ) -> Dict[str, Dict[str, Any]]:
+        """Scan each IP with the built-in asyncio scanner (masscan unavailable)."""
+        results = await asyncio.gather(
+            *(self.port_scanner.scan_ports(ip, ports) for ip in unique_ips)
+        )
+        return dict(zip(unique_ips, results))
 
     def _get_wordlist(self, depth: int) -> List[str]:
         """
