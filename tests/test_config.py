@@ -14,6 +14,10 @@ def test_get_config_returns_default_value():
     assert get_config("timeout") == 30
 
 
+def test_get_config_masscan_rate_default():
+    assert get_config("masscan_rate") == 10000
+
+
 def test_get_config_missing_key_returns_provided_default():
     assert get_config("does_not_exist", "fallback") == "fallback"
 

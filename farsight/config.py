@@ -35,6 +35,7 @@ DEFAULT_CONFIG = {
     "dns_wordlist": "default",
     "dns_resolver": "1.1.1.1",
     "port_scan_timeout": 2,
+    "masscan_rate": 10000,  # packets/sec for masscan discovery pass
     "default_ports": [
         21,
         22,
