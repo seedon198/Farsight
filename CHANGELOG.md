@@ -4,6 +4,13 @@ All notable changes to this project are documented here. Format loosely follows 
 
 ## [Unreleased]
 
+## [2.0.0-beta.2] - 2026-07-16
+
+### Fixed
+- README images (logo, conference banners, demo GIF, web UI screenshots) used repo-relative paths that rendered fine on GitHub but were broken on the PyPI project page; switched to absolute `raw.githubusercontent.com` URLs.
+- HTTP `User-Agent` sent by the tool advertised a stale version (`0.1.0`) and the old lowercase repo URL; now derived from `__version__` and points at the correct-cased `github.com/seedon198/Farsight`.
+- PyPI project page's "Homepage" link pointed at GitHub instead of the project site; now points to `farsight.click` (GitHub is still linked as "Repository").
+
 ## [2.0.0-beta.1] - 2026-07-16
 
 ### Added

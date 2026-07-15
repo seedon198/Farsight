@@ -10,6 +10,8 @@ from typing import Dict, Optional, Any
 
 from dotenv import find_dotenv, load_dotenv
 
+from farsight import __version__
+
 # Load variables from a .env file into the process environment before
 # API_KEYS below reads them. usecwd=True anchors the search at the caller's
 # current working directory instead of this installed package's location,
@@ -30,7 +32,7 @@ DEFAULT_CONFIG = {
     # General settings
     "log_level": "INFO",
     "timeout": 30,  # Default timeout for HTTP requests in seconds
-    "user_agent": "FARSIGHT/0.1.0 (+https://github.com/seedon198/farsight)",
+    "user_agent": f"FARSIGHT/{__version__} (+https://github.com/seedon198/Farsight)",
     "max_concurrent_requests": 10,
     # Module-specific settings
     "dns_wordlist": "default",
