@@ -240,7 +240,7 @@ button:disabled {
 
 .stats {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
   gap: 12px;
   padding: 16px 20px;
 }
@@ -395,6 +395,75 @@ button:disabled {
 .risk-badge.low {
   background: var(--success);
   color: #ffffff;
+}
+
+.risk-badge.critical {
+  background: var(--ink);
+  color: var(--accent-cta);
+}
+
+.threat-panel h2 {
+  margin: 0 0 12px;
+  font-family: var(--font-display);
+  font-size: 15px;
+  text-transform: uppercase;
+  color: var(--accent-primary);
+}
+
+.threat-groups {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.threat-group h3 {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-dim);
+}
+
+.threat-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.threat-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border: 2px solid var(--border);
+  border-radius: 0;
+  padding: 6px 10px;
+  background: var(--surface);
+  font-size: 12px;
+}
+
+.threat-item-title {
+  font-family: var(--font-mono);
+  word-break: break-all;
+}
+
+.threat-item-meta {
+  color: var(--ink-dim);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.threat-item-empty {
+  color: var(--ink-dim);
+  font-style: italic;
+  border-style: dashed;
+  justify-content: flex-start;
 }
 
 .graph-panel h2 {
