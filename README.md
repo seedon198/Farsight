@@ -80,11 +80,14 @@ Or run from source:
 ```bash
 git clone https://github.com/seedon198/Farsight.git
 cd Farsight
-python3 -m venv venv && source venv/bin/activate
+python3 -m venv venv
+source venv/bin/activate  # macOS/Linux
+# venv\Scripts\activate    # Windows (cmd)
+# venv\Scripts\Activate.ps1  # Windows (PowerShell)
 pip install -r requirements.txt
 ```
 
-Requires Python 3.10+.
+Requires Python 3.10+. After activation, use the `python` command (not `python3`) to run FARSIGHT — on Windows, `python3` often resolves to the Microsoft Store Python stub instead of your venv, which will report modules as missing even though `pip install` succeeded.
 
 ## Usage
 
