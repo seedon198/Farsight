@@ -53,7 +53,7 @@
 
 ## Features
 
-- **Organization Discovery:** WHOIS, certificate transparency, passive DNS, related domains
+- **Organization Discovery:** WHOIS, certificate transparency, passive DNS, related domains, acquisitions (M&A) via Wikidata, news, and optional Crunchbase
 - **Recon & Asset Discovery:** DNS enumeration, subdomain discovery, async port scanning
 - **Threat Intelligence:** leak detection, credential exposure, dark web mentions, email reputation
 - **Typosquatting Detection:** domain permutation, content similarity, risk scoring
@@ -134,7 +134,7 @@ Opens a browser at `http://127.0.0.1:8000` with real-time module progress, live 
 
 ## API Keys (optional)
 
-FARSIGHT works with zero configuration. Set these for deeper results:
+FARSIGHT works with zero configuration -- every source below is optional and just unlocks deeper results from that provider. Copy [`.env.example`](.env.example) to `.env` and fill in whichever keys you have.
 
 ```bash
 export FARSIGHT_SHODAN_API_KEY="..."
@@ -143,7 +143,18 @@ export FARSIGHT_SECURITYTRAILS_API_KEY="..."
 export FARSIGHT_VIRUSTOTAL_API_KEY="..."
 export FARSIGHT_INTELX_API_KEY="..."
 export FARSIGHT_LEAKPEEK_API_KEY="..."
+export FARSIGHT_CRUNCHBASE_API_KEY="..."
 ```
+
+| Key | Used for | Why add it |
+|---|---|---|
+| `FARSIGHT_SHODAN_API_KEY` | Recon: internet-wide host/device search | Surfaces exposed services and banners for the target's hosts beyond an active port scan |
+| `FARSIGHT_CENSYS_API_KEY` | Recon: host and certificate search | Cross-checks Shodan-style host data; certificate search needs a paid/org Censys tier |
+| `FARSIGHT_SECURITYTRAILS_API_KEY` | Org discovery: subdomains and org-wide domain search | Finds subdomains and related domains beyond what crt.sh and passive DNS surface for free |
+| `FARSIGHT_VIRUSTOTAL_API_KEY` | Recon: subdomain enumeration | Adds another passive subdomain source alongside crt.sh, RapidDNS, and DNSDB |
+| `FARSIGHT_INTELX_API_KEY` | Threat intel: dark web mentions, phonebook, documents | Without it, dark web checks fall back to a weaker free method; with it you get IntelX's phonebook and document search too |
+| `FARSIGHT_LEAKPEEK_API_KEY` | Threat intel: leaked credential search | Checks discovered emails against known breach data |
+| `FARSIGHT_CRUNCHBASE_API_KEY` | Org discovery: acquisitions (M&A) | Crunchbase has had no free tier since ~2020, so this is paid/opt-in; acquisition discovery already works without it via free Wikidata + news sources, this just adds a third, higher-confidence source |
 
 ## Development
 
