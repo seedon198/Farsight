@@ -4,6 +4,7 @@ This module provides a robust API management system with automatic retry,
 rate limiting, and graceful error handling for external service integrations.
 """
 
+import base64
 import aiohttp
 from typing import Any, Dict, List, Optional
 
@@ -94,6 +95,16 @@ class APIHandler:
             headers["Authorization"] = f"Bearer {self.api_key}"
         elif self.provider == "crunchbase":
             headers["X-cb-user-key"] = self.api_key
+        elif self.provider == "grayhatwarfare":
+            headers["Authorization"] = f"Bearer {self.api_key}"
+        elif self.provider == "fullhunt":
+            headers["X-API-KEY"] = self.api_key
+        elif self.provider == "netlas":
+            headers["Authorization"] = f"Bearer {self.api_key}"
+        elif self.provider == "zoomeye":
+            headers["API-KEY"] = self.api_key
+        elif self.provider == "onyphe":
+            headers["Authorization"] = f"bearer {self.api_key}"
         # Add more providers as needed
 
         try:
@@ -231,6 +242,19 @@ class APIManager:
                         "limit": 1,
                     },
                 )
+            elif provider == "grayhatwarfare":
+                await handler.get("buckets", params={"keywords": "test", "limit": 1})
+            elif provider == "fullhunt":
+                await handler.get("auth/status")
+            elif provider == "netlas":
+                await handler.get("host/1.1.1.1/")
+            elif provider == "zoomeye":
+                await handler.post(
+                    "search",
+                    data={"qbase64": base64.b64encode(b"port:443").decode(), "page": 1},
+                )
+            elif provider == "onyphe":
+                await handler.get("user")
             # Add more providers as needed
 
             # If no exception was raised, API is available

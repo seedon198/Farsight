@@ -16,6 +16,7 @@ from farsight.config import get_config, get_available_apis
 from farsight.utils.api_handler import APIManager
 from farsight.modules.org_discovery import OrgDiscovery
 from farsight.modules.recon import Recon
+from farsight.modules.attack_surface import AttackSurface
 from farsight.modules.threat_intel import ThreatIntel
 from farsight.modules.typosquat import TyposquatDetector
 from farsight.modules.news import NewsMonitor
@@ -24,6 +25,18 @@ from farsight.utils.common import get_service_name
 from farsight.utils import display
 
 # Removed the Typer app wrapper - we'll add the command directly to the main app
+
+
+def _collect_known_ips(recon_results: Dict[str, Any]) -> List[str]:
+    """Pull resolved IPs out of the recon module's DNS results, for the
+    attack surface module's cloud-IP tagging to check beyond what it
+    discovers itself via ASN/netblock lookups."""
+    known_ips = set()
+    for domain_records in (recon_results or {}).get("dns_records", {}).values():
+        for record in domain_records.get("A", []):
+            if record.get("ip"):
+                known_ips.add(record["ip"])
+    return list(known_ips)
 
 
 async def run_scan(
@@ -264,6 +277,100 @@ async def run_scan(
                     typer.secho(
                         f"  {results['recon']['subdomains'][i]}", fg=typer.colors.GREEN
                     )
+
+    # Run Extended Attack Surface module
+    if "attack_surface" in enabled_modules:
+        if verbose:
+            typer.secho("Starting ", fg=typer.colors.BRIGHT_YELLOW, bold=True, nl=False)
+            typer.secho(
+                "Extended Attack Surface",
+                fg=typer.colors.BRIGHT_GREEN,
+                bold=True,
+                nl=False,
+            )
+            typer.secho(" module...", fg=typer.colors.BRIGHT_YELLOW, bold=True)
+
+        org_name = results.get("org", {}).get("whois", {}).get("org")
+        subsidiaries = results.get("org", {}).get("acquisitions", [])
+        known_ips = _collect_known_ips(results.get("recon", {}))
+
+        async with AttackSurface(api_manager) as attack_surface:
+            results["attack_surface"] = await attack_surface.discover(
+                domain,
+                org_name=org_name,
+                subsidiaries=subsidiaries,
+                known_ips=known_ips,
+                depth=depth,
+            )
+
+        if verbose:
+            typer.secho(
+                "Extended Attack Surface complete",
+                fg=typer.colors.BRIGHT_BLUE,
+                bold=True,
+            )
+
+            attack_data = results["attack_surface"]
+            cloud_summary = attack_data.get("cloud_summary", {})
+
+            display.section("ATTACK SURFACE SUMMARY")
+            display.kv_rows(
+                [
+                    ("ASNs Found", attack_data.get("total_asns", 0), None),
+                    ("Netblocks Found", attack_data.get("total_netblocks", 0), None),
+                    (
+                        "Exposed Buckets",
+                        attack_data.get("total_exposed_buckets", 0),
+                        typer.colors.YELLOW
+                        if attack_data.get("total_exposed_buckets", 0) > 0
+                        else None,
+                    ),
+                    (
+                        "AWS-Tagged IPs/Blocks",
+                        cloud_summary.get("aws", 0),
+                        None,
+                    ),
+                    (
+                        "Azure-Tagged IPs/Blocks",
+                        cloud_summary.get("azure", 0),
+                        None,
+                    ),
+                    (
+                        "GCP-Tagged IPs/Blocks",
+                        cloud_summary.get("gcp", 0),
+                        None,
+                    ),
+                ]
+            )
+
+            if attack_data.get("exposed_buckets"):
+                display.section("EXPOSED BUCKETS")
+                max_display = min(5, len(attack_data["exposed_buckets"]))
+                display.item_list(
+                    [
+                        f"{b.get('bucket', 'Unknown')} ({b.get('type', 'unknown')}, "
+                        f"{b.get('file_count', 0)} files)"
+                        for b in attack_data["exposed_buckets"][:max_display]
+                    ],
+                    color=typer.colors.YELLOW,
+                )
+                if len(attack_data["exposed_buckets"]) > max_display:
+                    display.more(
+                        len(attack_data["exposed_buckets"]) - max_display, "buckets"
+                    )
+
+            if attack_data.get("asns"):
+                display.section("ASNS DISCOVERED")
+                max_display = min(5, len(attack_data["asns"]))
+                display.item_list(
+                    [
+                        f"AS{a.get('asn')} - "
+                        f"{a.get('ripestat_holder') or a.get('description') or 'Unknown'}"
+                        for a in attack_data["asns"][:max_display]
+                    ]
+                )
+                if len(attack_data["asns"]) > max_display:
+                    display.more(len(attack_data["asns"]) - max_display, "ASNs")
 
     # Extract emails for threat intelligence if available
     emails = []
@@ -634,7 +741,7 @@ def scan(
         None,
         "--modules",
         "-m",
-        help="Specific modules to run (org, recon, threat, typosquat, news)",
+        help="Specific modules to run (org, recon, threat, typosquat, news, attack_surface)",
     ),
     all_modules: bool = typer.Option(False, "--all", help="Run all available modules"),
     news: bool = typer.Option(False, "--news", help="Include news monitoring"),
@@ -643,6 +750,12 @@ def scan(
     ),
     threat_intel: bool = typer.Option(
         False, "--threat-intel", "-t", help="Include threat intelligence"
+    ),
+    attack_surface: bool = typer.Option(
+        False,
+        "--attack-surface",
+        "-a",
+        help="Include extended attack surface discovery (ASN/netblock/cloud/bucket search)",
     ),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Verbose output"),
     timeout: int = typer.Option(
@@ -682,6 +795,8 @@ def scan(
         enabled_modules.add("typosquat")
     if threat_intel:
         enabled_modules.add("threat")
+    if attack_surface:
+        enabled_modules.add("attack_surface")
 
     # Override with explicit modules if provided
     if modules:
@@ -696,7 +811,14 @@ def scan(
 
     # Run all modules if --all flag is set
     if all_modules:
-        enabled_modules = {"org", "recon", "threat", "typosquat", "news"}
+        enabled_modules = {
+            "org",
+            "recon",
+            "threat",
+            "typosquat",
+            "news",
+            "attack_surface",
+        }
 
     # Professional colorful output without emojis
     typer.secho(

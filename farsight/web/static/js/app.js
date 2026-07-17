@@ -16,6 +16,12 @@
   const typosquatPanel = document.getElementById("typosquat-panel");
   const typosquatGrid = document.getElementById("typosquat-grid");
   const threatPanel = document.getElementById("threat-panel");
+  const attackSurfacePanel = document.getElementById("attack-surface-panel");
+  const cloudBadges = {
+    aws: document.querySelector('[data-cloud="aws"]'),
+    azure: document.querySelector('[data-cloud="azure"]'),
+    gcp: document.querySelector('[data-cloud="gcp"]'),
+  };
   const threatLists = {
     leaks: document.getElementById("threat-leaks"),
     dark_web: document.getElementById("threat-dark-web"),
@@ -41,6 +47,168 @@
     stats[tile.dataset.stat] = tile.querySelector(".stat-value");
   });
 
+  function createPaginatedTable(mountEl, { headers, rowRenderer, pageSize, emptyText }) {
+    mountEl.innerHTML = "";
+    const wrap = document.createElement("div");
+    wrap.className = "paginated-table";
+
+    const table = document.createElement("table");
+    const thead = document.createElement("thead");
+    const headRow = document.createElement("tr");
+    headers.forEach((h) => {
+      const th = document.createElement("th");
+      th.textContent = h;
+      headRow.appendChild(th);
+    });
+    thead.appendChild(headRow);
+    const tbody = document.createElement("tbody");
+    table.appendChild(thead);
+    table.appendChild(tbody);
+
+    const pager = document.createElement("div");
+    pager.className = "pager";
+    const prevBtn = document.createElement("button");
+    prevBtn.type = "button";
+    prevBtn.className = "pager-btn";
+    prevBtn.textContent = "‹ Prev";
+    const pageLabel = document.createElement("span");
+    pageLabel.className = "pager-label";
+    const nextBtn = document.createElement("button");
+    nextBtn.type = "button";
+    nextBtn.className = "pager-btn";
+    nextBtn.textContent = "Next ›";
+    pager.appendChild(prevBtn);
+    pager.appendChild(pageLabel);
+    pager.appendChild(nextBtn);
+
+    wrap.appendChild(table);
+    wrap.appendChild(pager);
+    mountEl.appendChild(wrap);
+
+    let rows = [];
+    let page = 0;
+    const size = pageSize || 10;
+
+    function renderPage() {
+      tbody.innerHTML = "";
+      const totalPages = Math.max(1, Math.ceil(rows.length / size));
+      page = Math.min(page, totalPages - 1);
+
+      if (!rows.length) {
+        const tr = document.createElement("tr");
+        const td = document.createElement("td");
+        td.colSpan = headers.length;
+        td.className = "pager-empty";
+        td.textContent = emptyText || "No results.";
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+        pager.classList.add("hidden");
+        return;
+      }
+
+      pager.classList.toggle("hidden", totalPages <= 1);
+      const start = page * size;
+      rows.slice(start, start + size).forEach((row) => {
+        tbody.appendChild(rowRenderer(row));
+      });
+      pageLabel.textContent = `Page ${page + 1} of ${totalPages} (${rows.length} total)`;
+      prevBtn.disabled = page === 0;
+      nextBtn.disabled = page >= totalPages - 1;
+    }
+
+    prevBtn.addEventListener("click", () => {
+      page = Math.max(0, page - 1);
+      renderPage();
+    });
+    nextBtn.addEventListener("click", () => {
+      page += 1;
+      renderPage();
+    });
+
+    return {
+      setRows(newRows) {
+        rows = newRows || [];
+        page = 0;
+        renderPage();
+      },
+    };
+  }
+
+  function makeCell(text, className) {
+    const td = document.createElement("td");
+    if (className) td.className = className;
+    td.textContent = text === undefined || text === null || text === "" ? "-" : text;
+    return td;
+  }
+
+  function makeBadgeCell(type) {
+    const td = document.createElement("td");
+    if (!type) {
+      td.textContent = "-";
+      return td;
+    }
+    const badge = document.createElement("span");
+    badge.className = `type-badge ${type.toLowerCase()}`;
+    badge.textContent = type;
+    td.appendChild(badge);
+    return td;
+  }
+
+  const bucketsTable = createPaginatedTable(document.getElementById("buckets-table"), {
+    headers: ["Bucket", "Type", "Files", "Matched Keyword"],
+    pageSize: 10,
+    emptyText: "No exposed storage buckets discovered.",
+    rowRenderer: (b) => {
+      const tr = document.createElement("tr");
+      tr.appendChild(makeCell(b.bucket, "mono"));
+      tr.appendChild(makeBadgeCell(b.type));
+      tr.appendChild(makeCell(b.file_count));
+      tr.appendChild(makeCell(b.matched_keyword));
+      return tr;
+    },
+  });
+
+  const asnsTable = createPaginatedTable(document.getElementById("asns-table"), {
+    headers: ["ASN", "Holder", "Matched Keyword", "Source"],
+    pageSize: 10,
+    emptyText: "No ASNs discovered.",
+    rowRenderer: (a) => {
+      const tr = document.createElement("tr");
+      tr.appendChild(makeCell(`AS${a.asn}`, "mono"));
+      tr.appendChild(makeCell(a.ripestat_holder || a.description || a.name));
+      tr.appendChild(makeCell(a.matched_keyword));
+      tr.appendChild(makeCell(a.source));
+      return tr;
+    },
+  });
+
+  const netblocksTable = createPaginatedTable(document.getElementById("netblocks-table"), {
+    headers: ["CIDR", "ASN", "Description", "Cloud"],
+    pageSize: 10,
+    emptyText: "No netblocks discovered.",
+    rowRenderer: (n) => {
+      const tr = document.createElement("tr");
+      tr.appendChild(makeCell(n.cidr, "mono"));
+      tr.appendChild(makeCell(n.asn ? `AS${n.asn}` : null, "mono"));
+      tr.appendChild(makeCell(n.description));
+      tr.appendChild(makeBadgeCell(n.cloud ? n.cloud.provider : null));
+      return tr;
+    },
+  });
+
+  function renderAttackSurfacePanel(data) {
+    const cloud = data.cloud_summary || {};
+    cloudBadges.aws.textContent = cloud.aws || 0;
+    cloudBadges.azure.textContent = cloud.azure || 0;
+    cloudBadges.gcp.textContent = cloud.gcp || 0;
+
+    bucketsTable.setRows(data.exposed_buckets || []);
+    asnsTable.setRows(data.asns || []);
+    netblocksTable.setRows(data.netblocks || []);
+
+    attackSurfacePanel.classList.remove("hidden");
+  }
+
   function setConn(state, label) {
     connDot.className = "dot " + state;
     connText.textContent = label;
@@ -63,6 +231,11 @@
     typosquatGrid.innerHTML = "";
     threatPanel.classList.add("hidden");
     Object.values(threatLists).forEach((el) => (el.innerHTML = ""));
+    attackSurfacePanel.classList.add("hidden");
+    bucketsTable.setRows([]);
+    asnsTable.setRows([]);
+    netblocksTable.setRows([]);
+    Object.values(cloudBadges).forEach((el) => (el.textContent = "0"));
     Object.values(stats).forEach((el) => (el.textContent = "—"));
     Object.values(moduleRows).forEach((m) => {
       m.row.className = "module-row";
@@ -227,6 +400,8 @@
   const SUMMARY_FORMATTERS = {
     org: (d) => `${d.total_related_domains} related domains, ${d.total_subdomains} subdomains`,
     recon: (d) => `${d.total_subdomains} subdomains, ${d.total_open_ports} open ports`,
+    attack_surface: (d) =>
+      `${d.total_asns} ASNs, ${d.total_netblocks} netblocks, ${d.total_exposed_buckets} buckets`,
     threat: (d) =>
       `${d.total_leaks} leaks, ${d.total_credentials} exposed creds, ${d.total_intelx_phonebook} phonebook hits`,
     typosquat: (d) => `${d.total_active} active of ${d.total_generated} generated`,
@@ -239,6 +414,9 @@
       stats.ports.textContent = data.total_open_ports;
     } else if (moduleName === "org" && stats.subdomains.textContent === "—") {
       stats.subdomains.textContent = data.total_subdomains;
+    } else if (moduleName === "attack_surface") {
+      stats.asns.textContent = data.total_asns;
+      stats.buckets.textContent = data.total_exposed_buckets;
     } else if (moduleName === "threat") {
       stats.leaks.textContent = data.total_leaks + data.total_credentials;
       stats.phonebook.textContent = data.total_intelx_phonebook;
@@ -290,6 +468,7 @@
           updateGraph(ev.module, ev.data);
           if (ev.module === "typosquat") renderTyposquatPanel(ev.data);
           if (ev.module === "threat") renderThreatPanel(ev.data);
+          if (ev.module === "attack_surface") renderAttackSurfacePanel(ev.data);
         }
         break;
       }
