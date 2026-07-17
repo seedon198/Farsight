@@ -108,12 +108,16 @@ async def run_scan(
             # Certificate info
             cert_records = len(results["org"].get("certificate_transparency", []))
 
+            # Acquisitions (corporate M&A relationships)
+            acquisitions = results["org"].get("acquisitions", [])
+
             display.section("ORGANIZATION SUMMARY")
             display.kv_rows(
                 [
                     ("Related Domains", len(related_domains), None),
                     ("Discovered Subdomains", len(discovered_subdomains), None),
                     ("Certificate Records", cert_records, None),
+                    ("Acquisitions", len(acquisitions), None),
                 ]
             )
 
@@ -124,6 +128,22 @@ async def run_scan(
                 display.item_list(related_domains[:max_display])
                 if len(related_domains) > max_display:
                     display.more(len(related_domains) - max_display, "domains")
+
+            # Display acquisitions (limit to 5)
+            if acquisitions:
+                display.section("ACQUISITIONS")
+                max_display = min(5, len(acquisitions))
+                display.item_list(
+                    [
+                        f"{acq.get('org_name', 'Unknown')} "
+                        f"({acq.get('relationship', 'acquired')}, "
+                        f"{acq.get('domain') or 'domain unconfirmed'}, "
+                        f"via {acq.get('source', 'unknown')})"
+                        for acq in acquisitions[:max_display]
+                    ]
+                )
+                if len(acquisitions) > max_display:
+                    display.more(len(acquisitions) - max_display, "acquisitions")
 
             # If WHOIS info is available, display it
             if has_whois and results["org"].get("whois_info", {}).get("org"):

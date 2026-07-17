@@ -75,6 +75,9 @@ This report presents the findings from a reconnaissance scan of **{target}**.
 ### Certificate Transparency Data
 {certificate_transparency}
 
+### Acquisitions ({total_acquisitions})
+{acquisitions_list}
+
 ---
 """,
             "recon": """## Reconnaissance & Asset Discovery
@@ -413,11 +416,41 @@ All data in this report is presented for informational purposes only.
         else:
             ct_md = "No certificate transparency data available."
 
+        # Format acquisitions (corporate M&A relationships, distinct from
+        # related_domains which is same-owner infra found via DNS/certs)
+        acquisitions = org_results.get("acquisitions", [])
+        acquisitions_md = ""
+        if acquisitions:
+            acquisitions_md = (
+                "| Organization | Relationship | Domain | Source | Confidence |\n"
+                "|---|---|---|---|---|\n"
+            )
+            for acq in acquisitions[:30]:  # Limit to 30 for readability
+                relationship = (
+                    "Acquired"
+                    if acq.get("relationship") == "acquired"
+                    else "Acquired by"
+                )
+                acquisitions_md += (
+                    f"| {acq.get('org_name', 'Unknown')} "
+                    f"| {relationship} "
+                    f"| {acq.get('domain') or 'unconfirmed'} "
+                    f"| {acq.get('source', 'unknown')} "
+                    f"| {acq.get('confidence', 'low')} |\n"
+                )
+
+            if len(acquisitions) > 30:
+                acquisitions_md += f"\n... and {len(acquisitions) - 30} more\n"
+        else:
+            acquisitions_md = "No acquisitions or corporate relationships discovered."
+
         return self.templates["org_discovery"].format(
             whois_info=whois_md,
             total_related_domains=len(org_results.get("related_domains", [])),
             related_domains_list=domains_md,
             certificate_transparency=ct_md,
+            total_acquisitions=len(acquisitions),
+            acquisitions_list=acquisitions_md,
         )
 
     def _render_recon_section(self, recon_results: Dict[str, Any]) -> str:
