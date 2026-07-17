@@ -65,6 +65,11 @@ DEFAULT_CONFIG = {
     "news_results_limit": 10,
     "acquisition_news_lookback_days": 730,  # how far back to search news for acquisitions
     "intelx_cache_ttl": 21600,  # seconds a cached IntelX result is considered fresh (6h)
+    # Extended attack surface: how many org/subsidiary name keywords to query
+    # per scan against Shodan/GrayHatWarfare/BGPView/etc. Capped so a target
+    # with a long acquisition history doesn't blow through free-tier query
+    # budgets (GrayHatWarfare especially) or burn paid API credits.
+    "attack_surface_max_keywords": 5,
     # Rate limiting
     "rate_limit": {
         "default": 60,  # requests per minute
@@ -72,6 +77,11 @@ DEFAULT_CONFIG = {
         "censys": 120,
         "virustotal": 4,
         "crunchbase": 30,
+        "grayhatwarfare": 30,
+        "fullhunt": 30,
+        "netlas": 60,
+        "zoomeye": 30,
+        "onyphe": 30,
     },
 }
 
@@ -84,6 +94,11 @@ API_KEYS = {
     "intelx": os.environ.get("FARSIGHT_INTELX_API_KEY"),
     "leakpeek": os.environ.get("FARSIGHT_LEAKPEEK_API_KEY"),
     "crunchbase": os.environ.get("FARSIGHT_CRUNCHBASE_API_KEY"),
+    "grayhatwarfare": os.environ.get("FARSIGHT_GRAYHATWARFARE_API_KEY"),
+    "fullhunt": os.environ.get("FARSIGHT_FULLHUNT_API_KEY"),
+    "netlas": os.environ.get("FARSIGHT_NETLAS_API_KEY"),
+    "zoomeye": os.environ.get("FARSIGHT_ZOOMEYE_API_KEY"),
+    "onyphe": os.environ.get("FARSIGHT_ONYPHE_API_KEY"),
 }
 
 # User-overridable config from env vars
@@ -98,6 +113,11 @@ API_ENDPOINTS = {
     "intelx": "https://free.intelx.io",
     "leakpeek": "https://api.leakpeek.com",
     "crunchbase": "https://api.crunchbase.com/api/v4",
+    "grayhatwarfare": "https://buckets.grayhatwarfare.com/api/v2",
+    "fullhunt": "https://fullhunt.io/api/v1",
+    "netlas": "https://app.netlas.io/api",
+    "zoomeye": "https://api.zoomeye.ai/v2",
+    "onyphe": "https://www.onyphe.io/api/v2",
 }
 
 
