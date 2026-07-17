@@ -92,6 +92,8 @@ class APIHandler:
             headers["x-key"] = self.api_key
         elif self.provider == "leakpeek":
             headers["Authorization"] = f"Bearer {self.api_key}"
+        elif self.provider == "crunchbase":
+            headers["X-cb-user-key"] = self.api_key
         # Add more providers as needed
 
         try:
@@ -220,6 +222,15 @@ class APIManager:
                 await handler.get("authenticate/info")
             elif provider == "leakpeek":
                 await handler.get("user")
+            elif provider == "crunchbase":
+                await handler.get(
+                    "autocompletes",
+                    params={
+                        "query": "test",
+                        "collection_ids": "organizations",
+                        "limit": 1,
+                    },
+                )
             # Add more providers as needed
 
             # If no exception was raised, API is available

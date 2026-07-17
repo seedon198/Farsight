@@ -63,6 +63,7 @@ DEFAULT_CONFIG = {
     ],
     "typosquat_threshold": 80,  # Similarity threshold for typosquat detection
     "news_results_limit": 10,
+    "acquisition_news_lookback_days": 730,  # how far back to search news for acquisitions
     "intelx_cache_ttl": 21600,  # seconds a cached IntelX result is considered fresh (6h)
     # Rate limiting
     "rate_limit": {
@@ -70,6 +71,7 @@ DEFAULT_CONFIG = {
         "shodan": 60,
         "censys": 120,
         "virustotal": 4,
+        "crunchbase": 30,
     },
 }
 
@@ -81,6 +83,7 @@ API_KEYS = {
     "virustotal": os.environ.get("FARSIGHT_VIRUSTOTAL_API_KEY"),
     "intelx": os.environ.get("FARSIGHT_INTELX_API_KEY"),
     "leakpeek": os.environ.get("FARSIGHT_LEAKPEEK_API_KEY"),
+    "crunchbase": os.environ.get("FARSIGHT_CRUNCHBASE_API_KEY"),
 }
 
 # User-overridable config from env vars
@@ -94,6 +97,7 @@ API_ENDPOINTS = {
     "virustotal": "https://www.virustotal.com/api/v3",
     "intelx": "https://free.intelx.io",
     "leakpeek": "https://api.leakpeek.com",
+    "crunchbase": "https://api.crunchbase.com/api/v4",
 }
 
 

@@ -9,7 +9,7 @@ import asyncio
 import whois
 import aiohttp
 import re
-from typing import Dict, Optional, Any
+from typing import Dict, List, Optional, Any
 from bs4 import BeautifulSoup
 import urllib.parse
 
@@ -20,6 +20,40 @@ from farsight.config import get_config, is_api_configured
 _HOSTNAME_RE = re.compile(
     r"^(\*\.)?(?!-)[a-zA-Z0-9-]{1,63}(?<!-)(\.(?!-)[a-zA-Z0-9-]{1,63}(?<!-))+$"
 )
+
+_WIKIDATA_SPARQL_ENDPOINT = "https://query.wikidata.org/sparql"
+
+# Loosely matches a capitalized company-name fragment following/preceding an
+# acquisition verb in free-text news copy, e.g. "Acme Corp" in "acquires Acme
+# Corp for $10M". Deliberately permissive -- callers clean/verify the match.
+_ACQUISITION_NAME_FRAGMENT = r"([A-Z][\w&.,'-]*(?:\s+[A-Z][\w&.,'-]*){0,4})"
+
+# Trailing words the fragment regex sometimes over-captures (e.g. "Acme Corp
+# for" from "...acquires Acme Corp for $10 million").
+_ACQUISITION_TRAILING_STOPWORDS = {
+    "for",
+    "in",
+    "a",
+    "an",
+    "the",
+    "deal",
+    "amid",
+    "after",
+}
+
+
+def _looks_like_domain_website(value: Any) -> Optional[str]:
+    """Normalize a website/URL field (str or Wikidata/Crunchbase-style dict
+    with a 'value'/'url' key) down to a bare hostname, or None."""
+    if isinstance(value, dict):
+        value = value.get("value") or value.get("url")
+    if not isinstance(value, str) or not value.strip():
+        return None
+    parsed = urllib.parse.urlparse(value if "//" in value else f"//{value}")
+    netloc = parsed.netloc.lower()
+    if netloc.startswith("www."):
+        netloc = netloc[4:]
+    return netloc or None
 
 
 def _looks_like_hostname(value: str) -> bool:
@@ -45,6 +79,7 @@ class OrgDiscovery:
             "crt_sh": [],
             "passive_dns": [],
             "api_results": [],
+            "acquisitions": [],
         }
 
     async def __aenter__(self):
@@ -76,13 +111,20 @@ class OrgDiscovery:
             "crt_sh": [],
             "passive_dns": [],
             "api_results": [],
+            "acquisitions": [],
         }
 
-        # Use appropriate methods based on depth
-        tasks = [self._get_whois_info(domain)]
+        # Phase 1: WHOIS and certificate transparency don't depend on each
+        # other, but the acquisition lookups below need WHOIS's org name, so
+        # this phase must finish before phase 2 starts.
+        await asyncio.gather(
+            self._get_whois_info(domain),
+            self._get_crt_sh_domains(domain),
+        )
 
-        # Always check certificate transparency
-        tasks.append(self._get_crt_sh_domains(domain))
+        org_name = self.results["whois"].get("org") or domain.split(".")[0].title()
+
+        tasks = []
 
         # Deeper scans
         if depth >= 2:
@@ -94,14 +136,25 @@ class OrgDiscovery:
             if security_trails_task:
                 tasks.append(security_trails_task)
 
+            # Corporate acquisition lookups (free: Wikidata + news; optional
+            # paid: Crunchbase) -- gated at the same depth as SecurityTrails
+            # since they're all "extra API layer" lookups.
+            tasks.append(self._get_wikidata_acquisitions(domain))
+            tasks.append(self._get_news_acquisitions(org_name))
+
+            crunchbase_task = self._check_and_run_crunchbase(domain, org_name)
+            if crunchbase_task:
+                tasks.append(crunchbase_task)
+
         # For maximum depth, try additional API sources
         if depth >= 3:
             censys_task = self._check_and_run_censys(domain)
             if censys_task:
                 tasks.append(censys_task)
 
-        # Run all tasks concurrently
-        await asyncio.gather(*tasks)
+        # Run phase 2 tasks concurrently
+        if tasks:
+            await asyncio.gather(*tasks)
 
         # Process and deduplicate results
         base_domain_parts = domain.split(".")
@@ -145,6 +198,10 @@ class OrgDiscovery:
             "discovered_subdomains": sorted_subdomains,  # Subdomains of target
             "total_related_domains": len(sorted_domains),
             "total_subdomains": len(sorted_subdomains),
+            # Corporate (M&A) relationships, kept separate from related_domains:
+            # these are a different legal entity, not same-owner infra.
+            "acquisitions": self.results["acquisitions"],
+            "total_acquisitions": len(self.results["acquisitions"]),
         }
 
     async def _get_whois_info(self, domain: str) -> None:
@@ -315,6 +372,153 @@ class OrgDiscovery:
 
         self.results["passive_dns"] = list(domains)
 
+    @retry(max_retries=2, delay=1.0, backoff=2.0)
+    async def _get_wikidata_acquisitions(self, domain: str) -> None:
+        """
+        Find corporate acquisition relationships for the target via
+        Wikidata's structured subsidiary/owned-by data (P355/P127/P749).
+        Free and keyless, so this always runs at depth >= 2.
+
+        Args:
+            domain: Domain to query
+        """
+        if not self.session:
+            logger.error("Session not initialized. Use async with context.")
+            return
+
+        try:
+            entity_id = await self._find_wikidata_entity(domain)
+            if not entity_id:
+                return
+
+            relations = await self._fetch_wikidata_relations(entity_id)
+            for rel in relations:
+                self.results["acquisitions"].append(
+                    {
+                        "source": "wikidata",
+                        "relationship": rel["relationship"],
+                        "org_name": rel["org_name"],
+                        "domain": rel.get("domain"),
+                        "date": rel.get("date"),
+                        "evidence_url": f"https://www.wikidata.org/wiki/{entity_id}",
+                        "confidence": "high",
+                    }
+                )
+
+            if relations:
+                logger.info(
+                    f"Retrieved {len(relations)} acquisition relations from Wikidata"
+                )
+        except Exception as e:
+            logger.error(f"Error querying Wikidata for {domain}: {str(e)}")
+
+    async def _find_wikidata_entity(self, domain: str) -> Optional[str]:
+        """
+        Look up the Wikidata entity (Q-id) whose official website (P856)
+        matches the target domain.
+
+        Args:
+            domain: Domain to query
+
+        Returns:
+            Wikidata Q-id, or None if no matching entity was found
+        """
+        query = f"""
+        SELECT ?item WHERE {{
+          ?item wdt:P856 ?website .
+          FILTER(CONTAINS(LCASE(STR(?website)), "{domain.lower()}"))
+        }} LIMIT 1
+        """
+        data = await self._run_sparql_query(query)
+        bindings = data.get("results", {}).get("bindings", [])
+        if not bindings:
+            return None
+        uri = bindings[0]["item"]["value"]
+        return uri.rsplit("/", 1)[-1]
+
+    async def _fetch_wikidata_relations(self, entity_id: str) -> List[Dict[str, Any]]:
+        """
+        Fetch subsidiary (target acquired other) and owned-by/parent-org
+        (target was acquired by other) relations for a Wikidata entity,
+        including each relation's start-time qualifier (used as the
+        acquisition date) and the other entity's official website.
+
+        Args:
+            entity_id: Wikidata Q-id of the target's entity
+
+        Returns:
+            List of relation dicts with relationship/org_name/domain/date
+        """
+        query = f"""
+        SELECT ?relation ?otherLabel ?website ?start WHERE {{
+          {{
+            wd:{entity_id} p:P355 ?stmt .
+            ?stmt ps:P355 ?other .
+            BIND("acquired" AS ?relation)
+          }}
+          UNION
+          {{
+            wd:{entity_id} p:P127 ?stmt .
+            ?stmt ps:P127 ?other .
+            BIND("acquired_by" AS ?relation)
+          }}
+          UNION
+          {{
+            wd:{entity_id} p:P749 ?stmt .
+            ?stmt ps:P749 ?other .
+            BIND("acquired_by" AS ?relation)
+          }}
+          OPTIONAL {{ ?stmt pq:P580 ?start . }}
+          OPTIONAL {{ ?other wdt:P856 ?website . }}
+          SERVICE wikibase:label {{ bd:serviceParam wikibase:language "en". }}
+        }}
+        """
+        data = await self._run_sparql_query(query)
+
+        relations = []
+        for binding in data.get("results", {}).get("bindings", []):
+            org_name = binding.get("otherLabel", {}).get("value")
+            if not org_name:
+                continue
+
+            start = binding.get("start", {}).get("value")
+            relations.append(
+                {
+                    "relationship": binding["relation"]["value"],
+                    "org_name": org_name,
+                    "domain": _looks_like_domain_website(binding.get("website")),
+                    "date": start[:10] if start else None,
+                }
+            )
+        return relations
+
+    async def _run_sparql_query(self, query: str) -> Dict[str, Any]:
+        """
+        Execute a SPARQL query against Wikidata's public query service.
+
+        Args:
+            query: SPARQL query string
+
+        Returns:
+            Parsed JSON response
+        """
+        async with self.session.get(
+            _WIKIDATA_SPARQL_ENDPOINT,
+            params={"query": query, "format": "json"},
+            headers={
+                "Accept": "application/sparql-results+json",
+                "User-Agent": get_config("user_agent"),
+            },
+        ) as response:
+            if response.status != 200:
+                raise aiohttp.ClientResponseError(
+                    response.request_info,
+                    response.history,
+                    status=response.status,
+                    message=f"Wikidata SPARQL returned status {response.status}",
+                )
+            return await response.json()
+
     def _check_and_run_security_trails(self, domain: str) -> Optional[asyncio.Task]:
         """
         Check if SecurityTrails API is available and run query if it is.
@@ -327,6 +531,157 @@ class OrgDiscovery:
         """
         if is_api_configured("securitytrails"):
             return asyncio.create_task(self._query_security_trails(domain))
+        return None
+
+    async def _get_news_acquisitions(self, org_name: str) -> None:
+        """
+        Search recent news coverage for acquisition mentions involving the
+        target org. Matches are regex-derived from free text, so they start
+        at "low" confidence; a domain is only attached once confirmed via
+        WHOIS org-name overlap (see `_confirm_domain_for_org`).
+
+        Args:
+            org_name: Organization name to search for (from WHOIS, or a
+                domain-derived fallback)
+        """
+        try:
+            from farsight.modules.news import GNEWS_AVAILABLE, NewsMonitor
+
+            if not GNEWS_AVAILABLE:
+                logger.info(
+                    "gnews not available; skipping news-based acquisition search"
+                )
+                return
+
+            lookback_days = get_config("acquisition_news_lookback_days", 730)
+            patterns = self._build_acquisition_patterns(org_name)
+            seen = set()
+
+            async with NewsMonitor() as monitor:
+                for query in (f'"{org_name}" acquires', f'"{org_name}" acquired by'):
+                    news_result = await monitor.monitor(query, days=lookback_days)
+
+                    for article in news_result.get("articles", []):
+                        text = f"{article.get('title', '')} {article.get('snippet', '')}"
+
+                        for pattern, relationship in patterns:
+                            match = pattern.search(text)
+                            if not match:
+                                continue
+
+                            candidate = self._clean_acquisition_name(match.group(1))
+                            if not candidate or candidate.lower() == org_name.lower():
+                                continue
+
+                            key = (relationship, candidate.lower())
+                            if key in seen:
+                                continue
+                            seen.add(key)
+
+                            domain = await self._confirm_domain_for_org(candidate)
+
+                            self.results["acquisitions"].append(
+                                {
+                                    "source": "news",
+                                    "relationship": relationship,
+                                    "org_name": candidate,
+                                    "domain": domain,
+                                    "date": article.get("published"),
+                                    "evidence_url": article.get("url"),
+                                    "confidence": "medium" if domain else "low",
+                                }
+                            )
+
+            if seen:
+                logger.info(f"Retrieved {len(seen)} candidate acquisitions from news")
+        except Exception as e:
+            logger.error(
+                f"Error searching news for acquisitions involving {org_name}: {str(e)}"
+            )
+
+    @staticmethod
+    def _build_acquisition_patterns(org_name: str) -> List[Any]:
+        """Build regexes that catch both acquisition directions ("target
+        acquires X" and "target acquired by X") for a given org name.
+
+        Only the org name and the acquisition-verb phrase are matched
+        case-insensitively (via scoped `(?i:...)` groups); the captured
+        fragment itself stays case-sensitive since `[A-Z]`-starts-word is
+        the whole signal used to spot a proper noun in free text -- a bare
+        `re.IGNORECASE` flag would let lowercase filler words match too.
+        """
+        escaped = re.escape(org_name)
+        return [
+            (
+                re.compile(
+                    rf"(?i:{escaped})\s+(?i:(?:has\s+)?(?:acquires?|acquired|to acquire))\s+"
+                    rf"{_ACQUISITION_NAME_FRAGMENT}"
+                ),
+                "acquired",
+            ),
+            (
+                re.compile(
+                    rf"{_ACQUISITION_NAME_FRAGMENT}\s+(?i:acquires|has acquired|to acquire)\s+"
+                    rf"(?i:{escaped})"
+                ),
+                "acquired_by",
+            ),
+            (
+                re.compile(
+                    rf"(?i:{escaped})\s+(?i:is|was|has been)\s+(?i:acquired by)\s+"
+                    rf"{_ACQUISITION_NAME_FRAGMENT}"
+                ),
+                "acquired_by",
+            ),
+        ]
+
+    @staticmethod
+    def _clean_acquisition_name(raw: str) -> str:
+        """Trim trailing connector words the fragment regex over-captured,
+        e.g. "Acme Corp for" -> "Acme Corp"."""
+        name = raw.strip().rstrip(".,;:")
+        words = name.split()
+        while words and words[-1].lower() in _ACQUISITION_TRAILING_STOPWORDS:
+            words.pop()
+        return " ".join(words)
+
+    async def _confirm_domain_for_org(self, org_name: str) -> Optional[str]:
+        """
+        Best-effort domain resolution for a news-derived acquisition: guess a
+        .com domain from the company name and confirm it via WHOIS org-field
+        token overlap. Returns None (rather than a possibly-wrong guess) when
+        confirmation fails.
+
+        Args:
+            org_name: Candidate acquired/acquiring company name
+
+        Returns:
+            Confirmed domain, or None if it couldn't be confirmed
+        """
+        guess = re.sub(r"[^a-z0-9]", "", org_name.lower())
+        if not guess:
+            return None
+        guessed_domain = f"{guess}.com"
+
+        try:
+            loop = asyncio.get_event_loop()
+            whois_data = await loop.run_in_executor(None, whois.whois, guessed_domain)
+        except Exception:
+            return None
+
+        whois_org = getattr(whois_data, "org", None)
+        if not whois_org:
+            return None
+
+        significant_org_tokens = {
+            token
+            for token in re.findall(r"[a-z0-9]+", org_name.lower())
+            if len(token) > 2
+        }
+        whois_tokens = set(re.findall(r"[a-z0-9]+", str(whois_org).lower()))
+
+        if significant_org_tokens and significant_org_tokens & whois_tokens:
+            return guessed_domain
         return None
 
     def _check_and_run_censys(self, domain: str) -> Optional[asyncio.Task]:
@@ -461,3 +816,183 @@ class OrgDiscovery:
                     logger.info(f"Retrieved {len(domains)} domains from Censys")
         except Exception as e:
             logger.error(f"Error querying Censys API: {str(e)}")
+
+    def _check_and_run_crunchbase(
+        self, domain: str, org_name: str
+    ) -> Optional[asyncio.Task]:
+        """
+        Check if the Crunchbase API is available and run query if it is.
+
+        Crunchbase's REST API has had no usable free tier since ~2020
+        (Enterprise/paid only), so this is opt-in like SecurityTrails: it
+        only fires for users who've configured a key.
+
+        Args:
+            domain: Domain to query
+            org_name: Organization name to search for
+
+        Returns:
+            Task for Crunchbase API query or None if API not available
+        """
+        if is_api_configured("crunchbase"):
+            return asyncio.create_task(self._query_crunchbase(domain, org_name))
+        return None
+
+    async def _query_crunchbase(self, domain: str, org_name: str) -> None:
+        """
+        Query Crunchbase for acquisitions the target organization made
+        (acquiree_acquisitions) or was subject to (acquirer_acquisitions).
+
+        Field/card names below match Crunchbase's v4 REST API docs at time
+        of writing. Response parsing is defensive (nested `.get()` chains,
+        try/except per record) since this can't be verified against a live
+        key here -- a shape mismatch degrades to "no Crunchbase results"
+        rather than failing the scan.
+
+        Args:
+            domain: Domain to query
+            org_name: Organization name to search for
+        """
+        try:
+            handler = self.api_manager.get_handler("crunchbase")
+
+            permalink = await self._resolve_crunchbase_permalink(
+                handler, domain, org_name
+            )
+            if not permalink:
+                return
+
+            response = await handler.get(
+                f"entities/organizations/{permalink}",
+                params={"card_ids": "acquiree_acquisitions,acquirer_acquisitions"},
+            )
+            if not response:
+                return
+
+            cards = response.get("cards", {}) or {}
+            found = 0
+
+            for record in cards.get("acquiree_acquisitions") or []:
+                if self._append_crunchbase_acquisition(record, "acquired"):
+                    found += 1
+
+            for record in cards.get("acquirer_acquisitions") or []:
+                if self._append_crunchbase_acquisition(record, "acquired_by"):
+                    found += 1
+
+            if found:
+                logger.info(f"Retrieved {found} acquisitions from Crunchbase")
+        except Exception as e:
+            logger.error(f"Error querying Crunchbase API: {str(e)}")
+
+    async def _resolve_crunchbase_permalink(
+        self, handler: Any, domain: str, org_name: str
+    ) -> Optional[str]:
+        """
+        Resolve the target to a Crunchbase organization permalink: try a
+        domain-field search first (most precise), then fall back to an
+        organization-name autocomplete lookup.
+
+        Args:
+            handler: Crunchbase APIHandler
+            domain: Domain to search for
+            org_name: Organization name to search for as a fallback
+
+        Returns:
+            Crunchbase permalink, or None if no match was found
+        """
+        try:
+            search_response = await handler.post(
+                "searches/organizations",
+                data={
+                    "field_ids": ["identifier"],
+                    "query": [
+                        {
+                            "type": "predicate",
+                            "field_id": "website",
+                            "operator_id": "contains",
+                            "values": [domain],
+                        }
+                    ],
+                    "limit": 1,
+                },
+            )
+            for entity in (search_response or {}).get("entities", []):
+                permalink = (entity.get("identifier") or {}).get("permalink")
+                if permalink:
+                    return permalink
+        except Exception as e:
+            logger.warning(f"Crunchbase domain search failed for {domain}: {str(e)}")
+
+        try:
+            response = await handler.get(
+                "autocompletes",
+                params={
+                    "query": org_name,
+                    "collection_ids": "organizations",
+                    "limit": 5,
+                },
+            )
+            for entity in (response or {}).get("entities", []):
+                permalink = (entity.get("identifier") or {}).get("permalink")
+                if permalink:
+                    return permalink
+        except Exception as e:
+            logger.warning(
+                f"Crunchbase autocomplete lookup failed for {org_name}: {str(e)}"
+            )
+
+        return None
+
+    def _append_crunchbase_acquisition(
+        self, record: Dict[str, Any], relationship: str
+    ) -> bool:
+        """
+        Parse one Crunchbase acquisition card record and append it to
+        results if it names the other party. Malformed records are skipped
+        rather than raised, since the exact card shape isn't verified here.
+
+        Args:
+            record: A single acquiree_acquisitions/acquirer_acquisitions entry
+            relationship: "acquired" or "acquired_by"
+
+        Returns:
+            True if a record was appended, False if it was skipped
+        """
+        try:
+            properties = record.get("properties", {}) or {}
+            other_key = "acquiree" if relationship == "acquired" else "acquirer"
+            other_side = properties.get(other_key) or {}
+
+            org_name = other_side.get("value")
+            if not org_name:
+                return False
+
+            domain = _looks_like_domain_website(
+                properties.get(f"{other_key}_website")
+                or properties.get("website")
+                or properties.get("domain")
+            )
+
+            permalink = other_side.get("permalink")
+            evidence_url = (
+                f"https://www.crunchbase.com/organization/{permalink}"
+                if permalink
+                else None
+            )
+
+            self.results["acquisitions"].append(
+                {
+                    "source": "crunchbase",
+                    "relationship": relationship,
+                    "org_name": org_name,
+                    "domain": domain,
+                    "date": properties.get("announced_on"),
+                    "evidence_url": evidence_url,
+                    "confidence": "high" if domain else "medium",
+                }
+            )
+            return True
+        except Exception as e:
+            logger.warning(f"Skipping malformed Crunchbase acquisition record: {str(e)}")
+            return False
