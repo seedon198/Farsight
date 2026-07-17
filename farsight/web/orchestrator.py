@@ -18,6 +18,7 @@ the frontend should not be able to tell the difference.
 import asyncio
 from typing import Any, Awaitable, Callable, Dict, List, Optional
 
+from farsight.modules.attack_surface import AttackSurface
 from farsight.modules.news import NewsMonitor
 from farsight.modules.org_discovery import OrgDiscovery
 from farsight.modules.recon import Recon
@@ -31,7 +32,19 @@ from farsight.web.scan_manager import scan_manager
 
 EmitFn = Callable[[ScanEvent], Awaitable[None]]
 
-MODULE_ORDER = ["org", "recon", "threat", "typosquat", "news"]
+MODULE_ORDER = ["org", "recon", "attack_surface", "threat", "typosquat", "news"]
+
+
+def _collect_known_ips(recon_result: Dict[str, Any]) -> List[str]:
+    """Pull resolved IPs out of the recon module's DNS results, for the
+    attack surface module's cloud-IP tagging to check beyond what it
+    discovers itself via ASN/netblock lookups."""
+    known_ips = set()
+    for domain_records in (recon_result or {}).get("dns_records", {}).values():
+        for record in domain_records.get("A", []):
+            if record.get("ip"):
+                known_ips.add(record["ip"])
+    return list(known_ips)
 
 
 def org_summary(result: Dict[str, Any]) -> Dict[str, Any]:
@@ -55,6 +68,20 @@ def recon_summary(result: Dict[str, Any]) -> Dict[str, Any]:
         "spf_found": bool((email_security.get("spf") or {}).get("found")),
         "dmarc_found": bool((email_security.get("dmarc") or {}).get("found")),
         "subdomains": (result.get("subdomains") or [])[:200],
+    }
+
+
+def attack_surface_summary(result: Dict[str, Any]) -> Dict[str, Any]:
+    return {
+        "total_asns": result.get("total_asns", 0),
+        "total_netblocks": result.get("total_netblocks", 0),
+        "total_exposed_buckets": result.get("total_exposed_buckets", 0),
+        "cloud_summary": result.get("cloud_summary", {}),
+        # Full (capped) lists so the frontend can render finding details,
+        # not just the roll-up counts above.
+        "asns": (result.get("asns") or [])[:100],
+        "netblocks": (result.get("netblocks") or [])[:200],
+        "exposed_buckets": (result.get("exposed_buckets") or [])[:50],
     }
 
 
@@ -96,6 +123,7 @@ def news_summary(result: Dict[str, Any]) -> Dict[str, Any]:
 SUMMARY_BUILDERS = {
     "org": org_summary,
     "recon": recon_summary,
+    "attack_surface": attack_surface_summary,
     "threat": threat_summary,
     "typosquat": typosquat_summary,
     "news": news_summary,
@@ -200,6 +228,39 @@ async def run_scan_with_events(
                 await emit(
                     ScanEvent(
                         type=EventType.MODULE_ERROR, module="recon", message=str(e)
+                    )
+                )
+
+        if "attack_surface" in enabled:
+            await emit(
+                ScanEvent(type=EventType.MODULE_STARTED, module="attack_surface")
+            )
+            try:
+                org_name = results.get("org", {}).get("whois", {}).get("org")
+                subsidiaries = results.get("org", {}).get("acquisitions", [])
+                known_ips = _collect_known_ips(results.get("recon", {}))
+                async with AttackSurface(api_manager) as attack_surface:
+                    results["attack_surface"] = await attack_surface.discover(
+                        domain,
+                        org_name=org_name,
+                        subsidiaries=subsidiaries,
+                        known_ips=known_ips,
+                        depth=depth,
+                    )
+                await emit(
+                    ScanEvent(
+                        type=EventType.MODULE_COMPLETED,
+                        module="attack_surface",
+                        data=attack_surface_summary(results["attack_surface"]),
+                    )
+                )
+            except Exception as e:
+                logger.exception("attack_surface module failed")
+                await emit(
+                    ScanEvent(
+                        type=EventType.MODULE_ERROR,
+                        module="attack_surface",
+                        message=str(e),
                     )
                 )
 

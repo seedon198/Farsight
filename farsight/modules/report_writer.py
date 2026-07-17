@@ -100,6 +100,28 @@ This report presents the findings from a reconnaissance scan of **{target}**.
 
 ---
 """,
+            "attack_surface": """## Extended Attack Surface
+
+Assets found by org/ASN ownership and cloud IP-range membership, not by
+certificate hostname matching -- expect false positives.
+
+### ASNs Discovered ({total_asns})
+{asns_list}
+
+### Netblocks Discovered ({total_netblocks})
+{netblocks_list}
+
+### Cloud Provider Exposure
+{cloud_summary}
+
+### Exposed Storage Buckets ({total_buckets})
+{buckets_list}
+
+### Internet Scan Engine Results
+{scan_engine_results}
+
+---
+""",
             "threat_intel": """## Threat Intelligence
 
 ### Data Leaks & Breaches
@@ -186,6 +208,11 @@ All data in this report is presented for informational purposes only.
 
         if "recon" in modules and "recon" in results:
             report_content += self._render_recon_section(results["recon"])
+
+        if "attack_surface" in modules and "attack_surface" in results:
+            report_content += self._render_attack_surface_section(
+                results["attack_surface"]
+            )
 
         if "threat" in modules and "threat" in results:
             report_content += self._render_threat_section(results["threat"])
@@ -615,6 +642,91 @@ All data in this report is presented for informational purposes only.
             port_scan_summary=port_scan_summary,
             port_scan_details=port_scan_details,
             email_security=email_md,
+        )
+
+    def _render_attack_surface_section(self, attack_results: Dict[str, Any]) -> str:
+        """Render extended attack surface section."""
+        asns = attack_results.get("asns", [])
+        asns_md = ""
+        if asns:
+            asns_md = "| ASN | Holder | Matched Keyword | Source |\n|---|---|---|---|\n"
+            for a in asns[:30]:
+                holder = (
+                    a.get("ripestat_holder")
+                    or a.get("description")
+                    or a.get("name")
+                    or "Unknown"
+                )
+                asns_md += (
+                    f"| AS{a.get('asn')} | {holder} "
+                    f"| {a.get('matched_keyword', '')} | {a.get('source', '')} |\n"
+                )
+            if len(asns) > 30:
+                asns_md += f"\n... and {len(asns) - 30} more\n"
+        else:
+            asns_md = "No ASNs discovered."
+
+        netblocks = attack_results.get("netblocks", [])
+        netblocks_md = ""
+        if netblocks:
+            netblocks_md = "| CIDR | ASN | Description | Cloud |\n|---|---|---|---|\n"
+            for n in netblocks[:50]:
+                cloud = n.get("cloud")
+                cloud_str = (
+                    f"{cloud['provider'].upper()} ({cloud.get('region') or 'unknown region'})"
+                    if cloud
+                    else "-"
+                )
+                netblocks_md += (
+                    f"| {n.get('cidr')} | AS{n.get('asn')} "
+                    f"| {n.get('description') or ''} | {cloud_str} |\n"
+                )
+            if len(netblocks) > 50:
+                netblocks_md += f"\n... and {len(netblocks) - 50} more\n"
+        else:
+            netblocks_md = "No netblocks discovered."
+
+        cloud_summary = attack_results.get("cloud_summary", {})
+        cloud_md = (
+            f"- **AWS:** {cloud_summary.get('aws', 0)} IPs/netblocks tagged\n"
+            f"- **Azure:** {cloud_summary.get('azure', 0)} IPs/netblocks tagged\n"
+            f"- **GCP:** {cloud_summary.get('gcp', 0)} IPs/netblocks tagged\n"
+        )
+
+        buckets = attack_results.get("exposed_buckets", [])
+        buckets_md = ""
+        if buckets:
+            buckets_md = (
+                "| Bucket | Type | File Count | Matched Keyword |\n|---|---|---|---|\n"
+            )
+            for b in buckets[:30]:
+                buckets_md += (
+                    f"| {b.get('bucket')} | {(b.get('type') or '').upper()} "
+                    f"| {b.get('file_count', 0)} | {b.get('matched_keyword', '')} |\n"
+                )
+            if len(buckets) > 30:
+                buckets_md += f"\n... and {len(buckets) - 30} more\n"
+        else:
+            buckets_md = "No exposed storage buckets discovered."
+
+        engine_rows = [
+            f"- **Shodan:** {attack_results.get('total_shodan_org_results', 0)} "
+            "total matches reported across org/keyword queries (not all fetched)",
+            f"- **FullHunt:** {attack_results.get('total_fullhunt_hosts', 0)} hosts",
+            f"- **Netlas:** {attack_results.get('total_netlas_hosts', 0)} hosts",
+            f"- **ZoomEye:** {attack_results.get('total_zoomeye_hosts', 0)} hosts",
+            f"- **Onyphe:** {attack_results.get('total_onyphe_hosts', 0)} hosts",
+        ]
+
+        return self.templates["attack_surface"].format(
+            total_asns=len(asns),
+            asns_list=asns_md,
+            total_netblocks=len(netblocks),
+            netblocks_list=netblocks_md,
+            cloud_summary=cloud_md,
+            total_buckets=len(buckets),
+            buckets_list=buckets_md,
+            scan_engine_results="\n".join(engine_rows),
         )
 
     def _render_threat_section(self, threat_results: Dict[str, Any]) -> str:
