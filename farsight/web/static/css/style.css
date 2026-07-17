@@ -402,6 +402,169 @@ button:disabled {
   color: var(--accent-cta);
 }
 
+.attack-surface-panel h2 {
+  margin: 0 0 6px;
+  font-family: var(--font-display);
+  font-size: 15px;
+  text-transform: uppercase;
+  color: var(--accent-primary);
+}
+
+.panel-subtitle {
+  margin: 0 0 14px;
+  color: var(--ink-dim);
+  font-size: 12px;
+  font-style: italic;
+}
+
+.cloud-summary {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+
+.cloud-badge {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  border: 2px solid var(--border);
+  box-shadow: 3px 3px 0 0 var(--ink);
+  padding: 8px 14px;
+  background: var(--panel);
+}
+
+.cloud-badge-value {
+  font-family: var(--font-display);
+  font-size: 20px;
+}
+
+.cloud-badge-label {
+  font-size: 11px;
+  color: var(--ink-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.cloud-aws .cloud-badge-value { color: #e8862a; }
+.cloud-azure .cloud-badge-value { color: var(--info); }
+.cloud-gcp .cloud-badge-value { color: var(--success); }
+
+.attack-surface-group {
+  margin-bottom: 18px;
+}
+
+.attack-surface-group:last-child {
+  margin-bottom: 0;
+}
+
+.attack-surface-group h3 {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-dim);
+}
+
+.paginated-table {
+  border: 2px solid var(--border);
+  background: var(--surface);
+}
+
+.paginated-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.paginated-table th,
+.paginated-table td {
+  text-align: left;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+  word-break: break-word;
+}
+
+.paginated-table th {
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-size: 11px;
+  color: var(--ink-dim);
+  background: var(--code-bg);
+}
+
+.paginated-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.paginated-table td.mono {
+  font-family: var(--font-mono);
+}
+
+.pager-empty {
+  color: var(--ink-dim);
+  font-style: italic;
+  text-align: center !important;
+}
+
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border-top: 2px solid var(--border);
+}
+
+.pager.hidden {
+  display: none;
+}
+
+.pager-label {
+  font-size: 11px;
+  color: var(--ink-dim);
+}
+
+.pager-btn {
+  background: var(--panel);
+  color: var(--ink);
+  border: 2px solid var(--border);
+  border-radius: 0;
+  box-shadow: 2px 2px 0 0 var(--ink);
+  padding: 4px 10px;
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  text-transform: uppercase;
+}
+
+.pager-btn:hover:not(:disabled) {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 0 var(--ink);
+}
+
+.pager-btn:disabled {
+  background: var(--surface);
+  color: var(--ink-dim);
+  border-color: var(--ink-dim);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.type-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border: 1px solid var(--border);
+  text-transform: uppercase;
+}
+
+.type-badge.aws { background: #e8862a; color: #ffffff; }
+.type-badge.azure { background: var(--info); color: #ffffff; }
+.type-badge.gcp { background: var(--success); color: #ffffff; }
+.type-badge.dos, .type-badge.ali { background: var(--ink); color: var(--accent-cta); }
+
 .threat-panel h2 {
   margin: 0 0 12px;
   font-family: var(--font-display);
