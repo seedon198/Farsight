@@ -48,6 +48,7 @@
           <legend>Modules</legend>
           <label><input type="checkbox" name="modules" value="org" checked /> Org Discovery</label>
           <label><input type="checkbox" name="modules" value="recon" checked /> Recon</label>
+          <label><input type="checkbox" name="modules" value="attack_surface" checked /> Attack Surface</label>
           <label><input type="checkbox" name="modules" value="threat" checked /> Threat Intel</label>
           <label><input type="checkbox" name="modules" value="typosquat" checked /> Typosquat</label>
           <label><input type="checkbox" name="modules" value="news" checked /> News</label>
@@ -63,6 +64,8 @@
       <div class="stat-tile" data-stat="phonebook"><span class="stat-value">&mdash;</span><span class="stat-label">Phonebook Hits</span></div>
       <div class="stat-tile" data-stat="typosquats"><span class="stat-value">&mdash;</span><span class="stat-label">Typosquats</span></div>
       <div class="stat-tile" data-stat="news"><span class="stat-value">&mdash;</span><span class="stat-label">News Articles</span></div>
+      <div class="stat-tile" data-stat="asns"><span class="stat-value">&mdash;</span><span class="stat-label">ASNs Found</span></div>
+      <div class="stat-tile" data-stat="buckets"><span class="stat-value">&mdash;</span><span class="stat-label">Exposed Buckets</span></div>
     </section>
 
     <section class="panel progress" id="progress">
@@ -75,6 +78,11 @@
         <li class="module-row" data-module="recon">
           <span class="module-status"></span>
           <span class="module-name">Reconnaissance &amp; Assets</span>
+          <span class="module-summary"></span>
+        </li>
+        <li class="module-row" data-module="attack_surface">
+          <span class="module-status"></span>
+          <span class="module-name">Extended Attack Surface</span>
           <span class="module-summary"></span>
         </li>
         <li class="module-row" data-module="threat">
@@ -98,6 +106,32 @@
     <section class="panel graph-panel" id="graph-panel">
       <h2>Attack Surface</h2>
       <div id="graph"></div>
+    </section>
+
+    <section class="panel attack-surface-panel hidden" id="attack-surface-panel">
+      <h2>Extended Attack Surface</h2>
+      <p class="panel-subtitle">Assets found by org/ASN ownership and cloud IP-range membership, not certificate hostname matching &mdash; expect false positives.</p>
+
+      <div class="cloud-summary" id="cloud-summary">
+        <div class="cloud-badge cloud-aws"><span class="cloud-badge-value" data-cloud="aws">0</span><span class="cloud-badge-label">AWS</span></div>
+        <div class="cloud-badge cloud-azure"><span class="cloud-badge-value" data-cloud="azure">0</span><span class="cloud-badge-label">Azure</span></div>
+        <div class="cloud-badge cloud-gcp"><span class="cloud-badge-value" data-cloud="gcp">0</span><span class="cloud-badge-label">GCP</span></div>
+      </div>
+
+      <div class="attack-surface-group">
+        <h3>Exposed Storage Buckets</h3>
+        <div id="buckets-table"></div>
+      </div>
+
+      <div class="attack-surface-group">
+        <h3>ASNs Discovered</h3>
+        <div id="asns-table"></div>
+      </div>
+
+      <div class="attack-surface-group">
+        <h3>Netblocks Discovered</h3>
+        <div id="netblocks-table"></div>
+      </div>
     </section>
 
     <section class="panel threat-panel hidden" id="threat-panel">
