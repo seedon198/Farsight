@@ -1,4 +1,4 @@
-"""`farsight web` — launch the local web UI."""
+"""`farsight web` - launch the local web UI."""
 
 import webbrowser
 from pathlib import Path
@@ -62,7 +62,7 @@ def web(
             )
             raise typer.Exit(1)
         typer.secho(
-            f"Demo mode: replaying {demo_fixture.name} — no network calls will be made.",
+            f"Demo mode: replaying {demo_fixture.name} - no network calls will be made.",
             fg=typer.colors.BRIGHT_CYAN,
         )
 

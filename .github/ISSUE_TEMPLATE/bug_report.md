@@ -27,4 +27,4 @@ What actually happened. Paste the full error/traceback if there is one.
 - Installed via: pip / poetry / source checkout
 
 **Additional context**
-Anything else that might help (target domain type, API keys configured, etc. — please don't paste actual API keys or scan results containing sensitive data).
+Anything else that might help (target domain type, API keys configured, etc. - please don't paste actual API keys or scan results containing sensitive data).

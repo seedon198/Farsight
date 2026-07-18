@@ -5,11 +5,11 @@ produces) and emits the identical ScanEvent sequence run_scan_with_
 events() would, with artificial pacing between module start/complete
 so it reads like a live scan. Because it reuses the same summary
 builders and finalize_scan() as the live path, the frontend needs
-zero changes to support this — useful when DEF CON's venue network
+zero changes to support this - useful when DEF CON's venue network
 can't be relied on for a live demo.
 
 Fixtures are captured ahead of time with scripts/capture_demo_fixture.py
-and are NOT wired into farsight.cli.scan.run_scan() — this is a
+and are NOT wired into farsight.cli.scan.run_scan() - this is a
 web-demo-only offline capability, deliberately not a general CLI
 --offline mode.
 """

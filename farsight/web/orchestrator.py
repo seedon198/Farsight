@@ -11,7 +11,7 @@ one network call timed out.
 
 The summary builders, MODULE_ORDER, and finalize_scan() are exposed
 (no leading underscore) because farsight.web.replay reuses them to
-emit an identical event sequence when replaying a captured fixture —
+emit an identical event sequence when replaying a captured fixture -
 the frontend should not be able to tell the difference.
 """
 

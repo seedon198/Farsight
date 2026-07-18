@@ -1,6 +1,6 @@
 # Contributing to FARSIGHT
 
-Thanks for considering a contribution. FARSIGHT is a recon and threat-intelligence CLI (with an optional web UI) — contributions of all sizes are welcome, from typo fixes to new modules.
+Thanks for considering a contribution. FARSIGHT is a recon and threat-intelligence CLI (with an optional web UI) - contributions of all sizes are welcome, from typo fixes to new modules.
 
 ## Getting set up
 
@@ -31,25 +31,25 @@ ruff check farsight/ tests/
 pytest tests/ -v
 ```
 
-CI runs `ruff format --check`, `ruff check`, and the full test suite on `ubuntu-latest` and `windows-latest`, Python 3.10 and 3.12, plus Gitleaks, `pip-audit`, and CodeQL scans — please make sure the formatting/lint/test commands above pass locally first. If you have `pre-commit` installed, `pre-commit install` will run the formatting/lint checks automatically on commit.
+CI runs `ruff format --check`, `ruff check`, and the full test suite on `ubuntu-latest` and `windows-latest`, Python 3.10 and 3.12, plus Gitleaks, `pip-audit`, and CodeQL scans - please make sure the formatting/lint/test commands above pass locally first. If you have `pre-commit` installed, `pre-commit install` will run the formatting/lint checks automatically on commit.
 
 ## Making changes
 
 - **Branch from `dev`**, not `main`. Open PRs against `dev`.
-- Keep PRs focused — one fix or feature per PR is easier to review than a bundle of unrelated changes.
+- Keep PRs focused - one fix or feature per PR is easier to review than a bundle of unrelated changes.
 - Add or update tests for behavior you change. See `tests/` for the existing patterns (pytest + pytest-asyncio, `unittest.mock.AsyncMock` for the async modules).
-- If you're touching `farsight/cli/scan.py` or `farsight/modules/report_writer.py`, run a real scan (`python -m farsight scan example.com --all --verbose`) before and after — those are the demo-critical path.
+- If you're touching `farsight/cli/scan.py` or `farsight/modules/report_writer.py`, run a real scan (`python -m farsight scan example.com --all --verbose`) before and after - those are the demo-critical path.
 - If you're touching the web UI (`farsight/web/`), run `python -m farsight web` and click through the change in a browser; the WebSocket event contract in `farsight/web/events.py` is shared by the live scan orchestrator and the offline replay engine, so changes there affect both.
 
 ## Reporting bugs
 
-Open a GitHub issue with steps to reproduce, your OS/Python version, and the exact command you ran. For **security vulnerabilities**, do not open a public issue — see [SECURITY.md](.github/SECURITY.md) instead.
+Open a GitHub issue with steps to reproduce, your OS/Python version, and the exact command you ran. For **security vulnerabilities**, do not open a public issue - see [SECURITY.md](.github/SECURITY.md) instead.
 
 ## Code style
 
 - Formatted and linted with [ruff](https://github.com/astral-sh/ruff).
 - Type hints are used throughout the module return shapes; please keep new code consistent with that.
-- Prefer small, readable functions over cleverness — this is a security tool, and reviewers (including future-you) need to be able to trust what it's doing.
+- Prefer small, readable functions over cleverness - this is a security tool, and reviewers (including future-you) need to be able to trust what it's doing.
 
 ## License
 

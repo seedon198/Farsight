@@ -236,7 +236,7 @@
     asnsTable.setRows([]);
     netblocksTable.setRows([]);
     Object.values(cloudBadges).forEach((el) => (el.textContent = "0"));
-    Object.values(stats).forEach((el) => (el.textContent = "—"));
+    Object.values(stats).forEach((el) => (el.textContent = "-"));
     Object.values(moduleRows).forEach((m) => {
       m.row.className = "module-row";
       m.summary.textContent = "";
@@ -412,7 +412,7 @@
     if (moduleName === "recon") {
       stats.subdomains.textContent = data.total_subdomains;
       stats.ports.textContent = data.total_open_ports;
-    } else if (moduleName === "org" && stats.subdomains.textContent === "—") {
+    } else if (moduleName === "org" && stats.subdomains.textContent === "-") {
       stats.subdomains.textContent = data.total_subdomains;
     } else if (moduleName === "attack_surface") {
       stats.asns.textContent = data.total_asns;

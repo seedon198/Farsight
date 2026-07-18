@@ -2,7 +2,7 @@
 
 The single-scan-at-a-time lock exists specifically to avoid two
 concurrent scans racing on farsight.config.DEFAULT_CONFIG (a shared
-global mutated per-scan) — these tests exercise that guarantee.
+global mutated per-scan) - these tests exercise that guarantee.
 """
 
 import asyncio

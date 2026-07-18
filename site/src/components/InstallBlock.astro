@@ -36,7 +36,7 @@ const commands = [
         button.textContent = 'Copied!';
         await new Promise((resolve) => setTimeout(resolve, 2000));
       } catch {
-        // clipboard write failed (denied permission or insecure context) — fall through to restore label
+        // clipboard write failed (denied permission or insecure context) - fall through to restore label
       } finally {
         button.textContent = original;
         button.disabled = false;

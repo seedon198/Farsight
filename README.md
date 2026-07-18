@@ -88,7 +88,7 @@ source venv/bin/activate  # macOS/Linux
 pip install -r requirements.txt
 ```
 
-Requires Python 3.10+. After activation, use the `python` command (not `python3`) to run FARSIGHT — on Windows, `python3` often resolves to the Microsoft Store Python stub instead of your venv, which will report modules as missing even though `pip install` succeeded.
+Requires Python 3.10+. After activation, use the `python` command (not `python3`) to run FARSIGHT - on Windows, `python3` often resolves to the Microsoft Store Python stub instead of your venv, which will report modules as missing even though `pip install` succeeded.
 
 ## Usage
 
@@ -119,7 +119,7 @@ pip install -r requirements-web.txt
 python -m farsight web
 ```
 
-Opens a browser at `http://127.0.0.1:8000` with real-time module progress, live stats, and an in-browser report with Markdown/PDF download. Binds to loopback only — there's no authentication, so don't expose it beyond your own machine. Run `python -m farsight web --help` for options.
+Opens a browser at `http://127.0.0.1:8000` with real-time module progress, live stats, and an in-browser report with Markdown/PDF download. Binds to loopback only - there's no authentication, so don't expose it beyond your own machine. Run `python -m farsight web --help` for options.
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/seedon198/Farsight/main/docs/assets/web-ui-scan.png" alt="FARSIGHT web UI: scan form with live stats" width="100%"/>

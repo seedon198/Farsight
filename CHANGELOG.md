@@ -9,8 +9,8 @@ All notable changes to this project are documented here. Format loosely follows 
 Stable release, superseding the 2.0.0-beta.1/beta.2 pre-releases below. First version published to PyPI (`pip install farsight-recon`).
 
 ### Added
-- Local-first web UI (`python -m farsight web`): live WebSocket-driven scan progress, stat tiles, attack-surface graph, typosquat risk panel, and an in-browser report with Markdown/PDF download. No authentication — binds to `127.0.0.1` by default.
-- Offline replay/demo mode (`farsight web --demo`) that replays a pre-captured scan fixture with zero network calls — a safety net for presenting on unreliable networks. Capture your own fixture with `scripts/capture_demo_fixture.py`.
+- Local-first web UI (`python -m farsight web`): live WebSocket-driven scan progress, stat tiles, attack-surface graph, typosquat risk panel, and an in-browser report with Markdown/PDF download. No authentication - binds to `127.0.0.1` by default.
+- Offline replay/demo mode (`farsight web --demo`) that replays a pre-captured scan fixture with zero network calls - a safety net for presenting on unreliable networks. Capture your own fixture with `scripts/capture_demo_fixture.py`.
 - `masscan`-backed bulk port discovery (`MasscanScanner`) with an asyncio fallback, wired into `Recon.scan()`, with bounded outer concurrency to prevent fan-out exhaustion.
 - IntelX Phonebook check added to the threat intelligence module, with local caching of IntelX search results to avoid spending duplicate credits on repeat lookups.
 - Full IntelX/threat-intel details and Phonebook results surfaced in the web dashboard.
@@ -53,8 +53,8 @@ Stable release, superseding the 2.0.0-beta.1/beta.2 pre-releases below. First ve
 ## [2.0.0-beta.1] - 2026-07-16
 
 ### Added
-- Local-first web UI (`python -m farsight web`): live WebSocket-driven scan progress, stat tiles, attack-surface graph, typosquat risk panel, and an in-browser report with Markdown/PDF download. No authentication — binds to `127.0.0.1` by default.
-- Offline replay/demo mode (`farsight web --demo`) that replays a pre-captured scan fixture with zero network calls — a safety net for presenting on unreliable networks. Capture your own fixture with `scripts/capture_demo_fixture.py`.
+- Local-first web UI (`python -m farsight web`): live WebSocket-driven scan progress, stat tiles, attack-surface graph, typosquat risk panel, and an in-browser report with Markdown/PDF download. No authentication - binds to `127.0.0.1` by default.
+- Offline replay/demo mode (`farsight web --demo`) that replays a pre-captured scan fixture with zero network calls - a safety net for presenting on unreliable networks. Capture your own fixture with `scripts/capture_demo_fixture.py`.
 - `masscan`-backed bulk port discovery (`MasscanScanner`) with an asyncio fallback, wired into `Recon.scan()`, with bounded outer concurrency to prevent fan-out exhaustion.
 - IntelX Phonebook check added to the threat intelligence module, with local caching of IntelX search results to avoid spending duplicate credits on repeat lookups.
 - Full IntelX/threat-intel details and Phonebook results surfaced in the web dashboard.
