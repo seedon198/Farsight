@@ -3,11 +3,11 @@ const navLinks = [{ href: '/docs/', label: 'Docs' }];
 ---
 <header class="sticky top-0 z-50 flex items-center justify-between border-b-[3px] border-[var(--ink)] bg-[var(--surface)] px-6 py-3">
   <a href="/" class="flex items-center gap-2">
-    <span class="font-display text-lg uppercase tracking-wide text-[var(--ink)]">Farsight</span>
+    <span class="font-display text-lg uppercase tracking-wide text-[var(--accent-primary)]">Farsight</span>
   </a>
   <nav class="flex items-center gap-6">
     {navLinks.map((link) => (
-      <a href={link.href} class="font-display text-sm uppercase text-[var(--ink)] hover:underline">{link.label}</a>
+      <a href={link.href} class="surface-cta brutal-border brutal-shadow font-display px-5 py-2.5 text-sm uppercase">{link.label}</a>
     ))}
   </nav>
 </header>
