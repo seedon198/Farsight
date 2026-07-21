@@ -1,0 +1,77 @@
+---
+import BaseLayout from './BaseLayout.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import type { CollectionEntry } from 'astro:content';
+
+interface Props {
+  title: string;
+  description: string;
+  entries: CollectionEntry<'docs'>[];
+  currentId: string;
+}
+
+const { title, description, entries, currentId } = Astro.props;
+
+const sectionOrder = ['Start Here', 'Reference', 'Modules', 'Web UI', 'Help'] as const;
+const bySection = sectionOrder
+  .map((section) => ({
+    section,
+    items: entries.filter((e) => e.data.section === section).sort((a, b) => a.data.order - b.data.order),
+  }))
+  .filter((group) => group.items.length > 0);
+---
+
+<BaseLayout title={`${title} — Farsight Docs`} description={description}>
+  <link rel="stylesheet" href="/vendor/asciinema-player/asciinema-player.css" />
+  <Header />
+  <div class="mx-auto flex max-w-6xl gap-8 px-6 py-10">
+    <aside class="hidden w-60 shrink-0 lg:block">
+      <nav class="brutal-border brutal-shadow-sm sticky top-20 bg-[var(--surface)] p-4">
+        {
+          bySection.map(({ section, items }) => (
+            <div class="mb-5 last:mb-0">
+              <p class="mb-2 font-display text-xs uppercase tracking-wide text-[var(--ink)] opacity-60">{section}</p>
+              <ul class="space-y-1">
+                {items.map((item) => (
+                  <li>
+                    <a
+                      href={`/docs/${item.id}/`}
+                      class={`block px-2 py-1 text-sm ${
+                        item.id === currentId
+                          ? 'surface-cta brutal-border font-display uppercase'
+                          : 'text-[var(--ink)] hover:underline'
+                      }`}
+                    >
+                      {item.data.title}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))
+        }
+      </nav>
+    </aside>
+    <article class="prose-docs min-w-0 flex-1">
+      <h1 class="mb-2 font-display text-3xl uppercase text-[var(--ink)]">{title}</h1>
+      <p class="mb-8 text-[var(--ink)] opacity-70">{description}</p>
+      <slot />
+    </article>
+  </div>
+  <Footer />
+  <script src="/vendor/asciinema-player/asciinema-player.min.js" is:inline></script>
+  <script is:inline>
+    document.querySelectorAll('.cast-player').forEach((el) => {
+      const src = el.dataset.src;
+      if (!src || !window.AsciinemaPlayer) return;
+      window.AsciinemaPlayer.create(src, el, {
+        cols: el.dataset.cols ? Number(el.dataset.cols) : 120,
+        rows: el.dataset.rows ? Number(el.dataset.rows) : 30,
+        autoPlay: false,
+        preload: true,
+        theme: 'monokai',
+      });
+    });
+  </script>
+</BaseLayout>
