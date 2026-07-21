@@ -1,0 +1,5 @@
+{"version": 2, "width": 0, "height": 0, "timestamp": 1784613629, "env": {"SHELL": null, "TERM": "xterm"}, "title": "farsight web --demo"}
+[0.732358, "o", "\u001b[96mDemo mode: replaying demo_scan_example.com.json - no network calls will be made.\u001b[0m\r\n\u001b[92mStarting FARSIGHT web UI at http://127.0.0.1:8000\u001b[0m\r\n"]
+[0.775344, "o", "\u001b[32mINFO\u001b[0m:     Started server process [\u001b[36m10\u001b[0m]\r\n\u001b[32mINFO\u001b[0m:     Waiting for application startup.\r\n"]
+[0.775533, "o", "\u001b[32mINFO\u001b[0m:     Application startup complete.\r\n"]
+[0.777192, "o", "\u001b[32mINFO\u001b[0m:     Uvicorn running on \u001b[1mhttp://127.0.0.1:8000\u001b[0m (Press CTRL+C to quit)\r\n"]
