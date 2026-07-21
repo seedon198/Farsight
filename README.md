@@ -6,13 +6,13 @@
 
 ### DEFCON 34
 
-<a href="https://sessionize.com/adlin-seedon-dsouza/">
+<a href="https://www.appsecvillage.com/events/dc-2026/farsight-turning-osint-into-actionable-attack-surface-intelligence-1206456">
 <img src="https://raw.githubusercontent.com/seedon198/Farsight/main/docs/assets/appsecvillage-logo.png" alt="AppSec Village" height="64"/>
 </a>
 
 <sub>🗓️ Aug 6–9, 2026 &nbsp;•&nbsp; Las Vegas &nbsp;•&nbsp; Upcoming</sub>
 
-**[Farsight: Turning OSINT into Actionable Attack Surface Intelligence](https://sessionize.com/adlin-seedon-dsouza/)**
+**[Farsight: Turning OSINT into Actionable Attack Surface Intelligence](https://www.appsecvillage.com/events/dc-2026/farsight-turning-osint-into-actionable-attack-surface-intelligence-1206456)**
 
 </td>
 <td align="center" width="50%">
