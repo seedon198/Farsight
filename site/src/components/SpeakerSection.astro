@@ -34,6 +34,17 @@ const speakers = [
     photo: '/assets/speaker-prashant-kv.jpg',
     links: [{ label: 'LinkedIn', href: 'https://linkedin.com/in/prashant-v-99018999/?skipRedirect=true' }],
   },
+  {
+    name: 'Madhu M Jadhav',
+    title: 'Industrial Penetration Tester (Intern), Festo',
+    bio: "Leads development of new features for Farsight. Master's in Cybersecurity, focused on industrial automation security and Cyber Resilience Act (CRA) compliance tooling.",
+    photo: '/assets/speaker-madhu-jadhav.jpg',
+    links: [
+      { label: 'LinkedIn', href: 'https://www.linkedin.com/in/madhu-mj/' },
+      { label: 'GitHub', href: 'https://github.com/mmj0x0' },
+      { label: 'Website', href: 'https://hexguard.net' },
+    ],
+  },
 ];
 
 function initials(name: string) {
@@ -47,7 +58,7 @@ function initials(name: string) {
 }
 ---
 <section class="mx-auto max-w-5xl px-6 py-16 2xl:max-w-6xl">
-  <h2 class="mb-10 text-center font-display text-2xl uppercase text-[var(--ink)]">Speakers</h2>
+  <h2 class="mb-10 text-center font-display text-2xl uppercase text-[var(--ink)]">Contributors</h2>
   <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
     {speakers.map((speaker) => (
       <div class="brutal-border brutal-shadow flex flex-col items-center gap-4 bg-[var(--surface)] p-6 text-center">
