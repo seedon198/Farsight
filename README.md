@@ -44,8 +44,11 @@
 [![Stars](https://img.shields.io/github/stars/seedon198/Farsight?style=for-the-badge&cacheSeconds=3600)](https://github.com/seedon198/Farsight/stargazers)
 [![CI](https://img.shields.io/github/actions/workflow/status/seedon198/Farsight/ci.yml?branch=main&style=for-the-badge&label=CI)](https://github.com/seedon198/Farsight/actions)
 [![Last Commit](https://img.shields.io/github/last-commit/seedon198/Farsight?style=for-the-badge)](https://github.com/seedon198/Farsight/commits/main)
+[![Documentation](https://img.shields.io/badge/docs-farsight.click-ff3b30?style=for-the-badge)](https://farsight.click/docs/)
 
 **A fast, modular CLI recon and threat-intelligence framework. Works with or without API keys.**
+
+📖 **Full documentation, architecture, module internals, and a web UI tour: [farsight.click/docs](https://farsight.click/docs/)**
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/seedon198/Farsight/main/docs/assets/demo.gif" alt="FARSIGHT demo: scanning a domain from the CLI" width="100%"/>
