@@ -9,7 +9,7 @@ Implemented in `farsight/modules/typosquat.py`, class `TyposquatDetector`. Enabl
 
 ## Candidate generation
 
-Farsight generates typosquat candidates with [`dnstwist`](https://github.com/elceef/dnstwist) if it's installed, or a hand-rolled fallback generator if it isn't (a keyboard-adjacency replacement map, omission, swap, duplication, insertion, and TLD swap — a strict subset of what dnstwist covers).
+Farsight generates typosquat candidates with [`dnstwist`](https://github.com/elceef/dnstwist) if it's installed, or a hand-rolled fallback generator if it isn't (a keyboard-adjacency replacement map, omission, swap, duplication, insertion, and TLD swap - a strict subset of what dnstwist covers).
 
 `--depth` controls which dnstwist fuzzers run:
 
@@ -17,11 +17,11 @@ Farsight generates typosquat candidates with [`dnstwist`](https://github.com/elc
 - **Depth 2**: adds common-misspellings and homophones
 - **Depth 3**: adds full dictionary-based fuzzing
 
-Higher depth means substantially more candidates — and since every candidate gets DNS-resolved, run time scales with depth roughly as steeply as candidate count does.
+Higher depth means substantially more candidates - and since every candidate gets DNS-resolved, run time scales with depth roughly as steeply as candidate count does.
 
 ## Active-domain check
 
-Every candidate gets DNS-resolved in bulk. Domains that don't resolve on the first pass get a `socket.gethostbyname` fallback attempt, and a random sample of the still-inactive domains is kept for analysis anyway — the reasoning is that a domain registered defensively (parked, no MX, no web server) is still worth reporting, just at lower risk, rather than silently dropped for being "inactive."
+Every candidate gets DNS-resolved in bulk. Domains that don't resolve on the first pass get a `socket.gethostbyname` fallback attempt, and a random sample of the still-inactive domains is kept for analysis anyway - the reasoning is that a domain registered defensively (parked, no MX, no web server) is still worth reporting, just at lower risk, rather than silently dropped for being "inactive."
 
 ## Per-candidate analysis
 
@@ -29,7 +29,7 @@ For each active candidate, Farsight collects:
 
 - **DNS**: A and MX record presence
 - **HTTP**: fetches the page (HTTP then HTTPS), extracts the `<title>`, and records content size
-- **Content similarity**: scans the fetched HTML for a fixed list of brand keywords and scores `min(100, hits * 15)`. **This keyword list is currently hardcoded** (`sony`, `playstation`, `ps5`, `ps4`, `vaio`, `bravia`, `xperia`, `electronics`) rather than derived from the scan target — it's a real limitation worth knowing about: content similarity will contribute meaningfully to the risk score only when the target is Sony-related, and silently scores 0 for every other domain. Don't read a 0 content-similarity score as "this typosquat doesn't mimic the brand"; for most targets, it simply means the check didn't look for the right words.
+- **Content similarity**: scans the fetched HTML for a fixed list of brand keywords and scores `min(100, hits * 15)`. **This keyword list is currently hardcoded** (`sony`, `playstation`, `ps5`, `ps4`, `vaio`, `bravia`, `xperia`, `electronics`) rather than derived from the scan target - it's a real limitation worth knowing about: content similarity will contribute meaningfully to the risk score only when the target is Sony-related, and silently scores 0 for every other domain. Don't read a 0 content-similarity score as "this typosquat doesn't mimic the brand"; for most targets, it simply means the check didn't look for the right words.
 - **String similarity**: `rapidfuzz.fuzz.ratio` between the original and candidate domain (falls back to a Levenshtein implementation if rapidfuzz isn't installed)
 - **Typo type classification** (`_determine_typo_type`): compares the domain strings directly to classify the permutation as one of `TLD swap`, `Homoglyph` (character replaced with a visually similar one, e.g. `0`→`o`, `1`→`l`/`i`, `3`→`e`), `Character replacement`, `Character swap` (adjacent transposition), `Character omission`, `Character insertion`, `Character duplication`, `Hyphenation`, or `Combination/Other` if none of the pattern checks match
 
@@ -52,7 +52,7 @@ MX presence is weighted heaviest among the boolean bonuses because an active mai
 
 ## Filtering and output
 
-A candidate is kept in the results if `risk_score >= typosquat_threshold` (config default `80`, though the module's own constructor default if the config key is absent is `60` — see [Configuration](/docs/configuration/)) **or** raw string similarity exceeds `85`, so a very close lookalike domain isn't excluded purely for lacking MX/web activity. Results are sorted by risk score descending.
+A candidate is kept in the results if `risk_score >= typosquat_threshold` (config default `80`, though the module's own constructor default if the config key is absent is `60` - see [Configuration](/docs/configuration/)) **or** raw string similarity exceeds `85`, so a very close lookalike domain isn't excluded purely for lacking MX/web activity. Results are sorted by risk score descending.
 
 ## Output shape
 

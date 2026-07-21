@@ -5,7 +5,7 @@ section: Start Here
 order: 1
 ---
 
-Farsight is a modular CLI recon and threat-intelligence framework. It maps a target's organization, infrastructure, and exposure — WHOIS, certificate transparency, subdomains, open ports, cloud footprint, leaked credentials, typosquat domains, and relevant news — and writes the results to a Markdown or PDF report. Every data source it uses beyond WHOIS and certificate transparency is optional: Farsight works with zero configuration, and adding API keys unlocks deeper results rather than being required to run at all.
+Farsight is a modular CLI recon and threat-intelligence framework. It maps a target's organization, infrastructure, and exposure - WHOIS, certificate transparency, subdomains, open ports, cloud footprint, leaked credentials, typosquat domains, and relevant news - and writes the results to a Markdown or PDF report. Every data source it uses beyond WHOIS and certificate transparency is optional: Farsight works with zero configuration, and adding API keys unlocks deeper results rather than being required to run at all.
 
 ## Requirements
 
@@ -20,7 +20,7 @@ The fastest path is PyPI:
 pip install farsight-recon
 ```
 
-The distribution on PyPI is named `farsight-recon` (the plain `farsight` name was already taken), but it installs the same `farsight` command — nothing about how you invoke it changes.
+The distribution on PyPI is named `farsight-recon` (the plain `farsight` name was already taken), but it installs the same `farsight` command - nothing about how you invoke it changes.
 
 With [Poetry](https://python-poetry.org/):
 
@@ -48,7 +48,7 @@ When running from source, swap `farsight` for `python -m farsight` in every comm
 farsight scan example.com
 ```
 
-With no flags, this runs only the **Organization Discovery** and **Recon & Asset Discovery** modules (they're always enabled — see [CLI Reference](/docs/cli-reference/) for why) and writes `./report.md`. That's deliberately the minimal, fast path: WHOIS, certificate transparency, passive DNS, DNS enumeration, subdomain discovery, and a port scan, with no API keys and no destructive traffic against the target.
+With no flags, this runs only the **Organization Discovery** and **Recon & Asset Discovery** modules (they're always enabled - see [CLI Reference](/docs/cli-reference/) for why) and writes `./report.md`. That's deliberately the minimal, fast path: WHOIS, certificate transparency, passive DNS, DNS enumeration, subdomain discovery, and a port scan, with no API keys and no destructive traffic against the target.
 
 To bring in everything the tool can do:
 
@@ -62,7 +62,7 @@ farsight scan example.com --all --verbose
 
 ## Adding API keys (optional)
 
-Every third-party provider Farsight can use — Shodan, Censys, SecurityTrails, VirusTotal, IntelX, LeakPeek, Crunchbase, GrayHatWarfare, FullHunt, Netlas, ZoomEye, Onyphe — is opt-in. Copy `.env.example` to `.env` in your working directory and fill in whichever keys you have; Farsight auto-loads it via `python-dotenv` on startup. See [Configuration & API Keys](/docs/configuration/) for the full provider table and what each one unlocks.
+Every third-party provider Farsight can use - Shodan, Censys, SecurityTrails, VirusTotal, IntelX, LeakPeek, Crunchbase, GrayHatWarfare, FullHunt, Netlas, ZoomEye, Onyphe - is opt-in. Copy `.env.example` to `.env` in your working directory and fill in whichever keys you have; Farsight auto-loads it via `python-dotenv` on startup. See [Configuration & API Keys](/docs/configuration/) for the full provider table and what each one unlocks.
 
 ## The web UI
 
@@ -77,6 +77,6 @@ This opens `http://127.0.0.1:8000` with live per-module progress over a WebSocke
 
 ## Where to go next
 
-- [CLI Reference](/docs/cli-reference/) — every flag `scan` and `web` support
-- [Architecture](/docs/architecture/) — how a scan actually flows through the module pipeline
-- Module deep-dives — [Organization Discovery](/docs/module-org-discovery/), [Recon & Asset Discovery](/docs/module-recon/), [Extended Attack Surface](/docs/module-attack-surface/), [Threat Intelligence](/docs/module-threat-intel/), [Typosquatting Detection](/docs/module-typosquat/), [News Monitoring](/docs/module-news/)
+- [CLI Reference](/docs/cli-reference/) - every flag `scan` and `web` support
+- [Architecture](/docs/architecture/) - how a scan actually flows through the module pipeline
+- Module deep-dives - [Organization Discovery](/docs/module-org-discovery/), [Recon & Asset Discovery](/docs/module-recon/), [Extended Attack Surface](/docs/module-attack-surface/), [Threat Intelligence](/docs/module-threat-intel/), [Typosquatting Detection](/docs/module-typosquat/), [News Monitoring](/docs/module-news/)
