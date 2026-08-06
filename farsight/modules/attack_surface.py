@@ -18,7 +18,7 @@ from typing import Any, Dict, List, Optional, Set
 
 import aiohttp
 
-from farsight.utils.common import logger
+from farsight.utils.common import logger, gather_resilient
 from farsight.utils.api_handler import APIManager
 from farsight.utils import cloud_ranges
 from farsight.config import get_config, is_api_configured
@@ -142,7 +142,9 @@ class AttackSurface:
                     if task:
                         tasks.append(task)
             if tasks:
-                await asyncio.gather(*tasks)
+                await gather_resilient(
+                    *tasks, description="attack surface keyword search"
+                )
 
         return {
             "target": domain,
@@ -217,8 +219,14 @@ class AttackSurface:
             return
 
         lookup_asns = list(seen_asns)[:_MAX_ASNS_FOR_PREFIX_LOOKUP]
-        await asyncio.gather(*(self._get_asn_netblocks(asn) for asn in lookup_asns))
-        await asyncio.gather(*(self._enrich_asn_ripestat(asn) for asn in lookup_asns))
+        await gather_resilient(
+            *(self._get_asn_netblocks(asn) for asn in lookup_asns),
+            description="ASN netblock lookup",
+        )
+        await gather_resilient(
+            *(self._enrich_asn_ripestat(asn) for asn in lookup_asns),
+            description="ASN RIPEstat enrichment",
+        )
 
     async def _search_asn_by_name(self, keyword: str) -> List[Dict[str, Any]]:
         """Look up ASNs by organization name via BGPView, falling back to
@@ -493,9 +501,9 @@ class AttackSurface:
             response = await handler.post(
                 "global/search", data={"organization": keyword}
             )
-            hosts = (response or {}).get("results") or (response or {}).get(
-                "hosts"
-            ) or []
+            hosts = (
+                (response or {}).get("results") or (response or {}).get("hosts") or []
+            )
             for host in hosts:
                 self.results["fullhunt_hosts"].append(
                     {
@@ -543,9 +551,7 @@ class AttackSurface:
         try:
             handler = self.api_manager.get_handler("zoomeye")
             query = base64.b64encode(f'org:"{keyword}"'.encode()).decode()
-            response = await handler.post(
-                "search", data={"qbase64": query, "page": 1}
-            )
+            response = await handler.post("search", data={"qbase64": query, "page": 1})
             for item in (response or {}).get("data", []) or []:
                 if not isinstance(item, dict):
                     continue

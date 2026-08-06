@@ -5,7 +5,7 @@ import aiohttp
 import re
 from typing import List, Optional
 
-from farsight.utils.common import logger
+from farsight.utils.common import logger, gather_resilient
 from farsight.utils.dns import DNSResolver
 from farsight.config import get_api_key, get_config
 
@@ -126,7 +126,7 @@ class SubdomainEnumerator:
 
         # Run remaining techniques concurrently if needed
         if tasks:
-            await asyncio.gather(*tasks)
+            await gather_resilient(*tasks, description="subdomain enumeration source")
 
         # Convert discovered set to list and filter valid domains
         logger.info(

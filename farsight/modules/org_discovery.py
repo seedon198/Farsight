@@ -6,6 +6,7 @@ passive DNS data collection.
 """
 
 import asyncio
+import logging
 import whois
 import aiohttp
 import re
@@ -13,7 +14,7 @@ from typing import Dict, List, Optional, Any
 from bs4 import BeautifulSoup
 import urllib.parse
 
-from farsight.utils.common import logger, retry
+from farsight.utils.common import logger, retry, gather_resilient
 from farsight.utils.api_handler import APIManager
 from farsight.config import get_config, is_api_configured
 
@@ -54,6 +55,36 @@ def _looks_like_domain_website(value: Any) -> Optional[str]:
     if netloc.startswith("www."):
         netloc = netloc[4:]
     return netloc or None
+
+
+def _as_list(value: Any) -> List[Any]:
+    """Normalize a python-whois field that may be a scalar, list, or None.
+
+    Returned lists are de-duplicated while preserving order, since some
+    registries repeat the same nameserver or abuse address in differing
+    letter case.
+    """
+    if value is None:
+        return []
+    if isinstance(value, (list, tuple, set)):
+        candidates = list(value)
+    else:
+        candidates = [value]
+
+    seen = set()
+    normalized = []
+    for item in candidates:
+        if item is None:
+            continue
+        key = item.lower() if isinstance(item, str) else item
+        try:
+            if key in seen:
+                continue
+            seen.add(key)
+        except TypeError:  # unhashable, keep it rather than drop it
+            pass
+        normalized.append(item)
+    return normalized
 
 
 def _looks_like_hostname(value: str) -> bool:
@@ -117,9 +148,10 @@ class OrgDiscovery:
         # Phase 1: WHOIS and certificate transparency don't depend on each
         # other, but the acquisition lookups below need WHOIS's org name, so
         # this phase must finish before phase 2 starts.
-        await asyncio.gather(
+        await gather_resilient(
             self._get_whois_info(domain),
             self._get_crt_sh_domains(domain),
+            description="org discovery phase 1 lookup",
         )
 
         org_name = self.results["whois"].get("org") or domain.split(".")[0].title()
@@ -154,7 +186,7 @@ class OrgDiscovery:
 
         # Run phase 2 tasks concurrently
         if tasks:
-            await asyncio.gather(*tasks)
+            await gather_resilient(*tasks, description="org discovery phase 2 lookup")
 
         # Process and deduplicate results
         base_domain_parts = domain.split(".")
@@ -216,16 +248,22 @@ class OrgDiscovery:
             loop = asyncio.get_event_loop()
             whois_data = await loop.run_in_executor(None, whois.whois, domain)
 
-            # Extract relevant fields
+            # Extract relevant fields. python-whois returns several of
+            # these as either a bare string or a list depending on what the
+            # registry sent back (sony.com yields a single email string,
+            # github.com a list). Consumers iterate `emails`, so a string
+            # would be walked character by character -- normalize the
+            # multi-valued fields to lists here, at the one place they're
+            # produced, rather than defensively at every call site.
             self.results["whois"] = {
                 "domain": domain,
                 "registrar": whois_data.registrar,
                 "creation_date": whois_data.creation_date,
                 "expiration_date": whois_data.expiration_date,
                 "updated_date": whois_data.updated_date,
-                "name_servers": whois_data.name_servers,
-                "status": whois_data.status,
-                "emails": whois_data.emails,
+                "name_servers": _as_list(whois_data.name_servers),
+                "status": _as_list(whois_data.status),
+                "emails": _as_list(whois_data.emails),
                 "org": whois_data.org,
             }
 
@@ -256,9 +294,16 @@ class OrgDiscovery:
             logger.info(f"Retrieved {len(domains)} domains from crt.sh")
             self.results["crt_sh"] = list(domains)
         except Exception as e:
-            logger.error(f"Error querying crt.sh: {str(e)}")
+            # crt.sh is a free shared service that 502s under load fairly
+            # often. That is a data source being unavailable, not a scan
+            # failure -- report it once, plainly, and carry on with the
+            # other sources instead of stacking retry warnings on top.
+            logger.warning(
+                f"Certificate transparency lookup unavailable "
+                f"(crt.sh: {e}); continuing without it"
+            )
 
-    @retry(max_retries=2, delay=1.0, backoff=2.0)
+    @retry(max_retries=2, delay=1.0, backoff=2.0, log_level=logging.DEBUG)
     async def _fetch_crt_sh(self, domain: str) -> set:
         """
         Fetch and parse crt.sh's certificate transparency JSON for a domain.
@@ -562,7 +607,9 @@ class OrgDiscovery:
                     news_result = await monitor.monitor(query, days=lookback_days)
 
                     for article in news_result.get("articles", []):
-                        text = f"{article.get('title', '')} {article.get('snippet', '')}"
+                        text = (
+                            f"{article.get('title', '')} {article.get('snippet', '')}"
+                        )
 
                         for pattern, relationship in patterns:
                             match = pattern.search(text)
@@ -994,5 +1041,7 @@ class OrgDiscovery:
             )
             return True
         except Exception as e:
-            logger.warning(f"Skipping malformed Crunchbase acquisition record: {str(e)}")
+            logger.warning(
+                f"Skipping malformed Crunchbase acquisition record: {str(e)}"
+            )
             return False
