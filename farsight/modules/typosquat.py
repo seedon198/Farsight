@@ -363,7 +363,13 @@ class TyposquatDetector:
                 http_result.get("content_similarity", 0),
             )
 
-            # Determine status with more nuanced criteria
+            # Determine status with more nuanced criteria. This only
+            # chooses the status label -- risk_score itself already
+            # accounts for MX records and content similarity inside
+            # _calculate_risk_score(), so it must not be adjusted again
+            # here (that used to double-count both signals and could
+            # push the score past the 0-100 range _calculate_risk_score
+            # otherwise guarantees).
             status = "Potential"
             if risk_score > 70:
                 status = "Suspicious"
@@ -371,13 +377,9 @@ class TyposquatDetector:
                 # Domains with MX records and high similarity are more suspicious
                 # as they might be used for phishing emails
                 status = "Suspicious"
-                risk_score += (
-                    10  # Increase risk score for domains with email capability
-                )
             elif http_result.get("content_similarity", 0) > 30:
                 # Domains with content similar to the original are suspicious
                 status = "Suspicious"
-                risk_score += 15  # Significant increase for content that mimics Sony
 
             # Add to results with less stringent filtering
             # Accept lower risk scores for high similarity
