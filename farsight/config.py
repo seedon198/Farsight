@@ -24,8 +24,10 @@ PROJECT_ROOT = Path(__file__).parent.parent
 REPORTS_DIR = PROJECT_ROOT / "reports"
 CACHE_DIR = PROJECT_ROOT / "cache"
 
-# Ensure reports directory exists for output files
-REPORTS_DIR.mkdir(exist_ok=True)
+# Ensure reports directory exists for output files. parents=True so an
+# unusual install layout (or a fresh checkout with no parent dir yet)
+# can't turn a missing directory into an ImportError at startup.
+REPORTS_DIR.mkdir(exist_ok=True, parents=True)
 
 # Default configuration
 DEFAULT_CONFIG = {
@@ -37,8 +39,17 @@ DEFAULT_CONFIG = {
     # Module-specific settings
     "dns_wordlist": "default",
     "dns_resolver": "1.1.1.1",
+    # DNS timeouts are deliberately separate from the HTTP "timeout" above.
+    # They used to share it: a 30s HTTP timeout became a 30s per-query DNS
+    # timeout with a 60s lifetime, and with retries a single unresolvable
+    # name could burn ~3 minutes. Typosquat detection probes thousands of
+    # candidate domains that are *expected* not to resolve, so these need
+    # to fail fast or a scan never finishes.
+    "dns_timeout": 3,  # per-nameserver query timeout, seconds
+    "dns_lifetime": 6,  # total time across all nameservers, seconds
     "port_scan_timeout": 2,
     "masscan_rate": 10000,  # packets/sec for masscan discovery pass
+    "masscan_timeout": 180,  # hard cap before masscan is killed and we fall back
     "default_ports": [
         21,
         22,
@@ -138,8 +149,16 @@ def get_api_endpoint(provider: str) -> Optional[str]:
 
 
 def is_api_configured(provider: str) -> bool:
-    """Check if API key is configured for a provider."""
-    return get_api_key(provider) is not None
+    """Check if API key is configured for a provider.
+
+    Treats an empty/whitespace-only key as unconfigured, not configured.
+    .env.example ships every key as a bare `FARSIGHT_..._API_KEY=` and
+    tells the reader to copy it to .env, so a plain `is not None` check
+    reported all twelve providers as configured with empty-string keys --
+    every module then attempted calls that could only ever fail.
+    """
+    key = get_api_key(provider)
+    return bool(key and key.strip())
 
 
 def get_available_apis() -> Dict[str, bool]:
