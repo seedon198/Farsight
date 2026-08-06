@@ -586,6 +586,16 @@
       }
       if (data.demo_mode) {
         demoBanner.classList.remove("hidden");
+        // The replayed fixture fixes the target, so prefill it and take the
+        // field out of play. Without this the required-but-empty input
+        // blocks submission with no visible feedback.
+        const domainInput = document.getElementById("domain");
+        if (domainInput) {
+          if (data.demo_domain) domainInput.value = data.demo_domain;
+          domainInput.readOnly = true;
+          domainInput.required = false;
+          domainInput.title = "Fixed by the demo fixture being replayed";
+        }
       }
     })
     .catch(() => setConn("disconnected", "server unreachable"));

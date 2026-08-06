@@ -4,6 +4,7 @@ Local-first: intended to be run on 127.0.0.1 by a single presenter,
 see farsight/cli/web.py. No auth, no multi-tenant concerns.
 """
 
+import json
 import re
 from pathlib import Path
 from typing import Optional
@@ -16,7 +17,7 @@ from fastapi.staticfiles import StaticFiles
 from farsight.utils.common import logger
 from farsight.web import screenshot
 from farsight.web.events import EventType, ScanEvent
-from farsight.web.orchestrator import run_scan_with_events
+from farsight.web.orchestrator import MODULE_ORDER, run_scan_with_events
 from farsight.web.replay import replay_scan
 from farsight.web.scan_manager import scan_manager
 
@@ -41,6 +42,7 @@ def _load_demo_screenshot(domain: str) -> Optional[bytes]:
     if not path.is_file():
         return None
     return path.read_bytes()
+
 
 try:
     import gnews  # noqa: F401
@@ -69,10 +71,24 @@ def create_app(demo_fixture: Optional[Path] = None) -> FastAPI:
 
     @app.get("/api/health")
     async def health():
+        # In demo mode the replayed fixture dictates the target, so hand the
+        # UI that domain to prefill -- otherwise the form's `required` field
+        # sits empty and silently blocks submission on a button the
+        # presenter has every reason to expect to just work.
+        demo_domain = None
+        if demo_fixture is not None:
+            try:
+                demo_domain = json.loads(demo_fixture.read_text(encoding="utf-8")).get(
+                    "domain"
+                )
+            except Exception:
+                logger.warning("could not read domain from demo fixture")
+
         return {
             "status": "ok",
             "gnews_available": GNEWS_AVAILABLE,
             "demo_mode": demo_fixture is not None,
+            "demo_domain": demo_domain,
         }
 
     @app.websocket("/ws")
@@ -92,7 +108,14 @@ def create_app(demo_fixture: Optional[Path] = None) -> FastAPI:
                 depth = int(request.get("depth", 1))
             except (TypeError, ValueError):
                 depth = 1
-            modules = request.get("modules") or DEFAULT_MODULES
+            requested = request.get("modules")
+            # A client sending a bare string instead of a list would become
+            # a set of single characters downstream, silently running no
+            # modules at all. Accept only a list of known module names.
+            if isinstance(requested, list):
+                modules = [m for m in requested if m in MODULE_ORDER] or DEFAULT_MODULES
+            else:
+                modules = DEFAULT_MODULES
 
             if not domain:
                 await websocket.send_json(
