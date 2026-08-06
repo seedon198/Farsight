@@ -68,7 +68,49 @@
   }
 
   function relayout() {
-    cy.layout({ name: "cose", animate: true, animationDuration: 400, fit: true }).run();
+    cy.layout({
+      name: "cose",
+      animate: true,
+      animationDuration: 400,
+      fit: true,
+      // Each scan module (org/recon/typosquat) triggers its own relayout
+      // as its results arrive, so a graph that's already settled gets
+      // re-laid-out 2-3 times as more nodes stream in. randomize:false
+      // keeps already-placed nodes where they are and only settles the
+      // newly added ones, instead of every call teleporting the whole
+      // graph to fresh random positions and re-converging from scratch.
+      randomize: false,
+      // Defaults are tuned for small graphs; a real subdomain/typosquat
+      // sweep can add hundreds of nodes, and the defaults let them
+      // collide. Wider spacing + more iterations keeps it legible.
+      nodeRepulsion: 8000000,
+      idealEdgeLength: 60,
+      nodeOverlap: 20,
+      gravity: 40,
+      numIter: 1000,
+    }).run();
+  }
+
+  function zoomBy(factor) {
+    if (!cy) return;
+    const level = Math.max(0.1, Math.min(4, cy.zoom() * factor));
+    cy.animate(
+      { zoom: { level, renderedPosition: { x: cy.width() / 2, y: cy.height() / 2 } } },
+      { duration: 150 }
+    );
+  }
+
+  function zoomIn() {
+    zoomBy(1.25);
+  }
+
+  function zoomOut() {
+    zoomBy(0.8);
+  }
+
+  function fitToScreen() {
+    if (!cy) return;
+    cy.animate({ fit: { padding: 24 } }, { duration: 150 });
   }
 
   function reset(container, rootDomain) {
@@ -112,5 +154,13 @@
     relayout();
   }
 
-  window.FarsightGraph = { reset, ingestOrg, ingestRecon, ingestTyposquat };
+  window.FarsightGraph = {
+    reset,
+    ingestOrg,
+    ingestRecon,
+    ingestTyposquat,
+    zoomIn,
+    zoomOut,
+    fitToScreen,
+  };
 })();

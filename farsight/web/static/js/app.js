@@ -13,6 +13,9 @@
   const downloadMd = document.getElementById("download-md");
   const downloadPdf = document.getElementById("download-pdf");
   const graphContainer = document.getElementById("graph");
+  const graphZoomInBtn = document.getElementById("graph-zoom-in");
+  const graphZoomOutBtn = document.getElementById("graph-zoom-out");
+  const graphFitBtn = document.getElementById("graph-fit");
   const typosquatPanel = document.getElementById("typosquat-panel");
   const typosquatGrid = document.getElementById("typosquat-grid");
   const threatPanel = document.getElementById("threat-panel");
@@ -523,6 +526,16 @@
     } catch (e) {
       reportBody.textContent = "Failed to load report preview; use the download links above.";
     }
+  }
+
+  if (graphZoomInBtn) {
+    graphZoomInBtn.addEventListener("click", () => window.FarsightGraph?.zoomIn());
+  }
+  if (graphZoomOutBtn) {
+    graphZoomOutBtn.addEventListener("click", () => window.FarsightGraph?.zoomOut());
+  }
+  if (graphFitBtn) {
+    graphFitBtn.addEventListener("click", () => window.FarsightGraph?.fitToScreen());
   }
 
   form.addEventListener("submit", (e) => {

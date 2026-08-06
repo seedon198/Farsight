@@ -105,7 +105,14 @@
 
     <section class="panel graph-panel" id="graph-panel">
       <h2>Attack Surface</h2>
-      <div id="graph"></div>
+      <div class="graph-wrap">
+        <div id="graph"></div>
+        <div class="graph-controls">
+          <button type="button" class="graph-btn" id="graph-zoom-in" title="Zoom in" aria-label="Zoom in">+</button>
+          <button type="button" class="graph-btn" id="graph-zoom-out" title="Zoom out" aria-label="Zoom out">&minus;</button>
+          <button type="button" class="graph-btn" id="graph-fit" title="Fit to screen" aria-label="Fit to screen">&#9633;</button>
+        </div>
+      </div>
     </section>
 
     <section class="panel attack-surface-panel hidden" id="attack-surface-panel">
