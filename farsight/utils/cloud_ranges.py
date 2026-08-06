@@ -6,14 +6,21 @@ scan can be labeled "hosted on AWS us-east-1" etc. without needing an API
 key -- these are static files the providers publish for firewall/allowlist
 purposes.
 
-Results are cached at module level for the process lifetime: these files
+Results are cached at module level per provider, with a TTL: these files
 are large (tens of thousands of prefixes) and change at most weekly, so
-re-fetching per scan would be wasteful.
+re-fetching on every scan would be wasteful for a one-shot CLI run --  but
+`farsight web` can stay up for days, and a cache with no expiry at all
+would mean it never sees a provider's updates without a process restart.
+A failed fetch for one provider never overwrites that provider's previous
+successful result with an empty one; it just leaves that provider's entry
+stale so the next call retries it, instead of "caching" the failure and
+starving retries for however long the server keeps running.
 """
 
 import asyncio
 import ipaddress
 import re
+import time
 from typing import Any, Dict, List, Optional, Union
 
 import aiohttp
@@ -31,8 +38,19 @@ _AZURE_JSON_LINK_RE = re.compile(
     r"https://download\.microsoft\.com/download/[^\"'\s]+?ServiceTags_Public_[^\"'\s]+?\.json"
 )
 
-_ranges_cache: Optional[Dict[str, List[Dict[str, Any]]]] = None
+_PROVIDERS = ("aws", "gcp", "azure")
+_CACHE_TTL_SECONDS = 24 * 60 * 60  # providers publish updates ~weekly; a day keeps a long-lived web server reasonably fresh without refetching these large files every scan
+
+_ranges_cache: Dict[str, List[Dict[str, Any]]] = {p: [] for p in _PROVIDERS}
+_ranges_cache_updated_at: Dict[str, float] = {}
 _ranges_cache_lock = asyncio.Lock()
+
+
+def _is_stale(provider: str) -> bool:
+    updated_at = _ranges_cache_updated_at.get(provider)
+    if updated_at is None:
+        return True
+    return (time.monotonic() - updated_at) >= _CACHE_TTL_SECONDS
 
 
 async def load_ranges(session: aiohttp.ClientSession) -> Dict[str, List[Dict[str, Any]]]:
@@ -48,21 +66,32 @@ async def load_ranges(session: aiohttp.ClientSession) -> Dict[str, List[Dict[str
         Azure is an empty list if the confirmation-page scrape fails --
         this is a best-effort source, not a hard dependency.
     """
-    global _ranges_cache
-
-    if _ranges_cache is not None:
+    stale = [p for p in _PROVIDERS if _is_stale(p)]
+    if not stale:
         return _ranges_cache
 
     async with _ranges_cache_lock:
-        if _ranges_cache is not None:
+        stale = [p for p in _PROVIDERS if _is_stale(p)]
+        if not stale:
             return _ranges_cache
 
-        aws_task = _load_aws_ranges(session)
-        gcp_task = _load_gcp_ranges(session)
-        azure_task = _load_azure_ranges(session)
+        loaders = {
+            "aws": _load_aws_ranges,
+            "gcp": _load_gcp_ranges,
+            "azure": _load_azure_ranges,
+        }
+        results = await asyncio.gather(*(loaders[p](session) for p in stale))
 
-        aws, gcp, azure = await asyncio.gather(aws_task, gcp_task, azure_task)
-        _ranges_cache = {"aws": aws, "gcp": gcp, "azure": azure}
+        for provider, entries in zip(stale, results):
+            if entries:
+                _ranges_cache[provider] = entries
+                _ranges_cache_updated_at[provider] = time.monotonic()
+            else:
+                logger.info(
+                    f"{provider} IP range fetch returned nothing; keeping "
+                    "previous cache (if any) and retrying on the next call"
+                )
+
         return _ranges_cache
 
 
