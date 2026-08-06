@@ -8,24 +8,219 @@ import time
 from datetime import datetime
 from typing import Dict, List, Optional, Any, Union
 from pathlib import Path
-import re
-from xml.sax.saxutils import escape
+
+import markdown
 
 from farsight.utils.common import logger, get_service_name
-from farsight.config import REPORTS_DIR
+from farsight.config import REPORTS_DIR, is_api_configured
 
-# Try to import PDF conversion libraries
+# PDF export reuses the browser already required for screenshot capture
+# (requirements-screenshot.txt) instead of pulling in a second, heavier
+# PDF toolchain: WeasyPrint (the more obvious "render HTML to PDF"
+# choice) needs system-level Pango/Cairo/GDK-Pixbuf that a plain
+# `pip install` can't provide, whereas if screenshots already work in a
+# given environment, Playwright's Chromium is already there and PDF
+# export works too with no extra setup.
 PDF_SUPPORT = False
 try:
-    from reportlab.lib.pagesizes import letter
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
-    from reportlab.lib.styles import getSampleStyleSheet
+    from playwright.sync_api import sync_playwright
 
     PDF_SUPPORT = True
 except ImportError:
     logger.warning(
-        "PDF conversion libraries not installed. Only Markdown reports will be generated."
+        "Playwright not installed. Only Markdown reports will be generated. "
+        "Install it with: pip install -r requirements-screenshot.txt && "
+        "playwright install chromium"
     )
+
+# Mirrors the token palette in web/static/css/style.css so an exported PDF
+# reads as the same product as the live web UI. Font stacks are limited to
+# faces already on the system generating the PDF (no @font-face fetch --
+# doing that at report-generation time would need network access, which
+# defeats the point of an offline-safe demo/report path).
+_PDF_STYLE = """
+  :root {
+    --surface: #fdfcf8;
+    --panel: #ffffff;
+    --code-bg: #f2efe6;
+    --ink: #111111;
+    --ink-dim: #5c584e;
+    --border: #111111;
+    --accent-primary: #ff3b30;
+    --accent-cta: #ffd400;
+    --success: #1f9d55;
+    --info: #1c6fd0;
+    --font-display: "Arial Black", "Helvetica Neue", Arial, sans-serif;
+    --font-body: Georgia, "Times New Roman", serif;
+    --font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body {
+    margin: 0;
+    background: var(--surface);
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: 11pt;
+    line-height: 1.55;
+  }
+  .cover, .toc-page { page-break-after: always; }
+  .cover {
+    min-height: 9in;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 0 0.25in;
+  }
+  .cover h1 {
+    font-family: var(--font-display);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    font-size: 30pt;
+    margin: 0 0 6px;
+  }
+  .cover h1::after {
+    content: "Reconnaissance & Threat Intelligence Report";
+    display: block;
+    font-family: var(--font-body);
+    font-style: italic;
+    font-size: 12pt;
+    text-transform: none;
+    color: var(--ink-dim);
+    letter-spacing: normal;
+    margin-top: 8px;
+  }
+  .cover h2 {
+    font-family: var(--font-display);
+    text-transform: uppercase;
+    color: var(--accent-primary);
+    font-size: 22pt;
+    margin: 30px 0 24px;
+    word-break: break-word;
+  }
+  .cover p {
+    font-family: var(--font-mono);
+    font-size: 10pt;
+    background: var(--panel);
+    border: 3px solid var(--border);
+    box-shadow: 6px 6px 0 0 var(--ink);
+    padding: 16px 20px;
+    max-width: 5in;
+  }
+  .cover p strong { color: var(--info); }
+  .toc-title {
+    font-family: var(--font-display);
+    text-transform: uppercase;
+    color: var(--info);
+    border-bottom: 3px solid var(--border);
+    padding-bottom: 8px;
+  }
+  .toc-page ul { list-style: none; padding-left: 0; }
+  .toc-page ul ul { padding-left: 20px; }
+  .toc-page li { margin: 8px 0; }
+  .toc-page a {
+    color: var(--ink);
+    text-decoration: none;
+    font-family: var(--font-mono);
+    font-size: 10.5pt;
+  }
+  .body > hr:first-child { display: none; }
+  h1, h2, h3 { font-family: var(--font-display); text-transform: uppercase; page-break-after: avoid; }
+  h2 {
+    color: var(--info);
+    font-size: 15pt;
+    border-bottom: 3px solid var(--border);
+    padding-bottom: 6px;
+    margin-top: 34px;
+  }
+  h3 { color: var(--ink); font-size: 12pt; margin-top: 22px; }
+  h4 {
+    font-family: var(--font-mono);
+    font-size: 9.5pt;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--ink-dim);
+    margin: 16px 0 4px;
+  }
+  hr { border: none; border-top: 3px solid var(--border); margin: 26px 0; }
+  strong { color: var(--ink); }
+  a { color: var(--info); }
+  code {
+    font-family: var(--font-mono);
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    padding: 1px 5px;
+    font-size: 9.5pt;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+  /* Fenced ```blocks``` (e.g. the WHOIS dump) are a single <pre><code>.
+     The default UA white-space:pre on <pre> blocks wrapping entirely,
+     so a long line (an ICANN status URL, say) ran straight off the
+     page instead of wrapping -- pre-wrap fixes that while still
+     respecting the block's real newlines. Border moves to <pre> so a
+     multi-line block reads as one card, not one border fragment per
+     visual line (an inline element re-draws its border on each line
+     it's forced to break across).*/
+  pre {
+    font-family: var(--font-mono);
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    padding: 10px 12px;
+    font-size: 9.5pt;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    margin: 8px 0 16px;
+  }
+  pre code { border: none; padding: 0; background: none; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10px 0 18px;
+    font-size: 9.5pt;
+  }
+  th, td {
+    border: 1px solid var(--border);
+    padding: 6px 8px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th {
+    background: var(--accent-cta);
+    color: var(--ink);
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    font-size: 8.5pt;
+    letter-spacing: 0.04em;
+  }
+  tr:nth-child(even) td { background: var(--code-bg); }
+  table, tr { page-break-inside: avoid; }
+"""
+
+_PDF_DOCUMENT_TEMPLATE = """<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>FARSIGHT Report</title>
+<style>{style}</style>
+</head>
+<body>
+<div class="cover">{cover}</div>
+<div class="toc-page">
+  <h2 class="toc-title">Contents</h2>
+  {toc}
+</div>
+<div class="body">{body}</div>
+</body>
+</html>"""
+
+_PDF_FOOTER_TEMPLATE = """
+<div style="width:100%; font-size:8px; font-family: ui-monospace, Menlo, Consolas, monospace;
+            color:#5c584e; padding: 0 0.5in; display:flex; justify-content:space-between;">
+  <span>FARSIGHT Reconnaissance Report</span>
+  <span>Page <span class="pageNumber"></span> / <span class="totalPages"></span></span>
+</div>
+"""
 
 
 class ReportWriter:
@@ -240,7 +435,14 @@ All data in this report is presented for informational purposes only.
 
     def convert_to_pdf(self, markdown_file: Path) -> Optional[Path]:
         """
-        Convert Markdown report to PDF.
+        Render the Markdown report as a styled PDF.
+
+        Converts the report's Markdown to HTML (real tables via the
+        `tables` extension -- every findings table in the report used
+        to render as garbled pipe-delimited text under the old
+        reportlab pipeline), wraps it in a stylesheet matching
+        FARSIGHT's own look (see web/static/css/style.css), and prints
+        that through a headless Chromium page.
 
         Args:
             markdown_file: Path to Markdown file
@@ -250,48 +452,38 @@ All data in this report is presented for informational purposes only.
         """
         if not PDF_SUPPORT:
             logger.warning(
-                "PDF conversion libraries not installed. Cannot convert to PDF."
+                "Playwright not installed. Cannot convert to PDF. Install it "
+                "with: pip install -r requirements-screenshot.txt && "
+                "playwright install chromium"
             )
             return None
 
         try:
-            # Create PDF file path
             pdf_file = markdown_file.with_suffix(".pdf")
+            markdown_content = markdown_file.read_text(encoding="utf-8")
+            html = self._render_pdf_html(markdown_content)
 
-            # Read Markdown content
-            with open(markdown_file, "r", encoding="utf-8") as f:
-                markdown_content = f.read()
-
-            # Create PDF with reportlab
-            if PDF_SUPPORT:
-                doc = SimpleDocTemplate(str(pdf_file), pagesize=letter)
-                styles = getSampleStyleSheet()
-                flowables = []
-
-                # Split content by headers
-                sections = re.split(r"(#+ .*)", markdown_content)
-
-                for section in sections:
-                    if section.strip():
-                        # Process headers
-                        if re.match(r"#+ .*", section):
-                            level = len(re.match(r"(#+) ", section).group(1))
-                            text = section.lstrip("#").strip()
-                            style = styles["Heading%d" % min(level, 3)]
-                            flowables.append(Paragraph(escape(text), style))
-                            flowables.append(Spacer(1, 12))
-                        else:
-                            # Process paragraphs
-                            paragraphs = section.split("\n\n")
-                            for p in paragraphs:
-                                if p.strip():
-                                    # Process lists and code blocks here if needed
-                                    flowables.append(
-                                        Paragraph(escape(p), styles["Normal"])
-                                    )
-                                    flowables.append(Spacer(1, 6))
-
-                doc.build(flowables)
+            with sync_playwright() as p:
+                browser = p.chromium.launch()
+                try:
+                    page = browser.new_page()
+                    page.set_content(html, wait_until="load")
+                    page.pdf(
+                        path=str(pdf_file),
+                        format="Letter",
+                        print_background=True,
+                        margin={
+                            "top": "0.55in",
+                            "bottom": "0.6in",
+                            "left": "0.5in",
+                            "right": "0.5in",
+                        },
+                        display_header_footer=True,
+                        header_template="<span></span>",
+                        footer_template=_PDF_FOOTER_TEMPLATE,
+                    )
+                finally:
+                    browser.close()
 
             logger.info(f"PDF report generated and saved to {pdf_file}")
             return pdf_file
@@ -299,6 +491,25 @@ All data in this report is presented for informational purposes only.
         except Exception as e:
             logger.error(f"Error converting to PDF: {str(e)}")
             return None
+
+    def _render_pdf_html(self, markdown_content: str) -> str:
+        """Build the full styled HTML document convert_to_pdf() prints to PDF."""
+        md = markdown.Markdown(extensions=["tables", "toc", "nl2br", "fenced_code"])
+        body_html = md.convert(markdown_content)
+        toc_html = md.toc
+
+        # The report always opens with the header template's title/target/
+        # meta block, closed by a "---" (see self.templates["header"]) --
+        # that's the first <hr> markdown emits anywhere in the document,
+        # so splitting on it deterministically separates the cover content
+        # from everything else, letting the two get their own PDF pages.
+        cover_html, _, rest_html = body_html.partition("<hr")
+        if rest_html:
+            rest_html = "<hr" + rest_html
+
+        return _PDF_DOCUMENT_TEMPLATE.format(
+            style=_PDF_STYLE, cover=cover_html, toc=toc_html, body=rest_html
+        )
 
     def _render_header(self, target: str, depth: int, modules: List[str]) -> str:
         """Render report header section."""
@@ -780,28 +991,44 @@ All data in this report is presented for informational purposes only.
             dark_web_md = "No dark web mentions found.\n\n"
             dark_web_md += "**Note:** For enhanced dark web monitoring, configure the IntelX API in your environment.\n"
 
-        # Format credentials
+        # Format credentials. _check_leaked_credentials() always runs now
+        # (LeakPeek when configured, a keyless domain-correlation fallback
+        # otherwise), so an empty list here means "checked, none found" --
+        # distinguish that from "not checked" by whether LeakPeek is
+        # configured, and flag any fallback-sourced rows as unconfirmed
+        # rather than presenting them with the same confidence as a real
+        # LeakPeek hit.
+        leakpeek_configured = is_api_configured("leakpeek")
         creds_md = ""
         if "credentials" in threat_results and threat_results["credentials"]:
             creds_md = f"**Total exposed credentials:** {len(threat_results['credentials'])}\n\n"
-            creds_md += "| Email | Source | Date | Password Exposed | Details |\n|-------|--------|------|----------------|---------|\n"
+            creds_md += "| Email | Source | Date | Password Exposed | Confidence | Details |\n|-------|--------|------|----------------|------------|---------|\n"
             for cred in threat_results["credentials"]:
                 email = cred.get("email", "").replace("@", "[at]")  # Obfuscate email
                 source = cred.get("source", "Unknown")
                 date = cred.get("date", "Unknown")
                 has_password = "Yes" if cred.get("has_password", False) else "No"
+                confidence = (
+                    "Confirmed"
+                    if cred.get("confidence") == "confirmed"
+                    else "Domain match only"
+                )
                 details = cred.get("details", "").replace("|", "\\|")[:50]
                 creds_md += (
-                    f"| {email} | {source} | {date} | {has_password} | {details} |\n"
+                    f"| {email} | {source} | {date} | {has_password} | "
+                    f"{confidence} | {details} |\n"
                 )
         else:
-            creds_md = "No exposed credentials found.\n\n"
-            if (
-                "unique_emails_found" in threat_results
-                and threat_results["unique_emails_found"]
-            ):
-                creds_md += f"**Note:** {len(threat_results['unique_emails_found'])} email addresses were found but no breach information was discovered."
-                creds_md += " To enhance credential breach detection, configure the LeakPeek API.\n"
+            if leakpeek_configured:
+                creds_md = "No exposed credentials found.\n\n"
+            else:
+                creds_md = (
+                    "No exposed credentials found via the keyless domain-"
+                    "correlation fallback.\n\n**Note:** LeakPeek is not "
+                    "configured, so this checked known-breach domain "
+                    "correlation only, not confirmed credential records. "
+                    "Configure a LeakPeek API key for confirmed results.\n\n"
+                )
 
         # Add email reputation section
         email_rep_md = ""

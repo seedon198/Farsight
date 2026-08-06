@@ -1,3 +1,5 @@
-# Optional: powers screenshot thumbnails in the web UI's typosquat panel.
+# Optional: powers screenshot thumbnails in the web UI's typosquat panel,
+# and PDF report export (ReportWriter.convert_to_pdf) -- same headless
+# Chromium, no separate PDF toolchain needed.
 # After installing, also run: playwright install chromium
 playwright>=1.48.0
