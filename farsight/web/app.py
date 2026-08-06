@@ -4,6 +4,7 @@ Local-first: intended to be run on 127.0.0.1 by a single presenter,
 see farsight/cli/web.py. No auth, no multi-tenant concerns.
 """
 
+import re
 from pathlib import Path
 from typing import Optional
 
@@ -20,7 +21,26 @@ from farsight.web.replay import replay_scan
 from farsight.web.scan_manager import scan_manager
 
 STATIC_DIR = Path(__file__).parent / "static"
-DEFAULT_FIXTURE = Path(__file__).parent / "fixtures" / "demo_scan_example.com.json"
+FIXTURES_DIR = Path(__file__).parent / "fixtures"
+DEFAULT_FIXTURE = FIXTURES_DIR / "demo_scan_example.com.json"
+DEMO_SCREENSHOTS_DIR = FIXTURES_DIR / "screenshots"
+
+# Conservative hostname check -- this only guards a filesystem lookup
+# (fixtures/screenshots/<domain>.png), not a network request, but a
+# domain arriving with path separators or ".." should never turn into
+# a path outside that directory.
+_SAFE_DOMAIN_RE = re.compile(r"^[A-Za-z0-9]([A-Za-z0-9-]{0,62}\.)*[A-Za-z0-9-]{1,63}$")
+
+
+def _load_demo_screenshot(domain: str) -> Optional[bytes]:
+    """Return bundled PNG bytes for `domain` in demo mode, or None if none
+    was captured ahead of time. See scripts/capture_demo_screenshots.py."""
+    if not _SAFE_DOMAIN_RE.match(domain):
+        return None
+    path = DEMO_SCREENSHOTS_DIR / f"{domain}.png"
+    if not path.is_file():
+        return None
+    return path.read_bytes()
 
 try:
     import gnews  # noqa: F401
@@ -29,7 +49,7 @@ try:
 except ImportError:
     GNEWS_AVAILABLE = False
 
-DEFAULT_MODULES = ["org", "recon", "threat", "typosquat", "news"]
+DEFAULT_MODULES = ["org", "recon", "attack_surface", "threat", "typosquat", "news"]
 
 
 def create_app(demo_fixture: Optional[Path] = None) -> FastAPI:
@@ -140,6 +160,24 @@ def create_app(demo_fixture: Optional[Path] = None) -> FastAPI:
 
     @app.get("/api/screenshot")
     async def get_screenshot(domain: str):
+        if demo_fixture is not None:
+            # Demo mode promises zero network calls -- never fall through
+            # to a live Playwright capture here, even if one would work.
+            image = _load_demo_screenshot(domain)
+            if image is not None:
+                return Response(content=image, media_type="image/png")
+            return JSONResponse(
+                status_code=404,
+                content={
+                    "error": "no_demo_screenshot",
+                    "hint": (
+                        f"No bundled screenshot for {domain} in demo mode. "
+                        "Capture one ahead of time with "
+                        "scripts/capture_demo_screenshots.py."
+                    ),
+                },
+            )
+
         if not screenshot.PLAYWRIGHT_AVAILABLE:
             return JSONResponse(
                 status_code=503,
