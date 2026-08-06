@@ -17,6 +17,25 @@ from farsight.utils.api_handler import APIManager, APIHandler
 from farsight.utils import intelx_cache
 from farsight.config import get_config, is_api_configured
 
+# A plain email pattern -- deliberately domain-agnostic. The old approach
+# built a domain-specific pattern by string-concatenating the target
+# domain straight into a regex (unescaped, and shaped so it could only
+# ever match a subdomain of the target, never the bare root domain).
+# Matching broadly first and filtering by domain in Python is both more
+# correct and easier to reason about.
+_EMAIL_RE = re.compile(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+")
+
+
+def _extract_emails_for_domain(text: str, domain: str) -> List[str]:
+    """Find emails in `text` whose domain is `domain` or a subdomain of it."""
+    domain_lower = domain.lower()
+    emails = set()
+    for match in _EMAIL_RE.findall(text):
+        email_domain = match.rsplit("@", 1)[-1].lower()
+        if email_domain == domain_lower or email_domain.endswith(f".{domain_lower}"):
+            emails.add(match)
+    return list(emails)
+
 
 class ThreatIntel:
     """Threat Intelligence class for finding data leaks and breaches."""
@@ -77,7 +96,8 @@ class ThreatIntel:
         # Initialize tasks list
         tasks = []
 
-        # Always check PhoneBook.cz for leaked emails (public source)
+        # Best-effort, keyless PhoneBook.cz scrape -- see _check_phonebook's
+        # docstring, it now finds nothing without an IntelX SSO login.
         tasks.append(self._check_phonebook(domain))
 
         # Always use alternative dark web monitoring method when IntelX API is not available
@@ -91,8 +111,11 @@ class ThreatIntel:
                 tasks.append(self._check_intelx(domain, emails))
                 tasks.append(self._check_intelx_phonebook(domain))
 
-            # Check leaked credentials
-            if emails and is_api_configured("leakpeek"):
+            # Check leaked credentials -- _check_leaked_credentials() uses
+            # LeakPeek when configured and falls back to a keyless breach
+            # correlation otherwise, so this always runs rather than
+            # silently checking nothing without a LeakPeek key.
+            if emails:
                 for email in emails:
                     tasks.append(self._check_leaked_credentials(email))
 
@@ -104,23 +127,33 @@ class ThreatIntel:
                     tasks.append(email_rep_task)
 
         # For comprehensive scan
-        if depth >= 3:
+        if depth >= 3 and is_api_configured("intelx"):
             # Try to find documents and additional intelligence
-            if is_api_configured("intelx"):
-                tasks.append(self._check_documents_intelx(domain))
+            tasks.append(self._check_documents_intelx(domain))
 
-            # If domain has emails but they weren't provided, try to use HIBP alternative check
+        # Run the harvesting tasks first. The depth>=3 HIBP fallback right
+        # below needs self.results["leaks"] populated by _check_phonebook /
+        # _check_dark_web_alternative / _check_intelx -- those are only
+        # scheduled above, not awaited yet, so reading self.results["leaks"]
+        # before this gather would always see the empty list it was reset
+        # to at the top of this method.
+        await asyncio.gather(*tasks)
+
+        if depth >= 3 and not emails:
+            # Domain has emails but they weren't provided -- use the ones
+            # the harvesting pass above just discovered as an HIBP fallback.
             domain_emails = []
             for leak in self.results["leaks"]:
                 if "emails" in leak:
                     domain_emails.extend(leak["emails"])
 
-            if domain_emails and not emails:
-                for email in domain_emails[:3]:  # Limit to first 3 to avoid overload
-                    tasks.append(self.check_haveibeenpwned(email))
-
-        # Run all tasks concurrently
-        await asyncio.gather(*tasks)
+            if domain_emails:
+                await asyncio.gather(
+                    *[
+                        self.check_haveibeenpwned(email)
+                        for email in domain_emails[:3]  # first 3, avoid overload
+                    ]
+                )
 
         # Process and deduplicate results
         unique_emails = set()
@@ -204,7 +237,13 @@ class ThreatIntel:
     @retry(max_retries=2, delay=1.0, backoff=2.0)
     async def _check_phonebook(self, domain: str) -> None:
         """
-        Check PhoneBook.cz for leaked emails.
+        Best-effort scrape of PhoneBook.cz's public search page for leaked
+        emails. As of this writing phonebook.cz has folded into intelx.io
+        and gates search.php behind an SSO login (a plain GET now returns
+        405), so this reliably finds nothing without one -- kept as a
+        no-cost fallback in case that changes, but _check_intelx_phonebook()
+        below is the working replacement once an IntelX API key is
+        configured.
 
         Args:
             domain: Target domain
@@ -214,7 +253,6 @@ class ThreatIntel:
             return
 
         try:
-            # PhoneBook.cz direct API access is limited, use scraping as fallback
             encoded_domain = urllib.parse.quote(domain)
             url = f"https://phonebook.cz/search.php?q=%40{encoded_domain}"
 
@@ -229,8 +267,7 @@ class ThreatIntel:
                     html = await response.text()
 
                     # Extract emails from the page
-                    emails = re.findall(r"[\w\.-]+@[\w\.-]+\." + domain, html)
-                    unique_emails = list(set(emails))
+                    unique_emails = _extract_emails_for_domain(html, domain)
 
                     if unique_emails:
                         self.results["leaks"].append(
@@ -247,6 +284,13 @@ class ThreatIntel:
                         logger.info(
                             f"Found {len(unique_emails)} emails from PhoneBook.cz"
                         )
+                elif response.status == 405:
+                    logger.info(
+                        "PhoneBook.cz now requires an intelx.io SSO login "
+                        "(405 on the old public search endpoint) -- configure "
+                        "an IntelX API key to get this data via "
+                        "_check_intelx_phonebook instead."
+                    )
                 else:
                     logger.warning(f"PhoneBook.cz returned status {response.status}")
         except Exception as e:
@@ -605,8 +649,7 @@ class ThreatIntel:
                 )
             elif bucket == "leaks":
                 # Extract emails if any
-                emails = re.findall(r"[\w\.-]+@[\w\.-]+\." + domain, snippet)
-                unique_emails = list(set(emails))
+                unique_emails = _extract_emails_for_domain(snippet, domain)
 
                 self.results["leaks"].append(
                     {
@@ -687,12 +730,21 @@ class ThreatIntel:
 
     async def _check_leaked_credentials(self, email: str) -> None:
         """
-        Check LeakPeek API for leaked credentials.
+        Check for leaked credentials tied to `email`.
+
+        Uses the LeakPeek API when a key is configured (confirmed,
+        credential-level results). Otherwise falls back to
+        check_haveibeenpwned()'s keyless domain-correlation check --
+        without this, self.results["credentials"] stayed empty whenever
+        LeakPeek wasn't configured, which the report then printed as
+        "No exposed credentials found", indistinguishable from having
+        actually checked and found nothing.
 
         Args:
             email: Email address to check
         """
         if not is_api_configured("leakpeek"):
+            await self._check_leaked_credentials_fallback(email)
             return
 
         try:
@@ -728,6 +780,7 @@ class ThreatIntel:
                         "source": ", ".join(sources) if sources else "Unknown",
                         "date": latest_date or "Unknown",
                         "has_password": has_password,
+                        "confidence": "confirmed",
                         "details": f"Found in {len(sources)} data breach(es)",
                     }
                 )
@@ -736,6 +789,37 @@ class ThreatIntel:
 
         except Exception as e:
             logger.error(f"Error checking LeakPeek API: {str(e)}")
+
+    async def _check_leaked_credentials_fallback(self, email: str) -> None:
+        """Keyless fallback for _check_leaked_credentials, via
+        check_haveibeenpwned()'s local known-breach domain correlation."""
+        result = await self.check_haveibeenpwned(email)
+        if not result.get("found"):
+            return
+
+        breaches = result.get("breaches", [])
+        sources = [breach.get("name", "Unknown") for breach in breaches]
+        latest_date = None
+        for breach in breaches:
+            breach_date = breach.get("breach_date")
+            if breach_date and (not latest_date or breach_date > latest_date):
+                latest_date = breach_date
+
+        self.results["credentials"].append(
+            {
+                "email": email,
+                "source": ", ".join(sources) if sources else "Unknown",
+                "date": latest_date or "Unknown",
+                "has_password": False,
+                "confidence": "domain_correlation_only",
+                "details": (
+                    f"Possible match in {len(sources)} known breach(es) via "
+                    "domain correlation, not a confirmed record -- configure "
+                    "a LeakPeek API key for confirmed credential-level results."
+                ),
+            }
+        )
+        logger.info(f"Possible leaked credentials for {email} (domain correlation only)")
 
     async def check_haveibeenpwned(self, email: str) -> Dict[str, Any]:
         """
@@ -885,6 +969,15 @@ class ThreatIntel:
                             ]  # Use first date if multiple
 
                         from datetime import datetime
+
+                        # python-whois returns naive datetimes for some
+                        # registries and UTC-aware ones for others (even
+                        # inconsistently across entries for the same
+                        # domain) -- normalize to naive before subtracting
+                        # or a tz-aware creation_date raises TypeError here,
+                        # which silently drops domain-age scoring entirely.
+                        if creation_date.tzinfo is not None:
+                            creation_date = creation_date.replace(tzinfo=None)
 
                         age_days = (datetime.now() - creation_date).days
                         domain_reputation["age_days"] = age_days
