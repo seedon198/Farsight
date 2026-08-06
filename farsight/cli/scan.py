@@ -757,6 +757,11 @@ def scan(
         "-a",
         help="Include extended attack surface discovery (ASN/netblock/cloud/bucket search)",
     ),
+    pdf: bool = typer.Option(
+        False,
+        "--pdf",
+        help="Also render a styled PDF alongside the Markdown report",
+    ),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Verbose output"),
     timeout: int = typer.Option(
         get_config("timeout", 30),
@@ -886,8 +891,10 @@ def scan(
             output_file=output,
         )
 
-        # Optionally convert to PDF
-        if str(output).endswith(".pdf"):
+        # Optionally convert to PDF. Accept either an explicit --pdf or an
+        # output path that already asks for one; previously only the latter
+        # worked, so the default `report.md` silently never produced a PDF.
+        if pdf or str(output).lower().endswith(".pdf"):
             pdf_path = report_writer.convert_to_pdf(report_path)
             if pdf_path:
                 typer.echo(f"PDF report saved to: {pdf_path}")
