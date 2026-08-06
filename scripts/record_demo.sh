@@ -5,6 +5,11 @@
 # https://github.com/asciinema/agg)
 #
 # Usage: ./scripts/record_demo.sh [target-domain]
+#
+# Override the recorded command to film something other than the default
+# two-module scan, e.g. the full run that backs the demo fixture:
+#   FARSIGHT_DEMO_CMD='farsight scan example.com --all --pdf --force' \
+#     ./scripts/record_demo.sh example.com
 
 set -euo pipefail
 
@@ -16,7 +21,7 @@ TYPE_SCRIPT="$(mktemp -t farsight_demo_type.XXXXXX).sh"
 
 cat > "$TYPE_SCRIPT" <<INNER
 #!/bin/bash
-CMD='farsight scan ${TARGET} -m org -m recon --verbose --force'
+CMD="${FARSIGHT_DEMO_CMD:-farsight scan ${TARGET} -m org -m recon --force}"
 clear
 printf '\033[1;32m\$ \033[0m'
 for ((i = 0; i < \${#CMD}; i++)); do
@@ -43,12 +48,19 @@ path = sys.argv[1]
 with open(path) as f:
     lines = f.readlines()
 header = json.loads(lines[0])
-header["theme"] = {
+theme = {
     "fg": "#e6e6e6",
     "bg": "#000000",
     "palette": "#000000:#dd3c69:#4ebf22:#d5971d:#268bd2:#9c36b6:#00a8c6:#e6e6e6:"
     "#666666:#f2777a:#a6e22e:#f4bf75:#5299d1:#c790e4:#66d9ef:#ffffff",
 }
+# asciicast v2 carries the theme at the top level; v3 (asciinema >= 3.0)
+# moved it under "term". Writing only the v2 location silently produced an
+# unthemed GIF once asciinema 3 landed, so set whichever this cast uses.
+if header.get("version", 2) >= 3:
+    header.setdefault("term", {})["theme"] = theme
+else:
+    header["theme"] = theme
 with open(path, "w") as f:
     f.write(json.dumps(header) + "\n")
     f.writelines(lines[1:])
