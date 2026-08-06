@@ -4,12 +4,40 @@ This module provides a robust API management system with automatic retry,
 rate limiting, and graceful error handling for external service integrations.
 """
 
+import asyncio
 import base64
+
 import aiohttp
 from typing import Any, Dict, List, Optional
 
 from farsight.utils.common import logger, retry, RateLimiter
 from farsight.config import get_api_key, get_api_endpoint, get_config
+
+
+class APINotConfigured(ValueError):
+    """Raised when a request is attempted without a usable API key.
+
+    A distinct type so the retry decorator can skip it: no amount of
+    retrying will conjure a key, and retrying used to burn 14s of
+    backoff per call before failing anyway.
+    """
+
+
+def _is_retryable(exc: BaseException) -> bool:
+    """Whether `exc` is worth retrying.
+
+    Retries cost real wall-clock time (2s + 4s + 8s of backoff), which on
+    a live scan is multiplied across every provider. Only transient
+    failures qualify: timeouts, connection problems, rate limits (429)
+    and server-side errors (5xx). A 401/403/404 is a settled answer --
+    the key is wrong, the plan doesn't cover this, or the record doesn't
+    exist -- and retrying it just stalls the scan.
+    """
+    if isinstance(exc, APINotConfigured):
+        return False
+    if isinstance(exc, aiohttp.ClientResponseError):
+        return exc.status == 429 or exc.status >= 500
+    return isinstance(exc, (aiohttp.ClientError, asyncio.TimeoutError))
 
 
 class APIHandler:
@@ -60,8 +88,10 @@ class APIHandler:
             Response as a dictionary
         """
         # Check if API is configured
-        if not self.api_key:
-            raise ValueError(f"{self.provider.capitalize()} API key not configured")
+        if not self.api_key or not self.api_key.strip():
+            raise APINotConfigured(
+                f"{self.provider.capitalize()} API key not configured"
+            )
 
         # Wait for rate limit
         await self.rate_limiter.wait()
@@ -120,7 +150,10 @@ class APIHandler:
                     # Handle error responses
                     if response.status >= 400:
                         error_text = await response.text()
-                        logger.error(f"API error ({response.status}): {error_text}")
+                        logger.warning(
+                            f"{self.provider} API returned {response.status}: "
+                            f"{error_text[:200]}"
+                        )
                         response.raise_for_status()
 
                     # Parse response
@@ -132,7 +165,7 @@ class APIHandler:
             logger.error(f"API request error: {str(e)}")
             raise
 
-    @retry(max_retries=3, delay=2.0, backoff=2.0)
+    @retry(max_retries=3, delay=2.0, backoff=2.0, should_retry=_is_retryable)
     async def get(
         self,
         endpoint: str,
@@ -152,7 +185,7 @@ class APIHandler:
         """
         return await self.request("GET", endpoint, params=params, headers=headers)
 
-    @retry(max_retries=3, delay=2.0, backoff=2.0)
+    @retry(max_retries=3, delay=2.0, backoff=2.0, should_retry=_is_retryable)
     async def post(
         self,
         endpoint: str,

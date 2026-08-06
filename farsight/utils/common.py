@@ -7,7 +7,7 @@ retry mechanisms, and other common functionality used across the framework.
 import inspect
 import logging
 import time
-from typing import Any, Callable, TypeVar
+from typing import Any, Callable, Optional, TypeVar
 import random
 import asyncio
 
@@ -82,6 +82,8 @@ def retry(
     delay: float = 1.0,
     backoff: float = 2.0,
     exceptions: tuple = (Exception,),
+    should_retry: Optional[Callable[[BaseException], bool]] = None,
+    log_level: int = logging.WARNING,
 ) -> Callable:
     """
     Retry decorator with exponential backoff.
@@ -91,6 +93,15 @@ def retry(
         delay: Initial delay between retries in seconds
         backoff: Backoff multiplier e.g. 2 will double the delay each retry
         exceptions: Exceptions to catch and retry on
+        should_retry: Optional predicate that gets the caught exception and
+            returns whether it is worth retrying. Lets callers retry only
+            transient failures instead of also sleeping through backoff for
+            errors that can never succeed (a bad API key, a 404).
+        log_level: Level to log retry attempts and final exhaustion at.
+            Defaults to WARNING. Bulk speculative work (DNS probing of
+            thousands of candidate names) passes DEBUG, because there a
+            failure is the expected outcome rather than a problem worth
+            putting on the operator's console.
 
     Returns:
         Callable: Decorated function
@@ -106,8 +117,12 @@ def retry(
                 try:
                     return await func(*args, **kwargs)
                 except exceptions as e:
-                    logger.warning(
-                        f"Retrying {func.__name__} in {local_delay:.2f}s due to {e.__class__.__name__}: {str(e)}"
+                    if should_retry is not None and not should_retry(e):
+                        raise
+                    logger.log(
+                        log_level,
+                        f"Retrying {func.__name__} in {local_delay:.2f}s due to "
+                        f"{e.__class__.__name__}: {str(e)}",
                     )
                     last_exception = e
                     await asyncio.sleep(local_delay)
@@ -118,7 +133,10 @@ def retry(
                     local_delay = local_delay * (0.9 + 0.2 * random.random())
 
             # If we get here, we've exhausted our retries
-            logger.error(f"Function {func.__name__} failed after {max_retries} retries")
+            logger.log(
+                log_level,
+                f"Function {func.__name__} failed after {max_retries} retries",
+            )
             if last_exception:
                 raise last_exception
             raise Exception(
@@ -134,8 +152,12 @@ def retry(
                 try:
                     return func(*args, **kwargs)
                 except exceptions as e:
-                    logger.warning(
-                        f"Retrying {func.__name__} in {local_delay:.2f}s due to {e.__class__.__name__}: {str(e)}"
+                    if should_retry is not None and not should_retry(e):
+                        raise
+                    logger.log(
+                        log_level,
+                        f"Retrying {func.__name__} in {local_delay:.2f}s due to "
+                        f"{e.__class__.__name__}: {str(e)}",
                     )
                     last_exception = e
                     time.sleep(local_delay)
@@ -146,7 +168,10 @@ def retry(
                     local_delay = local_delay * (0.9 + 0.2 * random.random())
 
             # If we get here, we've exhausted our retries
-            logger.error(f"Function {func.__name__} failed after {max_retries} retries")
+            logger.log(
+                log_level,
+                f"Function {func.__name__} failed after {max_retries} retries",
+            )
             if last_exception:
                 raise last_exception
             raise Exception(
@@ -159,6 +184,28 @@ def retry(
         return wrapper_sync
 
     return decorator
+
+
+async def gather_resilient(*awaitables: Any, description: str = "task") -> list:
+    """asyncio.gather that never lets one failure discard the others.
+
+    Most of FARSIGHT's concurrency is "fan out several independent
+    lookups, each writing into self.results". A plain asyncio.gather
+    propagates the first exception, so one unreachable data source (a
+    slow crt.sh, a rate-limited API, a DNS timeout) would abandon every
+    sibling lookup and fail the whole module. Collecting exceptions
+    instead means partial results still land, which is what a recon tool
+    should do -- and what a live demo needs.
+
+    Returns the gathered results, with exceptions left in place for
+    callers that care; callers that fan out for side effects can ignore
+    the return value entirely.
+    """
+    results = await asyncio.gather(*awaitables, return_exceptions=True)
+    for result in results:
+        if isinstance(result, BaseException):
+            logger.warning(f"{description} failed: {result}")
+    return results
 
 
 class RateLimiter:
