@@ -18,6 +18,13 @@
   const graphFitBtn = document.getElementById("graph-fit");
   const typosquatPanel = document.getElementById("typosquat-panel");
   const typosquatGrid = document.getElementById("typosquat-grid");
+  const groundtruthThumb = document.getElementById("groundtruth-thumb");
+  const groundtruthPlaceholder = document.getElementById("groundtruth-placeholder");
+  const screenshotModal = document.getElementById("screenshot-modal");
+  const modalGroundtruthCol = document.getElementById("modal-groundtruth-col");
+  const modalGroundtruthImg = document.getElementById("modal-groundtruth-img");
+  const modalTyposquatImg = document.getElementById("modal-typosquat-img");
+  const modalTyposquatLabel = document.getElementById("modal-typosquat-label");
   const threatPanel = document.getElementById("threat-panel");
   const attackSurfacePanel = document.getElementById("attack-surface-panel");
   const cloudBadges = {
@@ -253,6 +260,62 @@
     return "low";
   }
 
+
+  /* Screenshot comparison. The backend exposes /api/screenshot?domain=... ,
+   * which serves a live headless-browser capture, or a pre-captured PNG when
+   * running in --demo mode. Screenshots are best-effort: a typosquat that
+   * doesn't serve HTTP simply has no preview, which is not an error. */
+  const screenshotCache = new Map();
+
+  function screenshotUrl(domain) {
+    return `/api/screenshot?domain=${encodeURIComponent(domain)}`;
+  }
+
+  function loadScreenshot(domain) {
+    if (screenshotCache.has(domain)) return screenshotCache.get(domain);
+    const p = fetch(screenshotUrl(domain))
+      .then((r) => (r.ok ? r.blob() : null))
+      .then((b) => (b ? URL.createObjectURL(b) : null))
+      .catch(() => null);
+    screenshotCache.set(domain, p);
+    return p;
+  }
+
+  function loadGroundtruth(domain) {
+    if (!domain) return;
+    loadScreenshot(domain).then((url) => {
+      if (!url) return; // leave the "No preview available" placeholder in place
+      groundtruthThumb.src = url;
+      groundtruthThumb.classList.remove("hidden");
+      groundtruthPlaceholder.classList.add("hidden");
+    });
+  }
+
+  function openComparison(typoDomain) {
+    modalTyposquatLabel.textContent = typoDomain;
+    modalTyposquatImg.removeAttribute("src");
+    modalGroundtruthImg.removeAttribute("src");
+    screenshotModal.classList.remove("hidden");
+
+    // Real site on the left, so the audience reads original -> impostor.
+    loadScreenshot(currentDomain).then((url) => {
+      if (url) {
+        modalGroundtruthImg.src = url;
+        modalGroundtruthCol.classList.remove("hidden");
+      } else {
+        modalGroundtruthCol.classList.add("hidden");
+      }
+    });
+    loadScreenshot(typoDomain).then((url) => {
+      if (url) modalTyposquatImg.src = url;
+      else modalTyposquatLabel.textContent = `${typoDomain} (no preview available)`;
+    });
+  }
+
+  function closeComparison() {
+    screenshotModal.classList.add("hidden");
+  }
+
   function renderTyposquatPanel(data) {
     const active = (data.typosquats || [])
       .filter((t) => t.has_dns || t.has_mx || t.http_status)
@@ -265,6 +328,16 @@
     active.forEach((t) => {
       const card = document.createElement("div");
       card.className = "typosquat-card";
+      card.tabIndex = 0;
+      card.setAttribute("role", "button");
+      card.title = `Compare ${t.domain} against the real site`;
+      card.addEventListener("click", () => openComparison(t.domain));
+      card.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          openComparison(t.domain);
+        }
+      });
 
       const domainEl = document.createElement("div");
       domainEl.className = "typosquat-domain";
@@ -289,6 +362,7 @@
     });
 
     typosquatPanel.classList.remove("hidden");
+    loadGroundtruth(currentDomain);
   }
 
   function makeThreatItem(titleText, metaText, badgeText) {
@@ -445,6 +519,16 @@
     switch (ev.type) {
       case "scan_started":
         currentDomain = ev.data ? ev.data.domain : null;
+        // Blob URLs from the previous scan point at the previous target's
+        // captures; drop them so a new run can't show stale imagery.
+        screenshotCache.forEach((p) =>
+          p.then((url) => url && URL.revokeObjectURL(url))
+        );
+        screenshotCache.clear();
+        groundtruthThumb.classList.add("hidden");
+        groundtruthThumb.removeAttribute("src");
+        groundtruthPlaceholder.classList.remove("hidden");
+        closeComparison();
         resetUI();
         if (window.FarsightGraph) {
           window.FarsightGraph.reset(graphContainer, currentDomain);
@@ -527,6 +611,14 @@
       reportBody.textContent = "Failed to load report preview; use the download links above.";
     }
   }
+
+  document.getElementById("screenshot-modal-close")
+    ?.addEventListener("click", closeComparison);
+  document.getElementById("screenshot-modal-backdrop")
+    ?.addEventListener("click", closeComparison);
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeComparison();
+  });
 
   if (graphZoomInBtn) {
     graphZoomInBtn.addEventListener("click", () => window.FarsightGraph?.zoomIn());
