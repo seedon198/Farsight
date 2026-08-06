@@ -338,14 +338,37 @@ class TyposquatDetector:
             if self.session:
                 http_tasks.append(self._check_domain_http(domain))
 
-        # Gather results
-        dns_results = await asyncio.gather(*dns_tasks)
-        http_results = await asyncio.gather(*http_tasks) if http_tasks else []
+        # return_exceptions so one bad candidate can't discard the analysis
+        # of every other candidate -- these probe thousands of domains that
+        # may be slow, unroutable, or serving malformed responses.
+        dns_results = await asyncio.gather(*dns_tasks, return_exceptions=True)
+        http_results = (
+            await asyncio.gather(*http_tasks, return_exceptions=True)
+            if http_tasks
+            else []
+        )
+
+        def _safe(
+            results: List[Any], index: int, fallback: Dict[str, Any]
+        ) -> Dict[str, Any]:
+            """Normalize a gathered result, substituting a neutral default
+            for any candidate whose probe raised."""
+            if index >= len(results):
+                return fallback
+            value = results[index]
+            if isinstance(value, BaseException) or not isinstance(value, dict):
+                logger.debug(f"typosquat probe failed, using default: {value!r}")
+                return fallback
+            return value
 
         # Process results
         for i, domain in enumerate(domains):
-            dns_result = dns_results[i]
-            http_result = http_results[i] if http_tasks else {"status": 0}
+            dns_result = _safe(
+                dns_results, i, {"has_a": False, "has_mx": False, "ip": None}
+            )
+            http_result = (
+                _safe(http_results, i, {"status": 0}) if http_tasks else {"status": 0}
+            )
 
             # Calculate similarity score
             similarity = self._calculate_similarity(original_domain, domain)
@@ -421,17 +444,25 @@ class TyposquatDetector:
             "ip": None,
         }
 
-        # Check A records
-        a_records = await self.dns_resolver.resolve(domain, "A")
-        if a_records:
-            result["has_a"] = True
-            if "ip" in a_records[0]:
-                result["ip"] = a_records[0]["ip"]
+        # resolve() re-raises timeouts so its retry decorator can act on
+        # them, and raises again once retries are exhausted. Absorb that
+        # here: this runs across thousands of candidate domains, and a
+        # single unresponsive name must not propagate into the gather that
+        # analyzes all of them (it would discard every other result).
+        try:
+            # Check A records
+            a_records = await self.dns_resolver.resolve(domain, "A")
+            if a_records:
+                result["has_a"] = True
+                if "ip" in a_records[0]:
+                    result["ip"] = a_records[0]["ip"]
 
-        # Check MX records
-        mx_records = await self.dns_resolver.resolve(domain, "MX")
-        if mx_records:
-            result["has_mx"] = True
+            # Check MX records
+            mx_records = await self.dns_resolver.resolve(domain, "MX")
+            if mx_records:
+                result["has_mx"] = True
+        except Exception as e:
+            logger.debug(f"DNS check failed for typosquat candidate {domain}: {e}")
 
         return result
 
