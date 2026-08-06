@@ -108,8 +108,8 @@ async def test_scan_returns_empty_dict_when_output_file_is_empty():
     async def fake_create_subprocess_exec(*cmd, **kwargs):
         output_path = cmd[cmd.index("-oJ") + 1]
         # Write empty file (zero bytes) to exercise the `if not content: return {}` branch
-        with open(output_path, "w") as f:
-            pass  # Write nothing
+        # Write an empty file to exercise the `if not content: return {}` branch
+        open(output_path, "w").close()
         return _mock_proc(returncode=0)
 
     with patch(

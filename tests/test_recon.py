@@ -180,7 +180,6 @@ async def test_masscan_scan_ips_bounds_banner_grab_concurrency(monkeypatch):
 
     recon.port_scanner.scan_port = AsyncMock(side_effect=fake_scan_port)
 
-    unique_ips = [f"10.0.0.{i}" for i in range(4)]
     ips = {f"host{i}.example.com": [f"10.0.0.{i}"] for i in range(4)}
     domains = list(ips.keys())
 
