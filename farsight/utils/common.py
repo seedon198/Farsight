@@ -54,9 +54,12 @@ class ColoredConsoleHandler(logging.StreamHandler):
             record.msg = original_msg
 
 
-# Set up logging
+# Set up logging. Default is WARNING so routine module chatter (the
+# logger.info() calls sprinkled through every module) doesn't clutter the
+# CLI's own progress display -- callers opt into the noisier levels via
+# set_log_level(), which the --verbose CLI flags wire up.
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.WARNING,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     handlers=[ColoredConsoleHandler()],
 )

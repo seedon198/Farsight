@@ -21,7 +21,7 @@ from farsight.modules.threat_intel import ThreatIntel
 from farsight.modules.typosquat import TyposquatDetector
 from farsight.modules.news import NewsMonitor
 from farsight.modules.report_writer import ReportWriter
-from farsight.utils.common import get_service_name
+from farsight.utils.common import get_service_name, set_log_level
 from farsight.utils import display
 
 # Removed the Typer app wrapper - we'll add the command directly to the main app
@@ -780,6 +780,11 @@ def scan(
     based on the specified modules and options.
     """
     start_time = time.time()
+
+    # Non-verbose runs stay on the default WARNING level (errors from a
+    # failed module still surface); --verbose escalates to INFO so the
+    # per-module logger.info() progress chatter shows too.
+    set_log_level("INFO" if verbose else "WARNING")
 
     # Module selection logic
     enabled_modules = set()

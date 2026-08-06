@@ -7,6 +7,7 @@ from typing import Optional
 import typer
 import uvicorn
 
+from farsight.utils.common import set_log_level
 from farsight.web.app import DEFAULT_FIXTURE, create_app
 
 
@@ -36,6 +37,12 @@ def web(
         "example.com fixture). See scripts/capture_demo_fixture.py "
         "to record your own.",
     ),
+    verbose: bool = typer.Option(
+        False,
+        "--verbose",
+        "-v",
+        help="Show per-module progress/warning logs from scans run through the UI",
+    ),
 ):
     """
     Launch the local FARSIGHT web UI.
@@ -44,6 +51,8 @@ def web(
     scan modules with a live-progress browser UI. Intended for demo
     use on the presenter's own machine.
     """
+    set_log_level("INFO" if verbose else "WARNING")
+
     if host not in ("127.0.0.1", "localhost", "::1"):
         typer.secho(
             "Warning: FARSIGHT's web UI has no authentication. "
