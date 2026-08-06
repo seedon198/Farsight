@@ -5,6 +5,8 @@ capabilities with robust error handling and performance optimizations.
 """
 
 import asyncio
+import logging
+
 import dns.resolver
 from typing import Dict, List, Optional, Any, Tuple
 import ipaddress
@@ -37,7 +39,8 @@ class DNSResolver:
             "8.8.8.8",  # Google DNS as backup
             "9.9.9.9",  # Quad9 as tertiary
         ]
-        self.timeout = timeout or get_config("timeout", 5)
+        # Use the DNS-specific timeout, not the (much longer) HTTP one.
+        self.timeout = timeout or get_config("dns_timeout", 3)
         self.max_retries = max_retries
         self.resolver = dns.resolver.Resolver()
         # Set nameservers directly as strings, not as packed IP addresses
@@ -45,7 +48,12 @@ class DNSResolver:
             ns for ns in self.nameservers if self._is_valid_ip(ns)
         ]
         self.resolver.timeout = self.timeout
-        self.resolver.lifetime = self.timeout * 2  # Total query lifetime
+        # Total time across all three nameservers. Kept independent of
+        # `timeout` so adding a fallback nameserver doesn't silently
+        # multiply the worst-case wait for a name that resolves nowhere.
+        self.resolver.lifetime = max(
+            self.timeout, get_config("dns_lifetime", self.timeout * 2)
+        )
 
     def _is_valid_ip(self, ip: str) -> bool:
         """Check if string is a valid IP address."""
@@ -55,7 +63,10 @@ class DNSResolver:
         except ValueError:
             return False
 
-    @retry(max_retries=3, delay=1.0, backoff=2.0)
+    # Deliberately fewer/shorter retries than the HTTP default: resolution
+    # is issued in bulk against thousands of candidate names that are
+    # expected to fail, so retry cost is multiplied across the whole scan.
+    @retry(max_retries=2, delay=0.5, backoff=2.0, log_level=logging.DEBUG)
     async def resolve(
         self, domain: str, record_type: str = "A"
     ) -> List[Dict[str, Any]]:
@@ -117,8 +128,17 @@ class DNSResolver:
         except dns.resolver.Timeout:
             logger.debug(f"Timeout resolving {record_type} record for {domain}")
             raise  # Let retry decorator handle this
+        except dns.resolver.NoNameservers as e:
+            # SERVFAIL from every nameserver. This is the *normal* outcome
+            # for the thousands of speculative names typosquat detection
+            # and subdomain bruteforcing probe, so it is not an error --
+            # logging it as one buried the CLI's own output in red text.
+            logger.debug(f"No nameserver could resolve {record_type} for {domain}: {e}")
+            return []
         except Exception as e:
-            logger.error(f"Error resolving {record_type} record for {domain}: {str(e)}")
+            logger.warning(
+                f"Error resolving {record_type} record for {domain}: {str(e)}"
+            )
             return []
 
     async def bulk_resolve(
@@ -170,7 +190,11 @@ class DNSResolver:
         dns_records = {}
         for result in results:
             if isinstance(result, Exception):
-                logger.error(f"Error in bulk DNS resolution: {str(result)}")
+                # Bulk resolution is used to probe large sets of speculative
+                # names (typosquat candidates, bruteforced subdomains) where
+                # a name failing to resolve is the expected majority case,
+                # not an error worth surfacing on the console.
+                logger.debug(f"Bulk DNS resolution failed for one name: {result}")
                 continue
 
             domain, record_type, records = result
