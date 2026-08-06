@@ -59,6 +59,8 @@ class TyposquatDetector:
         )  # Default similarity threshold (0-100)
         self.session = None
 
+    _target_fingerprint: set = frozenset()
+
     async def __aenter__(self):
         """Async context manager entry."""
         import aiohttp
@@ -87,6 +89,10 @@ class TyposquatDetector:
         Returns:
             Dictionary with typosquatting results
         """
+        # Fingerprint the real site first so content comparison has something
+        # target-specific to measure against (see _fetch_content_fingerprint).
+        self._target_fingerprint = await self._fetch_content_fingerprint(domain)
+
         # Generate typo domains
         typo_domains = self._generate_typos(domain, depth)
 
@@ -428,6 +434,65 @@ class TyposquatDetector:
 
         return results
 
+    # Words too common to say anything about whether one page imitates
+    # another; they would otherwise give every page a similarity floor.
+    _STOPWORDS = frozenset(
+        """a an and are as at be by for from has have in is it its of on or
+        that the this to was were will with you your we our us not all can
+        more about home page site web new privacy policy terms cookie
+        cookies accept contact search menu login sign up out here click
+        please read learn view please copyright reserved rights inc ltd
+        llc com http https www html""".split()
+    )
+
+    _WORD_RE = re.compile(r"[a-z][a-z0-9'-]{2,}")
+    _TAG_RE = re.compile(r"<(script|style)[^>]*>.*?</\1>|<[^>]+>", re.S | re.I)
+
+    def _page_tokens(self, html: str) -> set:
+        """Distinctive lowercase words in a page's visible text."""
+        text = self._TAG_RE.sub(" ", html or "").lower()
+        return {w for w in self._WORD_RE.findall(text) if w not in self._STOPWORDS}
+
+    async def _fetch_content_fingerprint(self, domain: str) -> set:
+        """Fetch the real target's homepage and reduce it to a token set.
+
+        Returns an empty set if the site can't be fetched, in which case
+        content comparison is simply skipped rather than guessed at.
+        """
+        if not self.session:
+            return set()
+        for protocol in ("https", "http"):
+            try:
+                async with self.session.get(
+                    f"{protocol}://{domain}",
+                    ssl=False,
+                    timeout=aiohttp.ClientTimeout(total=10),
+                ) as response:
+                    if response.status in range(200, 400):
+                        tokens = self._page_tokens(await response.text())
+                        logger.info(
+                            f"Fingerprinted {domain}: {len(tokens)} distinctive terms"
+                        )
+                        return tokens
+            except Exception as e:
+                logger.debug(f"Could not fingerprint {domain} over {protocol}: {e}")
+        logger.info(
+            f"Could not fetch {domain} to fingerprint it; "
+            "typosquat content comparison will be skipped"
+        )
+        return set()
+
+    def _content_overlap(self, html: str) -> int:
+        """Percentage of the target's distinctive vocabulary this page reuses."""
+        target = getattr(self, "_target_fingerprint", None)
+        if not target:
+            return 0
+        candidate = self._page_tokens(html)
+        if not candidate:
+            return 0
+        shared = target & candidate
+        return min(100, round(100 * len(shared) / len(target)))
+
     async def _check_domain_dns(self, domain: str) -> Dict[str, Any]:
         """
         Check domain DNS records.
@@ -511,26 +576,16 @@ class TyposquatDetector:
                                 # Get page size as a simple metric
                                 result["content_size"] = len(html)
 
-                                # Calculate content similarity based on common words and phrases
-                                # Try to detect if site is trying to mimic the original
-                                words_to_check = [
-                                    "sony",
-                                    "playstation",
-                                    "ps5",
-                                    "ps4",
-                                    "vaio",
-                                    "bravia",
-                                    "xperia",
-                                    "electronics",
-                                ]
-                                hits = 0
-                                for word in words_to_check:
-                                    if word.lower() in html.lower():
-                                        hits += 1
-
-                                result["content_similarity"] = min(
-                                    100, hits * 15
-                                )  # Scale hits to a 0-100 score
+                                # How much of the real site's vocabulary this
+                                # page reproduces. This is what separates an
+                                # actual impersonation attempt from an
+                                # unrelated business that merely owns a
+                                # similar-looking domain, so it is measured
+                                # against the target that was actually
+                                # scanned rather than any fixed word list.
+                                result["content_similarity"] = self._content_overlap(
+                                    html
+                                )
                             except Exception as e:
                                 logger.debug(
                                     f"Error processing content for {domain}: {str(e)}"
