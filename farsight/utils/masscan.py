@@ -15,6 +15,8 @@ import tempfile
 from pathlib import Path
 from typing import Dict, List, Optional
 
+from farsight.config import get_config
+
 MASSCAN_BINARY = "masscan"
 
 
@@ -70,10 +72,24 @@ class MasscanScanner:
         return _find_masscan_binary() is not None
 
     async def scan(
-        self, targets: List[str], ports: List[int], rate: int
+        self,
+        targets: List[str],
+        ports: List[int],
+        rate: int,
+        timeout: Optional[float] = None,
     ) -> Dict[str, List[int]]:
         """
         Run masscan against `targets` for `ports` at `rate` packets/sec.
+
+        Args:
+            targets: IPs to scan
+            ports: Ports to check
+            rate: Packets per second
+            timeout: Seconds to wait before giving up and killing masscan.
+                Defaults to the `masscan_timeout` config. Without a bound,
+                a masscan that stalls (an unroutable target, a hostile
+                network) hangs the entire scan with no output -- the
+                caller falls back to the built-in scanner instead.
 
         Returns:
             Mapping of IP -> list of open ports found on it. IPs with no
@@ -81,9 +97,11 @@ class MasscanScanner:
 
         Raises:
             MasscanPermissionError: masscan lacks raw-socket privileges.
-            RuntimeError: masscan failed for any other reason, or its
-                output couldn't be parsed.
+            RuntimeError: masscan failed, timed out, or its output
+                couldn't be parsed.
         """
+        if timeout is None:
+            timeout = get_config("masscan_timeout", 180)
         with tempfile.NamedTemporaryFile(
             prefix="farsight_masscan_", suffix=".json", delete=False
         ) as tmp:
@@ -107,7 +125,19 @@ class MasscanScanner:
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
-            _, stderr = await proc.communicate()
+            try:
+                _, stderr = await asyncio.wait_for(proc.communicate(), timeout=timeout)
+            except asyncio.TimeoutError:
+                proc.kill()
+                # Reap the killed process so it doesn't linger as a zombie
+                # and so its pipes are closed before we return.
+                try:
+                    await proc.communicate()
+                except Exception:
+                    pass
+                raise RuntimeError(
+                    f"masscan exceeded its {timeout}s timeout and was terminated"
+                ) from None
 
             if proc.returncode != 0:
                 stderr_text = stderr.decode("utf-8", errors="ignore")
