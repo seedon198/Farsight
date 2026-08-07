@@ -760,6 +760,11 @@ All data in this report is presented for informational purposes only.
                 f"**Domains with Open Ports:** {domains_with_ports}\n\n"
             )
             port_scan_summary += f"**Total Open Ports Found:** {total_open_ports}\n\n"
+            # masscan and the built-in scanner differ enough in speed and
+            # coverage that a reader should know which produced these.
+            engine = port_scan.get("engine")
+            if engine:
+                port_scan_summary += f"**Scan Engine:** {engine}\n\n"
 
             # Generate detailed per-domain port information
             domain_results = port_scan.get("domain_results", {})

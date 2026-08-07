@@ -38,6 +38,9 @@ class Recon:
         self.dns_resolver = DNSResolver()
         self.port_scanner = PortScanner()
         self.masscan_scanner = MasscanScanner()
+        # Which engine produced the port-scan results; set by
+        # _scan_unique_ips() and reported alongside them.
+        self.port_scan_engine = "not run"
         self.results = {
             "dns": {},
             "subdomains": [],
@@ -106,6 +109,7 @@ class Recon:
             self.results["port_scan"]["total_open_ports"] = sum(
                 r.get("open_ports", 0) for r in domain_results.values()
             )
+            self.results["port_scan"]["engine"] = self.port_scan_engine
 
         # For deeper scan, check API sources and expanded port range
         if depth >= 2:
@@ -164,9 +168,7 @@ class Recon:
             )
 
             for scan_domain, scan_result in expanded_domain_results.items():
-                previous = self.results["port_scan"]["domain_results"].get(
-                    scan_domain
-                )
+                previous = self.results["port_scan"]["domain_results"].get(scan_domain)
                 previous_count = previous.get("open_ports", 0) if previous else 0
 
                 self.results["port_scan"]["domain_results"][scan_domain] = scan_result
@@ -325,21 +327,37 @@ class Recon:
     async def _scan_unique_ips(
         self, unique_ips: List[str], ports: List[int], rate: int
     ) -> Dict[str, Dict[str, Any]]:
-        """Scan a list of unique IPs, preferring masscan with an asyncio fallback."""
+        """Scan a list of unique IPs, preferring masscan with an asyncio fallback.
+
+        Records which engine actually ran in `self.port_scan_engine`. The two
+        differ by roughly an order of magnitude in speed, and the fallback is
+        silent by design, so without this there is no way -- from the output,
+        the report, or a captured fixture -- to tell which one produced a set
+        of results.
+        """
         if self.masscan_scanner.is_available():
             try:
-                return await self._masscan_scan_ips(unique_ips, ports, rate)
+                results = await self._masscan_scan_ips(unique_ips, ports, rate)
+                self.port_scan_engine = "masscan"
+                logger.info(f"Port scanned {len(unique_ips)} IP(s) with masscan")
+                return results
             except MasscanPermissionError as e:
-                logger.info(
-                    "masscan needs elevated privileges (sudo or setcap), "
-                    f"falling back to built-in scanner: {e}"
+                # Installed but unusable is worth surfacing: the operator
+                # asked for masscan and is silently getting the slow path.
+                logger.warning(
+                    "masscan is installed but needs elevated privileges "
+                    f"(run under sudo, or setcap CAP_NET_RAW); using the "
+                    f"built-in scanner instead: {e}"
                 )
+                self.port_scan_engine = "builtin (masscan lacked privileges)"
             except Exception as e:
-                logger.error(
-                    f"masscan scan failed, falling back to built-in scanner: {e}"
+                logger.warning(
+                    f"masscan failed, using the built-in scanner instead: {e}"
                 )
+                self.port_scan_engine = "builtin (masscan failed)"
         else:
-            logger.info("masscan not found, using built-in scanner")
+            logger.info("masscan not installed, using the built-in scanner")
+            self.port_scan_engine = "builtin (masscan not installed)"
 
         return await self._fallback_scan_ips(unique_ips, ports)
 

@@ -682,6 +682,7 @@ async def run_scan(
                 ("Domains Scanned", total_scanned, None),
                 ("Domains with Ports", domains_with_ports, None),
                 ("Total Open Ports", total_open_ports, None),
+                ("Scan Engine", port_scan.get("engine", "unknown"), None),
             ]
         )
 
