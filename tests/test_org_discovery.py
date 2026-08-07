@@ -183,9 +183,7 @@ async def test_get_wikidata_acquisitions_parses_both_relationship_directions():
 async def test_get_wikidata_acquisitions_skips_relations_query_when_no_entity_found():
     org = OrgDiscovery()
     org.session = MagicMock()
-    org.session.get = MagicMock(
-        return_value=_sparql_ctx({"results": {"bindings": []}})
-    )
+    org.session.get = MagicMock(return_value=_sparql_ctx({"results": {"bindings": []}}))
 
     await org._get_wikidata_acquisitions("example.com")
 
@@ -195,7 +193,9 @@ async def test_get_wikidata_acquisitions_skips_relations_query_when_no_entity_fo
 
 def test_clean_acquisition_name_strips_trailing_stopwords():
     assert OrgDiscovery._clean_acquisition_name("Beta Startup For") == "Beta Startup"
-    assert OrgDiscovery._clean_acquisition_name("Beta Startup Inc.") == "Beta Startup Inc"
+    assert (
+        OrgDiscovery._clean_acquisition_name("Beta Startup Inc.") == "Beta Startup Inc"
+    )
     assert OrgDiscovery._clean_acquisition_name("Beta Startup") == "Beta Startup"
 
 
@@ -276,10 +276,16 @@ class _FakeCrunchbaseHandler:
     """Stand-in for APIHandler("crunchbase") -- only the .get/.post surface
     _query_crunchbase actually calls."""
 
-    def __init__(self, search_response=None, autocomplete_response=None, entity_response=None):
-        self.search_response = search_response if search_response is not None else {"entities": []}
+    def __init__(
+        self, search_response=None, autocomplete_response=None, entity_response=None
+    ):
+        self.search_response = (
+            search_response if search_response is not None else {"entities": []}
+        )
         self.autocomplete_response = (
-            autocomplete_response if autocomplete_response is not None else {"entities": []}
+            autocomplete_response
+            if autocomplete_response is not None
+            else {"entities": []}
         )
         self.entity_response = entity_response if entity_response is not None else {}
 
@@ -329,7 +335,9 @@ async def test_query_crunchbase_happy_path_resolves_domain_directly():
     assert record["org_name"] == "Beta Startup"
     assert record["domain"] == "betastartup.com"
     assert record["confidence"] == "high"
-    assert record["evidence_url"] == "https://www.crunchbase.com/organization/beta-startup"
+    assert (
+        record["evidence_url"] == "https://www.crunchbase.com/organization/beta-startup"
+    )
 
 
 @pytest.mark.asyncio
@@ -371,3 +379,51 @@ async def test_query_crunchbase_skips_malformed_record_without_crashing():
     await org._query_crunchbase("acme.com", "Acme Inc")
 
     assert org.results["acquisitions"] == []
+
+
+@pytest.mark.asyncio
+async def test_ct_falls_back_to_certspotter_when_crtsh_fails():
+    """crt.sh goes down for extended stretches (it was returning 502 for
+    every request while this was written). Certificate transparency is too
+    useful to lose to one host, so a second CT log is tried before giving up.
+    """
+    org = OrgDiscovery()
+    org.session = MagicMock()
+    org.results = {
+        "whois": {},
+        "crt_sh": [],
+        "passive_dns": [],
+        "api_results": [],
+        "acquisitions": [],
+    }
+
+    org._fetch_crt_sh = AsyncMock(side_effect=RuntimeError("crt.sh returned 502"))
+    org._fetch_certspotter = AsyncMock(return_value={"a.example.com", "b.example.com"})
+
+    await org._get_crt_sh_domains("example.com")
+
+    org._fetch_certspotter.assert_awaited_once()
+    assert sorted(org.results["crt_sh"]) == ["a.example.com", "b.example.com"]
+
+
+@pytest.mark.asyncio
+async def test_ct_skips_certspotter_when_crtsh_succeeds():
+    """The fallback exists for outages; certspotter's unauthenticated tier is
+    rate limited, so it must not be queried when crt.sh already answered."""
+    org = OrgDiscovery()
+    org.session = MagicMock()
+    org.results = {
+        "whois": {},
+        "crt_sh": [],
+        "passive_dns": [],
+        "api_results": [],
+        "acquisitions": [],
+    }
+
+    org._fetch_crt_sh = AsyncMock(return_value={"a.example.com"})
+    org._fetch_certspotter = AsyncMock()
+
+    await org._get_crt_sh_domains("example.com")
+
+    org._fetch_certspotter.assert_not_awaited()
+    assert org.results["crt_sh"] == ["a.example.com"]

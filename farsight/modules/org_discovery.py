@@ -293,15 +293,66 @@ class OrgDiscovery:
             domains = await self._fetch_crt_sh(domain)
             logger.info(f"Retrieved {len(domains)} domains from crt.sh")
             self.results["crt_sh"] = list(domains)
+            return
         except Exception as e:
-            # crt.sh is a free shared service that 502s under load fairly
-            # often. That is a data source being unavailable, not a scan
-            # failure -- report it once, plainly, and carry on with the
-            # other sources instead of stacking retry warnings on top.
+            # crt.sh is a free shared service that 502s under load, and has
+            # been known to stay down for extended stretches. Certificate
+            # transparency is too valuable a source to lose to one host's
+            # availability, so fall through to a second CT log rather than
+            # returning nothing.
+            logger.info(f"crt.sh unavailable ({e}); trying certspotter")
+
+        try:
+            domains = await self._fetch_certspotter(domain)
+            logger.info(f"Retrieved {len(domains)} domains from certspotter")
+            self.results["crt_sh"] = list(domains)
+        except Exception as e:
             logger.warning(
-                f"Certificate transparency lookup unavailable "
-                f"(crt.sh: {e}); continuing without it"
+                f"Certificate transparency lookup unavailable from both "
+                f"crt.sh and certspotter ({e}); continuing without it"
             )
+
+    @retry(max_retries=2, delay=1.0, backoff=2.0, log_level=logging.DEBUG)
+    async def _fetch_certspotter(self, domain: str) -> set:
+        """Fetch hostnames from SSLMate's Cert Spotter CT log.
+
+        Fallback for when crt.sh is unavailable. The unauthenticated tier is
+        rate limited (a handful of queries per hour per IP), so this is only
+        reached when crt.sh has already failed rather than queried in
+        parallel with it.
+
+        Args:
+            domain: Domain to query
+
+        Returns:
+            Set of hostnames found in matching certificates
+        """
+        url = (
+            "https://api.certspotter.com/v1/issuances"
+            f"?domain={urllib.parse.quote(domain)}"
+            "&include_subdomains=true&expand=dns_names"
+        )
+
+        async with self.session.get(url) as response:
+            if response.status == 429:
+                raise RuntimeError("certspotter rate limit reached")
+            if response.status != 200:
+                raise aiohttp.ClientResponseError(
+                    response.request_info,
+                    response.history,
+                    status=response.status,
+                    message=f"certspotter returned status {response.status}",
+                )
+
+            data = await response.json()
+
+        domains = set()
+        for issuance in data:
+            for name in issuance.get("dns_names", []):
+                name = name.strip().lower()
+                if name and _looks_like_hostname(name):
+                    domains.add(name)
+        return domains
 
     @retry(max_retries=2, delay=1.0, backoff=2.0, log_level=logging.DEBUG)
     async def _fetch_crt_sh(self, domain: str) -> set:
