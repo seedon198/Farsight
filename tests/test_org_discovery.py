@@ -427,3 +427,28 @@ async def test_ct_skips_certspotter_when_crtsh_succeeds():
 
     org._fetch_certspotter.assert_not_awaited()
     assert org.results["crt_sh"] == ["a.example.com"]
+
+
+@pytest.mark.asyncio
+async def test_ct_falls_back_when_crtsh_returns_empty():
+    """crt.sh also degrades by answering 200 with an empty array, which is
+    indistinguishable from "this domain has no certificates". Treating that
+    as a miss keeps a well-known domain from silently reporting no CT data.
+    """
+    org = OrgDiscovery()
+    org.session = MagicMock()
+    org.results = {
+        "whois": {},
+        "crt_sh": [],
+        "passive_dns": [],
+        "api_results": [],
+        "acquisitions": [],
+    }
+
+    org._fetch_crt_sh = AsyncMock(return_value=set())
+    org._fetch_certspotter = AsyncMock(return_value={"a.example.com"})
+
+    await org._get_crt_sh_domains("example.com")
+
+    org._fetch_certspotter.assert_awaited_once()
+    assert org.results["crt_sh"] == ["a.example.com"]

@@ -291,9 +291,16 @@ class OrgDiscovery:
 
         try:
             domains = await self._fetch_crt_sh(domain)
-            logger.info(f"Retrieved {len(domains)} domains from crt.sh")
-            self.results["crt_sh"] = list(domains)
-            return
+            if domains:
+                logger.info(f"Retrieved {len(domains)} domains from crt.sh")
+                self.results["crt_sh"] = list(domains)
+                return
+            # A 200 carrying an empty array is one of crt.sh's degraded
+            # modes -- indistinguishable, from the caller's side, from the
+            # domain genuinely having no certificates. Treating it as a
+            # miss rather than an answer means a well-known domain doesn't
+            # silently come back with no certificate transparency data.
+            logger.info("crt.sh returned no records; trying certspotter")
         except Exception as e:
             # crt.sh is a free shared service that 502s under load, and has
             # been known to stay down for extended stretches. Certificate
