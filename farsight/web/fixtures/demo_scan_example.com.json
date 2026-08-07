@@ -21,39 +21,15 @@
         ],
         "emails": []
       },
-      "certificate_transparency": [
-        "products.example.com",
-        "support.example.com",
-        "*.hosted.jivesoftware.com",
-        "*.uat3.hosted.jivesoftware.com",
-        "m.testexample.com",
-        "www.example.org",
-        "*.example.com",
-        "www.example.com",
-        "example.com",
-        "dev.example.com",
-        "m.example.com"
-      ],
+      "certificate_transparency": [],
       "passive_dns": [],
       "api_results": [],
-      "related_domains": [
-        "*.hosted.jivesoftware.com",
-        "*.uat3.hosted.jivesoftware.com",
-        "example.com",
-        "m.testexample.com",
-        "www.example.org"
-      ],
+      "related_domains": [],
       "discovered_subdomains": [
-        "*.example.com",
-        "dev.example.com",
-        "example.com",
-        "m.example.com",
-        "products.example.com",
-        "support.example.com",
-        "www.example.com"
+        "example.com"
       ],
-      "total_related_domains": 5,
-      "total_subdomains": 7,
+      "total_related_domains": 0,
+      "total_subdomains": 1,
       "acquisitions": [],
       "total_acquisitions": 0
     },
@@ -64,11 +40,11 @@
           "A": [
             {
               "type": "A",
-              "ip": "172.66.147.243"
+              "ip": "104.20.23.154"
             },
             {
               "type": "A",
-              "ip": "104.20.23.154"
+              "ip": "172.66.147.243"
             }
           ],
           "MX": [
@@ -122,7 +98,7 @@
         "domain_results": {
           "example.com": {
             "target": "172.66.147.243",
-            "timestamp": 1786050656.941605,
+            "timestamp": 1786080838.7649221,
             "total_ports": 20,
             "open_ports": 3,
             "ports": [
@@ -144,8 +120,8 @@
             ]
           },
           "www.example.com": {
-            "target": "172.66.147.243",
-            "timestamp": 1786050656.941605,
+            "target": "104.20.23.154",
+            "timestamp": 1786080838.7649221,
             "total_ports": 20,
             "open_ports": 3,
             "ports": [
@@ -155,12 +131,12 @@
                 "banner": null
               },
               {
-                "port": 443,
+                "port": 8080,
                 "open": true,
                 "banner": null
               },
               {
-                "port": 8080,
+                "port": 443,
                 "open": true,
                 "banner": null
               }
@@ -170,7 +146,7 @@
       },
       "api_results": [],
       "total_subdomains": 1,
-      "timestamp": 1786050656.941717
+      "timestamp": 1786080838.764957
     },
     "attack_surface": {
       "target": "example.com",
@@ -213,7 +189,7 @@
       "total_dark_web": 0,
       "total_credentials": 0,
       "total_intelx_phonebook": 0,
-      "timestamp": 1786050662.268424
+      "timestamp": 1786080844.20209
     },
     "typosquat": {
       "target_domain": "example.com",
@@ -221,6 +197,19 @@
       "total_active": 84,
       "similarity_threshold": 80,
       "typosquats": [
+        {
+          "domain": "exampler.com",
+          "type": "Character insertion",
+          "status": "Suspicious",
+          "risk_score": 73,
+          "has_dns": true,
+          "has_mx": true,
+          "ip": "103.168.172.37",
+          "http_status": 200,
+          "similarity": 93,
+          "content_similarity": 20,
+          "title": "Exampler Consulting"
+        },
         {
           "domain": "example1.com",
           "type": "Character insertion",
@@ -233,45 +222,6 @@
           "similarity": 93,
           "content_similarity": 20,
           "title": "Example 1"
-        },
-        {
-          "domain": "exampler.com",
-          "type": "Character insertion",
-          "status": "Suspicious",
-          "risk_score": 73,
-          "has_dns": true,
-          "has_mx": true,
-          "ip": "103.168.172.52",
-          "http_status": 200,
-          "similarity": 93,
-          "content_similarity": 20,
-          "title": "Exampler Consulting"
-        },
-        {
-          "domain": "example7.com",
-          "type": "Character insertion",
-          "status": "Suspicious",
-          "risk_score": 72,
-          "has_dns": true,
-          "has_mx": true,
-          "ip": "35.212.120.76",
-          "http_status": 200,
-          "similarity": 93,
-          "content_similarity": 10,
-          "title": "Example7 - Website Development, Maintenance, Training, Consultation - Larry Otis McCort"
-        },
-        {
-          "domain": "exampleg.com",
-          "type": "Character insertion",
-          "status": "Suspicious",
-          "risk_score": 72,
-          "has_dns": true,
-          "has_mx": true,
-          "ip": "43.252.42.24",
-          "http_status": 200,
-          "similarity": 93,
-          "content_similarity": 10,
-          "title": "eg.G - exampleG"
         },
         {
           "domain": "eexample.com",
@@ -287,6 +237,58 @@
           "title": "eExample.com"
         },
         {
+          "domain": "exampleg.com",
+          "type": "Character insertion",
+          "status": "Suspicious",
+          "risk_score": 72,
+          "has_dns": true,
+          "has_mx": true,
+          "ip": "43.252.42.21",
+          "http_status": 200,
+          "similarity": 93,
+          "content_similarity": 10,
+          "title": "eg.G - exampleG"
+        },
+        {
+          "domain": "ex-ample.com",
+          "type": "Character insertion",
+          "status": "Suspicious",
+          "risk_score": 72,
+          "has_dns": true,
+          "has_mx": true,
+          "ip": "172.67.154.24",
+          "http_status": 200,
+          "similarity": 93,
+          "content_similarity": 10,
+          "title": "courier.new"
+        },
+        {
+          "domain": "example7.com",
+          "type": "Character insertion",
+          "status": "Suspicious",
+          "risk_score": 72,
+          "has_dns": true,
+          "has_mx": true,
+          "ip": "35.212.120.76",
+          "http_status": 200,
+          "similarity": 93,
+          "content_similarity": 10,
+          "title": "Example7 - Website Development, Maintenance, Training, Consultation - Larry Otis McCort"
+        },
+        {
+          "domain": "excample.com",
+          "type": "Character insertion",
+          "status": "Suspicious",
+          "risk_score": 72,
+          "has_dns": true,
+          "has_mx": true,
+          "ip": "103.224.182.241",
+          "http_status": 200,
+          "similarity": 93,
+          "content_similarity": 10,
+          "title": "excample.com"
+        },
+        {
           "domain": "wexample.com",
           "type": "Character insertion",
           "status": "Suspicious",
@@ -300,39 +302,13 @@
           "title": "Le m\u00e9dia des projets web - Wexample"
         },
         {
-          "domain": "exampley.com",
-          "type": "Character insertion",
-          "status": "Suspicious",
-          "risk_score": 71,
-          "has_dns": true,
-          "has_mx": true,
-          "ip": "76.223.54.146",
-          "http_status": 200,
-          "similarity": 93,
-          "content_similarity": 0,
-          "title": null
-        },
-        {
-          "domain": "exampl.com",
-          "type": "Character omission",
-          "status": "Suspicious",
-          "risk_score": 71,
-          "has_dns": true,
-          "has_mx": true,
-          "ip": "199.191.50.184",
-          "http_status": 200,
-          "similarity": 92,
-          "content_similarity": 0,
-          "title": null
-        },
-        {
           "domain": "examplet.com",
           "type": "Character insertion",
           "status": "Suspicious",
           "risk_score": 71,
           "has_dns": true,
           "has_mx": true,
-          "ip": "15.197.148.33",
+          "ip": "3.33.130.190",
           "http_status": 200,
           "similarity": 93,
           "content_similarity": 0,
@@ -349,7 +325,20 @@
           "http_status": 200,
           "similarity": 93,
           "content_similarity": 0,
-          "title": "Login - X Acceleration Codec"
+          "title": "Directory listing for /"
+        },
+        {
+          "domain": "exampl.com",
+          "type": "Character omission",
+          "status": "Suspicious",
+          "risk_score": 71,
+          "has_dns": true,
+          "has_mx": true,
+          "ip": "199.191.50.184",
+          "http_status": 200,
+          "similarity": 92,
+          "content_similarity": 0,
+          "title": null
         },
         {
           "domain": "exmple.com",
@@ -381,24 +370,24 @@
           "domain": "4example.com",
           "type": "Character insertion",
           "status": "Suspicious",
-          "risk_score": 71,
+          "risk_score": 61,
           "has_dns": true,
           "has_mx": true,
           "ip": "76.223.54.146",
-          "http_status": 200,
+          "http_status": 0,
           "similarity": 93,
           "content_similarity": 0,
           "title": null
         },
         {
-          "domain": "sexample.com",
+          "domain": "example2.com",
           "type": "Character insertion",
           "status": "Suspicious",
-          "risk_score": 71,
+          "risk_score": 61,
           "has_dns": true,
           "has_mx": true,
-          "ip": "76.223.54.146",
-          "http_status": 200,
+          "ip": "172.67.195.22",
+          "http_status": 403,
           "similarity": 93,
           "content_similarity": 0,
           "title": null
@@ -410,73 +399,21 @@
           "risk_score": 61,
           "has_dns": true,
           "has_mx": true,
-          "ip": "172.239.194.117",
+          "ip": "172.238.172.116",
           "http_status": 0,
           "similarity": 92,
           "content_similarity": 0,
           "title": null
         },
         {
-          "domain": "example2.com",
+          "domain": "exampley.com",
           "type": "Character insertion",
           "status": "Suspicious",
           "risk_score": 61,
           "has_dns": true,
           "has_mx": true,
-          "ip": "104.21.44.49",
-          "http_status": 403,
-          "similarity": 93,
-          "content_similarity": 0,
-          "title": null
-        },
-        {
-          "domain": "ex-ample.com",
-          "type": "Character insertion",
-          "status": "Suspicious",
-          "risk_score": 61,
-          "has_dns": true,
-          "has_mx": true,
-          "ip": "172.67.154.24",
+          "ip": "76.223.54.146",
           "http_status": 0,
-          "similarity": 93,
-          "content_similarity": 0,
-          "title": null
-        },
-        {
-          "domain": "exampled.com",
-          "type": "Character insertion",
-          "status": "Suspicious",
-          "risk_score": 61,
-          "has_dns": true,
-          "has_mx": true,
-          "ip": "64.190.63.222",
-          "http_status": 436,
-          "similarity": 93,
-          "content_similarity": 0,
-          "title": null
-        },
-        {
-          "domain": "examp-le.com",
-          "type": "Character insertion",
-          "status": "Suspicious",
-          "risk_score": 61,
-          "has_dns": true,
-          "has_mx": true,
-          "ip": "172.237.159.210",
-          "http_status": 0,
-          "similarity": 93,
-          "content_similarity": 0,
-          "title": null
-        },
-        {
-          "domain": "exxample.com",
-          "type": "Character insertion",
-          "status": "Suspicious",
-          "risk_score": 61,
-          "has_dns": true,
-          "has_mx": true,
-          "ip": "104.21.10.82",
-          "http_status": 403,
           "similarity": 93,
           "content_similarity": 0,
           "title": null
@@ -495,17 +432,69 @@
           "title": null
         },
         {
-          "domain": "excample.com",
+          "domain": "exampled.com",
           "type": "Character insertion",
           "status": "Suspicious",
           "risk_score": 61,
           "has_dns": true,
           "has_mx": true,
-          "ip": "103.224.182.241",
+          "ip": "64.190.63.222",
+          "http_status": 436,
+          "similarity": 93,
+          "content_similarity": 0,
+          "title": null
+        },
+        {
+          "domain": "exxample.com",
+          "type": "Character insertion",
+          "status": "Suspicious",
+          "risk_score": 61,
+          "has_dns": true,
+          "has_mx": true,
+          "ip": "172.67.144.240",
+          "http_status": 403,
+          "similarity": 93,
+          "content_similarity": 0,
+          "title": null
+        },
+        {
+          "domain": "examp-le.com",
+          "type": "Character insertion",
+          "status": "Suspicious",
+          "risk_score": 61,
+          "has_dns": true,
+          "has_mx": true,
+          "ip": "172.237.159.210",
           "http_status": 0,
           "similarity": 93,
           "content_similarity": 0,
           "title": null
+        },
+        {
+          "domain": "sexample.com",
+          "type": "Character insertion",
+          "status": "Suspicious",
+          "risk_score": 61,
+          "has_dns": true,
+          "has_mx": true,
+          "ip": "76.223.54.146",
+          "http_status": 0,
+          "similarity": 93,
+          "content_similarity": 0,
+          "title": null
+        },
+        {
+          "domain": "example3.com",
+          "type": "Character insertion",
+          "status": "Potential",
+          "risk_score": 58,
+          "has_dns": true,
+          "has_mx": false,
+          "ip": "104.26.15.194",
+          "http_status": 200,
+          "similarity": 93,
+          "content_similarity": 20,
+          "title": "example3.com | domain statistics, example titles, keywords, links"
         },
         {
           "domain": "example4.com",
@@ -521,6 +510,32 @@
           "title": "example4.com | .us domain statistics, example titles, keywords, links"
         },
         {
+          "domain": "example5.com",
+          "type": "Character insertion",
+          "status": "Potential",
+          "risk_score": 58,
+          "has_dns": true,
+          "has_mx": false,
+          "ip": "13.223.25.84",
+          "http_status": 200,
+          "similarity": 93,
+          "content_similarity": 20,
+          "title": "Example5.com is for sale | HugeDomains"
+        },
+        {
+          "domain": "examplec.com",
+          "type": "Character insertion",
+          "status": "Potential",
+          "risk_score": 58,
+          "has_dns": true,
+          "has_mx": false,
+          "ip": "13.223.25.84",
+          "http_status": 200,
+          "similarity": 93,
+          "content_similarity": 20,
+          "title": "ExampleC.com is for sale | HugeDomains"
+        },
+        {
           "domain": "examplea.com",
           "type": "Character insertion",
           "status": "Potential",
@@ -534,7 +549,7 @@
           "title": "ExampleA.com is for sale | HugeDomains"
         },
         {
-          "domain": "exampleb.com",
+          "domain": "example9.com",
           "type": "Character insertion",
           "status": "Potential",
           "risk_score": 58,
@@ -544,33 +559,20 @@
           "http_status": 200,
           "similarity": 93,
           "content_similarity": 20,
-          "title": "ExampleB.com is for sale | HugeDomains"
+          "title": "example9.com is for sale | HugeDomains"
         },
         {
-          "domain": "example9.com",
+          "domain": "exampleb.com",
           "type": "Character insertion",
           "status": "Potential",
-          "risk_score": 57,
+          "risk_score": 58,
           "has_dns": true,
           "has_mx": false,
           "ip": "13.223.25.84",
           "http_status": 200,
           "similarity": 93,
-          "content_similarity": 10,
-          "title": "HugeDomains.com"
-        },
-        {
-          "domain": "exammple.com",
-          "type": "Character insertion",
-          "status": "Potential",
-          "risk_score": 57,
-          "has_dns": true,
-          "has_mx": false,
-          "ip": "54.243.117.197",
-          "http_status": 200,
-          "similarity": 93,
-          "content_similarity": 10,
-          "title": "HugeDomains.com"
+          "content_similarity": 20,
+          "title": "ExampleB.com is for sale | HugeDomains"
         },
         {
           "domain": "rexample.com",
@@ -583,46 +585,33 @@
           "http_status": 200,
           "similarity": 93,
           "content_similarity": 10,
-          "title": "HugeDomains.com"
+          "title": "RexAmple.com is for sale | HugeDomains"
         },
         {
-          "domain": "example5.com",
+          "domain": "exammple.com",
           "type": "Character insertion",
           "status": "Potential",
           "risk_score": 57,
           "has_dns": true,
           "has_mx": false,
-          "ip": "54.243.117.197",
-          "http_status": 200,
-          "similarity": 93,
-          "content_similarity": 10,
-          "title": "HugeDomains.com"
-        },
-        {
-          "domain": "exyample.com",
-          "type": "Character insertion",
-          "status": "Potential",
-          "risk_score": 56,
-          "has_dns": true,
-          "has_mx": false,
-          "ip": "104.26.5.80",
-          "http_status": 200,
-          "similarity": 93,
-          "content_similarity": 0,
-          "title": "Online Consultant"
-        },
-        {
-          "domain": "examplec.com",
-          "type": "Character insertion",
-          "status": "Potential",
-          "risk_score": 56,
-          "has_dns": true,
-          "has_mx": false,
           "ip": "13.223.25.84",
           "http_status": 200,
           "similarity": 93,
-          "content_similarity": 0,
-          "title": "HugeDomains.com"
+          "content_similarity": 10,
+          "title": "Exammple.com is for sale | HugeDomains"
+        },
+        {
+          "domain": "example6.com",
+          "type": "Character insertion",
+          "status": "Potential",
+          "risk_score": 57,
+          "has_dns": true,
+          "has_mx": false,
+          "ip": "104.21.59.130",
+          "http_status": 200,
+          "similarity": 93,
+          "content_similarity": 10,
+          "title": null
         },
         {
           "domain": "e-xample.com",
@@ -631,20 +620,46 @@
           "risk_score": 56,
           "has_dns": true,
           "has_mx": false,
-          "ip": "104.21.9.2",
+          "ip": "172.67.130.200",
           "http_status": 200,
           "similarity": 93,
           "content_similarity": 0,
           "title": "Tech &amp; Betting Mastermind: Innov\u00e1ci\u00f3k \u00e9s strat\u00e9gi\u00e1k a fogad\u00e1s vil\u00e1g\u00e1ban"
         },
         {
-          "domain": "exsample.com",
+          "domain": "dexample.com",
           "type": "Character insertion",
           "status": "Potential",
           "risk_score": 56,
           "has_dns": true,
           "has_mx": false,
-          "ip": "76.223.54.146",
+          "ip": "185.143.234.238",
+          "http_status": 200,
+          "similarity": 93,
+          "content_similarity": 0,
+          "title": "\u0627\u0645\u06cc\u0631\u0631\u0636\u0627 \u0639\u0644\u06cc\u062c\u0627\u0646 | \u062a\u0648\u0633\u0639\u0647\u200c\u062f\u0647\u0646\u062f\u0647 \u0648\u0631\u062f\u067e\u0631\u0633 \u0648 \u0644\u0627\u0631\u0627\u0648\u0644"
+        },
+        {
+          "domain": "exapmple.com",
+          "type": "Character insertion",
+          "status": "Potential",
+          "risk_score": 56,
+          "has_dns": true,
+          "has_mx": false,
+          "ip": "134.122.194.162",
+          "http_status": 200,
+          "similarity": 93,
+          "content_similarity": 0,
+          "title": "\u76ee\u5f55\u5927\u5168_\u7b80\u5355\u641c\u7d22\u5bfc\u822a - Exapmple\u4e0a\u7f51\u5bfc\u822a"
+        },
+        {
+          "domain": "exampple.com",
+          "type": "Character insertion",
+          "status": "Potential",
+          "risk_score": 56,
+          "has_dns": true,
+          "has_mx": false,
+          "ip": "15.197.148.33",
           "http_status": 200,
           "similarity": 93,
           "content_similarity": 0,
@@ -664,58 +679,6 @@
           "title": null
         },
         {
-          "domain": "exampole.com",
-          "type": "Character insertion",
-          "status": "Potential",
-          "risk_score": 56,
-          "has_dns": true,
-          "has_mx": false,
-          "ip": "3.33.130.190",
-          "http_status": 200,
-          "similarity": 93,
-          "content_similarity": 0,
-          "title": null
-        },
-        {
-          "domain": "dexample.com",
-          "type": "Character insertion",
-          "status": "Potential",
-          "risk_score": 56,
-          "has_dns": true,
-          "has_mx": false,
-          "ip": "185.143.234.238",
-          "http_status": 200,
-          "similarity": 93,
-          "content_similarity": 0,
-          "title": "\u0627\u0645\u06cc\u0631\u0631\u0636\u0627 \u0639\u0644\u06cc\u062c\u0627\u0646 | \u062a\u0648\u0633\u0639\u0647\u200c\u062f\u0647\u0646\u062f\u0647 \u0648\u0631\u062f\u067e\u0631\u0633 \u0648 \u0644\u0627\u0631\u0627\u0648\u0644"
-        },
-        {
-          "domain": "examle.com",
-          "type": "Character omission",
-          "status": "Potential",
-          "risk_score": 56,
-          "has_dns": true,
-          "has_mx": false,
-          "ip": "212.92.104.115",
-          "http_status": 200,
-          "similarity": 92,
-          "content_similarity": 0,
-          "title": "Loading..."
-        },
-        {
-          "domain": "exapmple.com",
-          "type": "Character insertion",
-          "status": "Potential",
-          "risk_score": 56,
-          "has_dns": true,
-          "has_mx": false,
-          "ip": "134.122.194.162",
-          "http_status": 200,
-          "similarity": 93,
-          "content_similarity": 0,
-          "title": "\u76ee\u5f55\u5927\u5168_\u7b80\u5355\u641c\u7d22\u5bfc\u822a - Exapmple\u4e0a\u7f51\u5bfc\u822a"
-        },
-        {
           "domain": "exampleq.com",
           "type": "Character insertion",
           "status": "Potential",
@@ -729,7 +692,33 @@
           "title": null
         },
         {
-          "domain": "exampple.com",
+          "domain": "examle.com",
+          "type": "Character omission",
+          "status": "Potential",
+          "risk_score": 56,
+          "has_dns": true,
+          "has_mx": false,
+          "ip": "212.92.104.7",
+          "http_status": 200,
+          "similarity": 92,
+          "content_similarity": 0,
+          "title": "Loading..."
+        },
+        {
+          "domain": "exyample.com",
+          "type": "Character insertion",
+          "status": "Potential",
+          "risk_score": 56,
+          "has_dns": true,
+          "has_mx": false,
+          "ip": "104.26.4.80",
+          "http_status": 200,
+          "similarity": 93,
+          "content_similarity": 0,
+          "title": "Online Consultant"
+        },
+        {
+          "domain": "exampole.com",
           "type": "Character insertion",
           "status": "Potential",
           "risk_score": 56,
@@ -742,67 +731,41 @@
           "title": null
         },
         {
-          "domain": "eample.com",
-          "type": "Character omission",
-          "status": "Potential",
-          "risk_score": 56,
-          "has_dns": true,
-          "has_mx": false,
-          "ip": "76.223.54.146",
-          "http_status": 200,
-          "similarity": 92,
-          "content_similarity": 0,
-          "title": null
-        },
-        {
           "domain": "examplez.com",
-          "type": "Character insertion",
-          "status": "Potential",
-          "risk_score": 56,
-          "has_dns": true,
-          "has_mx": false,
-          "ip": "76.223.54.146",
-          "http_status": 200,
-          "similarity": 93,
-          "content_similarity": 0,
-          "title": null
-        },
-        {
-          "domain": "example3.com",
-          "type": "Character insertion",
-          "status": "Potential",
-          "risk_score": 48,
-          "has_dns": true,
-          "has_mx": false,
-          "ip": "172.67.72.248",
-          "http_status": 429,
-          "similarity": 93,
-          "content_similarity": 20,
-          "title": "example3.com | domain statistics, example titles, keywords, links"
-        },
-        {
-          "domain": "examlple.com",
           "type": "Character insertion",
           "status": "Potential",
           "risk_score": 46,
           "has_dns": true,
           "has_mx": false,
-          "ip": "121.254.178.252",
+          "ip": "76.223.54.146",
           "http_status": 0,
           "similarity": 93,
           "content_similarity": 0,
           "title": null
         },
         {
-          "domain": "example6.com",
+          "domain": "exsample.com",
           "type": "Character insertion",
           "status": "Potential",
           "risk_score": 46,
           "has_dns": true,
           "has_mx": false,
-          "ip": "104.21.59.130",
-          "http_status": 403,
+          "ip": "13.248.169.48",
+          "http_status": 0,
           "similarity": 93,
+          "content_similarity": 0,
+          "title": null
+        },
+        {
+          "domain": "eample.com",
+          "type": "Character omission",
+          "status": "Potential",
+          "risk_score": 46,
+          "has_dns": true,
+          "has_mx": false,
+          "ip": "13.248.169.48",
+          "http_status": 0,
+          "similarity": 92,
           "content_similarity": 0,
           "title": null
         },
@@ -820,6 +783,19 @@
           "title": null
         },
         {
+          "domain": "examplek.com",
+          "type": "Character insertion",
+          "status": "Potential",
+          "risk_score": 46,
+          "has_dns": true,
+          "has_mx": false,
+          "ip": "162.159.133.6",
+          "http_status": 500,
+          "similarity": 93,
+          "content_similarity": 0,
+          "title": null
+        },
+        {
           "domain": "example8.com",
           "type": "Character insertion",
           "status": "Potential",
@@ -833,33 +809,33 @@
           "title": null
         },
         {
-          "domain": "examplek.com",
-          "type": "Character insertion",
-          "status": "Potential",
-          "risk_score": 46,
-          "has_dns": true,
-          "has_mx": false,
-          "ip": "162.159.130.6",
-          "http_status": 500,
-          "similarity": 93,
-          "content_similarity": 0,
-          "title": null
-        },
-        {
           "domain": "examplle.com",
           "type": "Character insertion",
           "status": "Potential",
           "risk_score": 46,
           "has_dns": true,
           "has_mx": false,
-          "ip": "104.21.25.153",
+          "ip": "172.67.134.87",
           "http_status": 521,
+          "similarity": 93,
+          "content_similarity": 0,
+          "title": null
+        },
+        {
+          "domain": "examlple.com",
+          "type": "Character insertion",
+          "status": "Potential",
+          "risk_score": 46,
+          "has_dns": true,
+          "has_mx": false,
+          "ip": "121.254.178.252",
+          "http_status": 0,
           "similarity": 93,
           "content_similarity": 0,
           "title": null
         }
       ],
-      "timestamp": 1786050716.969586
+      "timestamp": 1786080907.655773
     },
     "news": {
       "target": "example.com",
@@ -874,18 +850,11 @@
           "snippet": "Fight Club at 30: toxic masculinity handbook or clever takedown of capitalism?  The Conversation"
         },
         {
-          "title": "One-of-a-kind experiment tracked plant evolution in response to climate change at 30 sites worldwide - news.berkeley.edu",
+          "title": "One-of-a-kind experiment tracked plant evolution in response to climate change at 30 sites worldwide - University of California, Berkeley",
           "url": "https://news.google.com/rss/articles/CBMi1AFBVV95cUxPQzFVazFpdlZZSWRqS1dna3ZHYzltaTBUTTREaHFRbXVNckdMWXBwTURrQTl3QmtBRDhWeHdERUdMMEZkbk5nQ19DM3kxcC1HcG15RURWcERDVzVOY096c0lOT3N2NmpFMFlPd2huemFrWFFwOWxyWjE2S3AtX0hCNEtZMzJVZ3hERU11cTc2bFJtbmJwS2xLalRVT0drWGRTNkt4a1pJUVYtNFdoeW15bUZxRzNCel9IQnV6cnd1SmV3WUVIbExRMTdfazNQUnRKeWt1cA?oc=5&hl=en-IN&gl=IN&ceid=IN:en",
           "published": "Thu, 26 Mar 2026 07:00:00 GMT",
-          "publisher": "news.berkeley.edu",
-          "snippet": "One-of-a-kind experiment tracked plant evolution in response to climate change at 30 sites worldwide  news.berkeley.edu"
-        },
-        {
-          "title": "The Beijing Declaration and Platform for Action at 30, and why that matters for gender equality - UN Women",
-          "url": "https://news.google.com/rss/articles/CBMi1wFBVV95cUxQcHo0RG5MR01lNXB3MWdfdXlrbnA2aUVqV0QxVXlCYjkyenFucWRENnlpbzhUUjV4dnpzTkw4cTh3MTBMdGcydnFvSUNDU1V5WlVxYjBQcG5zZG03b1ljN1JZUVhMbkpza2hMXzFVd0lEVFFSR1ZmNHBUWUEwTlc0X3dhbzlBUDAxQ3YzZjgzSnNoYmxBZTZOT3FNZW5YNkR1dmtZNV95LWRtR3VsVG9mM3pSNWs2VHEtbkNSOW1NeTRZWXFCam1DOVN1RFJSanVsSHgxcTViTQ?oc=5&hl=en-IN&gl=IN&ceid=IN:en",
-          "published": "Fri, 24 Jan 2025 08:00:00 GMT",
-          "publisher": "UN Women",
-          "snippet": "The Beijing Declaration and Platform for Action at 30, and why that matters for gender equality  UN Women"
+          "publisher": "University of California, Berkeley",
+          "snippet": "One-of-a-kind experiment tracked plant evolution in response to climate change at 30 sites worldwide  University of California, Berkeley"
         },
         {
           "title": "\u2018Quiz Show\u2019 at 30: The Last of the Middlebrow Masterpieces - The Reveal | Scott Tobias",
@@ -907,9 +876,16 @@
           "published": "Thu, 12 Jul 2018 07:00:00 GMT",
           "publisher": "The Guardian",
           "snippet": "Die Hard at 30: how it remains the quintessential American action movie  The Guardian"
+        },
+        {
+          "title": "Association between breastfeeding and intelligence, educational attainment, and income at 30 years of age: a prospective birth cohort study from Brazil - The Lancet",
+          "url": "https://news.google.com/rss/articles/CBMiiwFBVV95cUxObGtFVXV0SDlwaVpHWk14b0VGc2t2RDZJYTFpcWwxM0NJcy04NzJfRU9fZk9hNXdra2h1N3VHNUdXUXl3elRIT05xVEVoSUpNb095SFl4NVhrWE9hZkhMajlDVHQ1VTJ2N19mbVlKNkQyQ2x0TkZ4eUZHYmloQURCQ2FXd3NoSG5zaGJr?oc=5&hl=en-IN&gl=IN&ceid=IN:en",
+          "published": "Wed, 01 Apr 2015 07:00:00 GMT",
+          "publisher": "The Lancet",
+          "snippet": "Association between breastfeeding and intelligence, educational attainment, and income at 30 years of age: a prospective birth cohort study from Brazil  The Lancet"
         }
       ],
-      "timestamp": 1786050719.245499
+      "timestamp": 1786080909.685379
     }
   }
 }
