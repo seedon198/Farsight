@@ -819,7 +819,9 @@ class ThreatIntel:
                 ),
             }
         )
-        logger.info(f"Possible leaked credentials for {email} (domain correlation only)")
+        logger.info(
+            f"Possible leaked credentials for {email} (domain correlation only)"
+        )
 
     async def check_haveibeenpwned(self, email: str) -> Dict[str, Any]:
         """
@@ -878,8 +880,11 @@ class ThreatIntel:
 
             # Fallback to alternative method when API key is not available
             # Using a correlation approach based on common breach data patterns
-            logger.warning(
-                "HaveIBeenPwned API key not configured. Using alternative check method."
+            # Expected whenever no HIBP key is set, which is the default --
+            # the keyless correlation path below is the designed behaviour,
+            # not a degradation worth a console warning.
+            logger.info(
+                "No HaveIBeenPwned API key; using the keyless correlation check."
             )
 
             domain = email.split("@")[-1] if "@" in email else None

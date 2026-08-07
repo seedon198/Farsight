@@ -14,8 +14,12 @@ SOURCES = {
     "crt_sh": "https://crt.sh/?q=%.{}&output=json",
     "virustotal": "https://www.virustotal.com/vtapi/v2/domain/report",
     "hackertarget": "https://api.hackertarget.com/hostsearch/?q={}",
-    "threatcrowd": "https://www.threatcrowd.org/searchApi/v2/domain/report/?domain={}",
-    "bufferover": "https://dns.bufferover.run/dns?q=.{}",
+    # ThreatCrowd and BufferOver are retired -- both hostnames now NXDOMAIN,
+    # so querying them only ever produced a connection error per scan. Kept
+    # here (commented, not deleted) so it's clear they were dropped
+    # deliberately rather than overlooked.
+    #   "threatcrowd": "https://www.threatcrowd.org/searchApi/v2/domain/report/?domain={}",
+    #   "bufferover": "https://dns.bufferover.run/dns?q=.{}",
     "alienvault": "https://otx.alienvault.com/api/v1/indicators/domain/{}/passive_dns",
     "urlscan": "https://urlscan.io/api/v1/search/?q=domain:{}",
 }
@@ -114,8 +118,8 @@ class SubdomainEnumerator:
         if "apis" in techniques:
             # Add API-based discovery methods
             tasks.append(self._query_hackertarget(domain))
-            tasks.append(self._query_threatcrowd(domain))
-            tasks.append(self._query_bufferover(domain))
+            # _query_threatcrowd / _query_bufferover intentionally not
+            # scheduled: see the retired entries in SOURCES above.
             tasks.append(self._query_alienvault(domain))
             tasks.append(self._query_urlscan(domain))
 
@@ -590,43 +594,6 @@ class SubdomainEnumerator:
             logger.info(f"Found {len(self.discovered)} subdomains via HackerTarget")
         except Exception as e:
             logger.error(f"Error querying HackerTarget API: {str(e)}")
-
-    async def _query_threatcrowd(self, domain: str) -> None:
-        """Query ThreatCrowd API for subdomains."""
-        try:
-            url = SOURCES["threatcrowd"].format(domain)
-            async with self.session.get(url) as response:
-                if response.status == 200:
-                    data = await response.json()
-                    if data.get("response_code") == "1":
-                        subdomains = data.get("subdomains", [])
-                        for subdomain in subdomains:
-                            self.discovered.add(subdomain.lower())
-
-            logger.info(f"Found {len(self.discovered)} subdomains via ThreatCrowd")
-        except Exception as e:
-            logger.error(f"Error querying ThreatCrowd API: {str(e)}")
-
-    async def _query_bufferover(self, domain: str) -> None:
-        """Query BufferOver API for subdomains."""
-        try:
-            url = SOURCES["bufferover"].format(domain)
-            async with self.session.get(url) as response:
-                if response.status == 200:
-                    data = await response.json()
-                    if data and "FDNS_A" in data and data["FDNS_A"]:
-                        records = data["FDNS_A"].split(",")
-                        for record in records:
-                            try:
-                                ip, host = record.split(",")
-                                if domain in host:
-                                    self.discovered.add(host.lower())
-                            except Exception:
-                                continue
-
-            logger.info(f"Found {len(self.discovered)} subdomains via BufferOver")
-        except Exception as e:
-            logger.error(f"Error querying BufferOver API: {str(e)}")
 
     async def _query_alienvault(self, domain: str) -> None:
         """Query AlienVault OTX API for subdomains."""
