@@ -4,7 +4,7 @@
 <tr>
 <td align="center" width="50%">
 
-### DEFCON 34
+### DEFCON 34 - AppSec Village 2026
 
 <a href="https://www.appsecvillage.com/events/dc-2026/farsight-turning-osint-into-actionable-attack-surface-intelligence-1206456">
 <img src="https://raw.githubusercontent.com/seedon198/Farsight/main/docs/assets/appsecvillage-logo.png" alt="AppSec Village" height="64"/>
