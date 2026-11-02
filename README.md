@@ -17,7 +17,7 @@
 </td>
 <td align="center" width="50%">
 
-### BLACKHAT 2025
+### BlackHat Sector 2025
 
 <a href="https://www.blackhat.com/sector/2025/arsenal/schedule/index.html#farsight-cli-based-recon-and-threat-intelligence-framework-47707">
 <img src="https://raw.githubusercontent.com/seedon198/Farsight/main/docs/assets/blackhat-logo.png" alt="Black Hat" height="64"/>
